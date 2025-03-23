@@ -1,0 +1,24 @@
+[model]
+from = "gguf"
+file = "$HOME/Downloads/llm-models/%%MODEL_NAME%%.gguf"
+
+[system]
+role = "system"
+content = "You are a helpful assistant."
+
+[adapter]
+name = "adapter"
+
+[template]
+{{ .System }}
+{{ .Adapter }}
+{{ .Messages }}
+
+[parameter]
+name = "temperature"
+type = "float"
+default = 0.7
+
+[message]
+role = "user"
+content = "{{ .Input }}"
