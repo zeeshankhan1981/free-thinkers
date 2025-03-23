@@ -27,6 +27,11 @@ MODEL_PARAMS = {
             "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
             "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
             "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        },
+        "prompt_guide": {
+            "use_case": "Fast, general-purpose tasks, concise outputs",
+            "example_prompt": "Summarize the main points of 'The Great Gatsby' in 100 words.",
+            "tip": "Keep the prompt short and straightforward for best results."
         }
     },
     "llama3-q8": {
@@ -39,6 +44,11 @@ MODEL_PARAMS = {
             "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
             "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
             "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        },
+        "prompt_guide": {
+            "use_case": "Low-memory devices, quick summaries, and simple tasks",
+            "example_prompt": "Describe the process of the water cycle in 3 sentences.",
+            "tip": "Focus on succinct and easily digestible outputs. Works best with clear and direct questions."
         }
     },
     "llama3-f16": {
@@ -51,6 +61,11 @@ MODEL_PARAMS = {
             "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
             "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
             "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        },
+        "prompt_guide": {
+            "use_case": "Detailed analysis, complex queries, long-form content",
+            "example_prompt": "Explain the economic implications of cryptocurrency adoption in 300 words.",
+            "tip": "Use for in-depth analysis or comparisons requiring multiple aspects. Provide context for better results."
         }
     },
     "gemma-2b-it": {
@@ -63,6 +78,11 @@ MODEL_PARAMS = {
             "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
             "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
             "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        },
+        "prompt_guide": {
+            "use_case": "Creative writing, artistic responses, nuanced storytelling",
+            "example_prompt": "Write a short story about a dragon who befriends a human child.",
+            "tip": "Best for creative and imaginative writing tasks, like storytelling and poetry."
         }
     }
 }
@@ -110,6 +130,22 @@ def get_models():
     """Return list of available models."""
     return jsonify(list(MODEL_PARAMS.keys()))
 
+@app.route('/api/model_guides')
+def get_model_guides():
+    """Return prompt guides for all models."""
+    guides = {}
+    for model_name, params in MODEL_PARAMS.items():
+        if 'prompt_guide' in params:
+            guides[model_name] = params['prompt_guide']
+    return jsonify(guides)
+
+@app.route('/api/model_guide/<model_name>')
+def get_model_guide(model_name):
+    """Get prompt guide for a specific model."""
+    if model_name in MODEL_PARAMS and 'prompt_guide' in MODEL_PARAMS[model_name]:
+        return jsonify(MODEL_PARAMS[model_name]['prompt_guide'])
+    return jsonify({"error": "Model guide not found"}), 404
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """Handle chat requests and stream responses."""
@@ -117,6 +153,7 @@ def chat():
     message = data.get('message', '')
     model = data.get('model', 'mistral-7b')
     speed = data.get('speed', 'medium')
+    use_guide = data.get('use_guide', False)
     
     if model not in MODEL_PARAMS:
         return jsonify({"error": "Invalid model"}), 400
@@ -124,6 +161,10 @@ def chat():
     # Validate message length
     if len(message) > 320:
         message = message[:320]  # Truncate if too long
+    
+    # If using guide and message is empty, use example prompt from guide
+    if use_guide and not message and 'prompt_guide' in MODEL_PARAMS[model]:
+        message = MODEL_PARAMS[model]['prompt_guide']['example_prompt']
         
     # Get model parameters
     base_params = MODEL_PARAMS[model]
@@ -166,6 +207,30 @@ def chat():
     
     return app.response_class(generate(), mimetype='text/event-stream')
 
+@app.route('/api/guided_chat', methods=['POST'])
+def guided_chat():
+    """Handle guided chat with prompt recommendations."""
+    data = request.json
+    message = data.get('message', '')
+    model = data.get('model', 'mistral-7b')
+    
+    if model not in MODEL_PARAMS:
+        return jsonify({"error": "Invalid model"}), 400
+    
+    # Get the guide for this model
+    guide = MODEL_PARAMS[model].get('prompt_guide', {})
+    
+    # If no message provided, use the example prompt
+    if not message and 'example_prompt' in guide:
+        message = guide['example_prompt']
+    
+    # Forward to the regular chat endpoint
+    response = chat()
+    
+    # Add guide information to the response (only for non-streaming responses)
+    # For streaming, the frontend would need to request the guide separately
+    return response
+
 @app.route('/api/history')
 def get_history():
     """Return list of all saved threads."""
@@ -175,7 +240,7 @@ def get_history():
 @app.route('/api/history/save', methods=['POST'])
 def save_thread_endpoint():
     """Save current thread to history."""
-    data = request.json
+    data = request.get_json()
     thread_id = str(uuid.uuid4())
     save_thread(thread_id, data['model'], data['messages'])
     return jsonify({"thread_id": thread_id})

@@ -193,6 +193,46 @@
             margin-right: 1rem;
         }
 
+        .prompt-guide {
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        .prompt-guide-title {
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .prompt-guide-content {
+            margin-bottom: 0.5rem;
+        }
+
+        .prompt-guide-tip {
+            font-style: italic;
+            color: #6c757d;
+        }
+
+        .prompt-guide-actions {
+            margin-top: 0.75rem;
+            text-align: right;
+        }
+
+        .dark-mode .prompt-guide {
+            background-color: #2d2d2d;
+            border-color: var(--primary-color);
+        }
+
+        .dark-mode .prompt-guide-tip {
+            color: #adb5bd;
+        }
+
         .history-sidebar {
             position: fixed;
             top: 0;
@@ -395,6 +435,19 @@
                 </select>
             </div>
 
+            <div class="prompt-guide" id="promptGuide" style="display: none;">
+                <div class="prompt-guide-title">
+                    <span id="promptGuideTitle">Best for: General Questions</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="togglePromptGuide">Hide Guide</button>
+                </div>
+                <div class="prompt-guide-content" id="promptGuideUseCase"></div>
+                <div class="prompt-guide-content">Example: <span id="promptGuideExample"></span></div>
+                <div class="prompt-guide-tip" id="promptGuideTip"></div>
+                <div class="prompt-guide-actions">
+                    <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use This Example</button>
+                </div>
+            </div>
+
             <textarea class="form-control" id="messageInput" placeholder="Type your message here..."></textarea>
 
             <div class="control-group">
@@ -439,6 +492,8 @@
             let currentThread = [];
             let currentModel = 'mistral-7b';
             let responseController = null;
+            let promptGuides = {};
+            let showPromptGuide = true;
 
             const darkModeToggle = document.getElementById('darkModeToggle');
             const modelSelect = document.getElementById('modelSelect');
@@ -452,6 +507,15 @@
             const historyBtn = document.getElementById('historyBtn');
             const closeHistory = document.getElementById('closeHistory');
             const historySidebar = document.getElementById('historySidebar');
+            
+            // Prompt guide elements
+            const promptGuideEl = document.getElementById('promptGuide');
+            const promptGuideTitleEl = document.getElementById('promptGuideTitle');
+            const promptGuideUseCaseEl = document.getElementById('promptGuideUseCase');
+            const promptGuideExampleEl = document.getElementById('promptGuideExample');
+            const promptGuideTipEl = document.getElementById('promptGuideTip');
+            const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
+            const useExamplePromptBtn = document.getElementById('useExamplePrompt');
 
             if (!darkModeToggle || !modelSelect || !sendMessage || !messageInput || 
                 !cancelResponse || !clearMessages || !responseSpeed || !chatContainer || !loadingIndicator ||
@@ -459,6 +523,51 @@
                 console.error('One or more required elements not found');
                 return;
             }
+
+            // Fetch prompt guides for all models
+            async function fetchPromptGuides() {
+                try {
+                    const response = await fetch('/api/model_guides');
+                    if (response.ok) {
+                        promptGuides = await response.json();
+                        updatePromptGuide(currentModel);
+                    }
+                } catch (error) {
+                    console.error('Error fetching prompt guides:', error);
+                }
+            }
+
+            // Update the prompt guide panel for the current model
+            function updatePromptGuide(modelName) {
+                if (promptGuides && promptGuides[modelName]) {
+                    const guide = promptGuides[modelName];
+                    promptGuideTitleEl.textContent = `Best for: ${guide.use_case}`;
+                    promptGuideUseCaseEl.textContent = `This model is optimized for ${guide.use_case.toLowerCase()}.`;
+                    promptGuideExampleEl.textContent = guide.example_prompt;
+                    promptGuideTipEl.textContent = `Tip: ${guide.tip}`;
+                    
+                    if (showPromptGuide) {
+                        promptGuideEl.style.display = 'block';
+                    }
+                } else {
+                    promptGuideEl.style.display = 'none';
+                }
+            }
+
+            // Handle toggle prompt guide visibility
+            togglePromptGuideBtn.addEventListener('click', function() {
+                showPromptGuide = !showPromptGuide;
+                promptGuideEl.style.display = showPromptGuide ? 'block' : 'none';
+                togglePromptGuideBtn.textContent = showPromptGuide ? 'Hide Guide' : 'Show Guide';
+            });
+
+            // Handle use example prompt button
+            useExamplePromptBtn.addEventListener('click', function() {
+                if (promptGuides && promptGuides[currentModel]) {
+                    messageInput.value = promptGuides[currentModel].example_prompt;
+                    messageInput.focus();
+                }
+            });
 
             // Handle send message
             sendMessage.addEventListener('click', async function() {
@@ -545,6 +654,7 @@
             // Handle model change
             modelSelect.addEventListener('change', function(e) {
                 currentModel = e.target.value;
+                updatePromptGuide(currentModel);
             });
 
             // Load history
@@ -610,6 +720,9 @@
                     })
                 });
             }
+            
+            // Load prompt guides when page loads
+            fetchPromptGuides();
         });
     </script>
 </body>
