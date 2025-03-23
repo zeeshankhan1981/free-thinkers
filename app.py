@@ -37,46 +37,6 @@ MODEL_PARAMS = {
             "max_input_chars": 320
         }
     },
-    "llama3-q8": {
-        "temperature": 0.75,
-        "top_p": 0.95,
-        "top_k": 40,
-        "speed_settings": {
-            "slow": {"temperature": 0.85, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.75, "top_p": 0.95, "top_k": 40},
-            "fast": {"temperature": 0.65, "top_p": 0.9, "top_k": 30}
-        },
-        "prompt_guide": {
-            "use_case_title": "Balanced performance and quality",
-            "use_case": "This model balances performance with output quality.",
-            "example_prompt": "Explain quantum computing to a high school student.",
-            "tip": "Best when you need detailed responses but still want decent performance."
-        },
-        "limits": {
-            "max_tokens": 3072,
-            "max_input_chars": 320
-        }
-    },
-    "llama3-f16": {
-        "temperature": 0.8,
-        "top_p": 0.95,
-        "top_k": 40,
-        "speed_settings": {
-            "slow": {"temperature": 0.9, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.8, "top_p": 0.95, "top_k": 40},
-            "fast": {"temperature": 0.7, "top_p": 0.9, "top_k": 30}
-        },
-        "prompt_guide": {
-            "use_case_title": "Highest quality responses",
-            "use_case": "This model produces the highest quality responses for complex questions.",
-            "example_prompt": "Write a detailed analysis of climate change impacts on agriculture.",
-            "tip": "For complex tasks where quality matters more than speed."
-        },
-        "limits": {
-            "max_tokens": 4096,
-            "max_input_chars": 320
-        }
-    },
     "gemma-2b-it": {
         "temperature": 0.7,
         "top_p": 0.95,
