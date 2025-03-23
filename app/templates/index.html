@@ -366,7 +366,7 @@
                             <span>Light Mode</span>
                             <span style="display: none;">Dark Mode</span>
                         </button>
-                        <button class="btn btn-outline-primary" id="historyToggle">
+                        <button class="btn btn-outline-primary" id="historyBtn">
                             <span>History</span>
                             <span style="display: none;">Close</span>
                         </button>
@@ -407,7 +407,7 @@
 
     <!-- History Sidebar -->
     <div class="history-sidebar" id="historySidebar">
-        <button class="close-btn" onclick="toggleHistory()">×</button>
+        <button class="close-btn" id="closeHistory">×</button>
         <div class="p-3">
             <h5 class="mb-3">History</h5>
             <div class="history-list">
@@ -418,148 +418,189 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let isDarkMode = false;
-        let currentThread = [];
-        let currentModel = 'mistral-7b';
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            let isDarkMode = false;
+            let currentThread = [];
+            let currentModel = 'mistral-7b';
 
-        // Toggle dark mode
-        document.getElementById('darkModeToggle').addEventListener('click', function() {
-            isDarkMode = !isDarkMode;
-            document.body.classList.toggle('dark-mode');
-            document.getElementById('darkModeToggle').textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
-            toggleDarkMode();
-        });
-
-        // Load models
-        async function loadModels() {
-            const select = document.getElementById('modelSelect');
-            const models = [
-                { value: 'mistral-7b', text: 'Mistral 7B (Q4_K_M)' },
-                { value: 'llama3-q8', text: 'Llama 3 8B (Q8_0)' },
-                { value: 'llama3-f16', text: 'Llama 3 8B (F16)' },
-                { value: 'gemma-2b-it', text: 'Gemma 2B' }
-            ];
-
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.value;
-                option.textContent = model.text;
-                select.appendChild(option);
-            });
-        }
-
-        // Initialize
-        loadModels();
-
-        // Handle model change
-        document.getElementById('modelSelect').addEventListener('change', function(e) {
-            currentModel = e.target.value;
-        });
-
-        // Handle send message
-        document.getElementById('sendMessage').addEventListener('click', async function() {
+            // Get all elements
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const modelSelect = document.getElementById('modelSelect');
+            const sendMessage = document.getElementById('sendMessage');
             const messageInput = document.getElementById('messageInput');
-            const message = messageInput.value.trim();
-            
-            if (!message) return;
-            
-            // Add user message to thread
-            currentThread.push({ role: 'user', content: message });
-            renderMessages();
-            
-            // Clear input
-            messageInput.value = '';
-            
-            try {
-                // Send message to server
-                const response = await fetch('/chat', {
+            const historyBtn = document.getElementById('historyBtn');
+            const closeHistory = document.getElementById('closeHistory');
+            const historySidebar = document.getElementById('historySidebar');
+            const chatContainer = document.getElementById('chatContainer');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            // Check if all required elements exist
+            if (!darkModeToggle || !modelSelect || !sendMessage || !messageInput || 
+                !historyBtn || !closeHistory || !historySidebar || !chatContainer || !loadingIndicator) {
+                console.error('One or more required elements not found');
+                return;
+            }
+
+            // Toggle dark mode
+            darkModeToggle.addEventListener('click', function() {
+                isDarkMode = !isDarkMode;
+                document.body.classList.toggle('dark-mode');
+                darkModeToggle.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
+                toggleDarkMode();
+            });
+
+            // Load models
+            async function loadModels() {
+                const models = [
+                    { value: 'mistral-7b', text: 'Mistral 7B (Q4_K_M)' },
+                    { value: 'llama3-q8', text: 'Llama 3 8B (Q8_0)' },
+                    { value: 'llama3-f16', text: 'Llama 3 8B (F16)' },
+                    { value: 'gemma-2b-it', text: 'Gemma 2B' }
+                ];
+
+                modelSelect.innerHTML = '';
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.value;
+                    option.textContent = model.text;
+                    modelSelect.appendChild(option);
+                });
+            }
+
+            // Initialize
+            loadModels();
+
+            // Handle model change
+            modelSelect.addEventListener('change', function(e) {
+                currentModel = e.target.value;
+            });
+
+            // Handle send message
+            sendMessage.addEventListener('click', async function() {
+                const message = messageInput.value.trim();
+                
+                if (!message) return;
+                
+                // Add user message to thread
+                currentThread.push({ role: 'user', content: message });
+                renderMessages();
+                
+                // Clear input
+                messageInput.value = '';
+                
+                try {
+                    // Show loading indicator
+                    loadingIndicator.style.display = 'block';
+                    
+                    // Send message to server
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            model: currentModel
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    // Handle streaming response
+                    const reader = response.body.getReader();
+                    let fullResponse = '';
+                    
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+                        const text = new TextDecoder().decode(value);
+                        fullResponse += text;
+                        
+                        // Update UI with partial response
+                        currentThread[currentThread.length - 1].content += text;
+                        renderMessages();
+                    }
+
+                    // Add final response to thread
+                    currentThread.push({ role: 'assistant', content: fullResponse });
+                    renderMessages();
+                    
+                    // Save to history
+                    saveToHistory(currentThread);
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    currentThread.push({ role: 'assistant', content: 'Sorry, there was an error processing your request.' });
+                    renderMessages();
+                } finally {
+                    // Hide loading indicator
+                    loadingIndicator.style.display = 'none';
+                }
+            });
+
+            // Render messages
+            function renderMessages() {
+                chatContainer.innerHTML = currentThread.map(msg => `
+                    <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
+                        ${msg.content}
+                    </div>
+                `).join('');
+                
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            // Save to history
+            function saveToHistory(thread) {
+                fetch('/api/history/save', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        message: message,
+                        thread: thread,
                         model: currentModel
                     })
                 });
+            }
 
-                const data = await response.json();
+            // Load history
+            historyBtn.addEventListener('click', function() {
+                historySidebar.classList.add('active');
+            });
+
+            // Close history
+            closeHistory.addEventListener('click', function() {
+                historySidebar.classList.remove('active');
+            });
+
+            // Toggle dark mode styles
+            function toggleDarkMode() {
+                const body = document.body;
+                const isDark = body.classList.contains('dark-mode');
                 
-                // Add assistant response to thread
-                currentThread.push({ role: 'assistant', content: data.response });
-                renderMessages();
+                // Update text colors
+                const textElements = document.querySelectorAll('body, .form-control, .form-select, .btn, .text-muted');
+                textElements.forEach(el => {
+                    el.style.color = isDark ? '#f8f9fa' : '#212529';
+                });
                 
-                // Save to history
-                saveToHistory(currentThread);
+                // Update background colors
+                const bgElements = document.querySelectorAll('.chat-container, .input-container');
+                bgElements.forEach(el => {
+                    el.style.backgroundColor = isDark ? '#2d2d2d' : '#ffffff';
+                });
                 
-            } catch (error) {
-                console.error('Error:', error);
+                // Update message colors
+                const messageElements = document.querySelectorAll('.message');
+                messageElements.forEach(msg => {
+                    msg.style.backgroundColor = isDark ? '#3d3d3d' : '#ffffff';
+                });
             }
         });
-
-        // Render messages
-        function renderMessages() {
-            const container = document.getElementById('chatContainer');
-            container.innerHTML = currentThread.map(msg => `
-                <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
-                    ${msg.content}
-                </div>
-            `).join('');
-            
-            // Scroll to bottom
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // Save to history
-        function saveToHistory(thread) {
-            fetch('/save_history', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    thread: thread,
-                    model: currentModel
-                })
-            });
-        }
-
-        // Load history
-        document.getElementById('historyBtn').addEventListener('click', function() {
-            document.getElementById('historySidebar').classList.add('active');
-        });
-
-        // Close history
-        document.getElementById('closeHistory').addEventListener('click', function() {
-            document.getElementById('historySidebar').classList.remove('active');
-        });
-
-        // Toggle dark mode styles
-        function toggleDarkMode() {
-            const body = document.body;
-            const isDark = body.classList.contains('dark-mode');
-            
-            // Update text colors
-            const textElements = document.querySelectorAll('body, .form-control, .form-select, .btn, .text-muted');
-            textElements.forEach(el => {
-                el.style.color = isDark ? '#f8f9fa' : '#212529';
-            });
-            
-            // Update background colors
-            body.style.backgroundColor = isDark ? '#1a1a1a' : '#f8f9fa';
-            
-            // Update input backgrounds
-            const inputElements = document.querySelectorAll('.form-control, .form-select');
-            inputElements.forEach(el => {
-                el.style.backgroundColor = isDark ? 'rgba(255, 255, 255, 0.1)' : '#fff';
-            });
-            
-            // Update button backgrounds
-            const btnElements = document.querySelectorAll('.btn');
-            btnElements.forEach(el => {
-                el.style.backgroundColor = isDark ? 'rgba(255, 255, 255, 0.1)' : '#007bff';
-            });
-        }
     </script>
 </body>
 </html>
