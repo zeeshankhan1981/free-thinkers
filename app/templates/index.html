@@ -496,19 +496,22 @@
                     const reader = response.body.getReader();
                     let fullResponse = '';
                     
+                    // Add an empty assistant message to start
+                    currentThread.push({ role: 'assistant', content: '' });
+                    renderMessages();
+                    
                     while (true) {
                         const {done, value} = await reader.read();
                         if (done) break;
                         const text = new TextDecoder().decode(value);
                         fullResponse += text;
                         
-                        currentThread[currentThread.length - 1].content += text;
+                        // Update the assistant message as chunks come in
+                        currentThread[currentThread.length - 1].content = fullResponse;
                         renderMessages();
                     }
-
-                    currentThread.push({ role: 'assistant', content: fullResponse });
-                    renderMessages();
                     
+                    // No need to add another message, we already added it and updated it
                     saveToHistory(currentThread);
                     
                 } catch (error) {
