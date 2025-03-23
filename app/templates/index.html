@@ -179,18 +179,11 @@
 
         .model-select {
             margin-bottom: var(--spacing);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            width: 100%;
         }
 
         .model-select .form-select {
-            max-width: 300px;
-        }
-
-        .model-label {
-            font-weight: 500;
-            margin-right: 1rem;
+            width: 100%;
         }
 
         .prompt-guide {
@@ -411,13 +404,8 @@
 <body>
     <header class="header">
         <h1 class="header-title">Free Thinkers</h1>
-        <div class="header-controls">
-            <button class="btn btn-outline-secondary" id="darkModeToggle">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon" viewBox="0 0 16 16">
-                    <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
-                </svg>
-                <span class="ms-1">Dark Mode</span>
-            </button>
+        <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-outline-secondary" id="darkModeToggle">Dark Mode</button>
         </div>
     </header>
 
@@ -425,27 +413,27 @@
         <div class="chat-container" id="chatContainer"></div>
 
         <div class="input-container">
-            <div class="model-select">
-                <div class="model-label">Model:</div>
-                <select class="form-select" id="modelSelect">
-                    <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
-                    <option value="llama3-q8">Llama 3 8B (Q8_0)</option>
-                    <option value="llama3-f16">Llama 3 8B (F16)</option>
-                    <option value="gemma-2b-it">Gemma 2B</option>
-                </select>
-            </div>
-
             <div class="prompt-guide" id="promptGuide" style="display: none;">
                 <div class="prompt-guide-title">
                     <span id="promptGuideTitle">Best for: General Questions</span>
-                    <button class="btn btn-sm btn-outline-secondary" id="togglePromptGuide">Hide Guide</button>
                 </div>
                 <div class="prompt-guide-content" id="promptGuideUseCase"></div>
                 <div class="prompt-guide-content">Example: <span id="promptGuideExample"></span></div>
                 <div class="prompt-guide-tip" id="promptGuideTip"></div>
                 <div class="prompt-guide-actions">
                     <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use This Example</button>
+                    <button class="btn btn-sm btn-outline-secondary ms-2" id="togglePromptGuide">Hide Guide</button>
                 </div>
+            </div>
+
+            <div class="model-select mb-3">
+                <select class="form-select" id="modelSelect">
+                    <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
+                    <option value="llama3-q8">Llama 3 8B (Q8_0)</option>
+                    <option value="llama3-f16">Llama 3 8B (F16)</option>
+                    <option value="gemma-2b-it">Gemma 2B</option>
+                </select>
+                <button class="btn btn-sm btn-outline-primary mt-2" id="showGuideBtn">Show Guide</button>
             </div>
 
             <textarea class="form-control" id="messageInput" placeholder="Type your message here..."></textarea>
@@ -516,11 +504,13 @@
             const promptGuideTipEl = document.getElementById('promptGuideTip');
             const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
             const useExamplePromptBtn = document.getElementById('useExamplePrompt');
+            const showGuideBtn = document.getElementById('showGuideBtn');
 
             if (!darkModeToggle || !modelSelect || !sendMessage || !messageInput || 
                 !cancelResponse || !clearMessages || !responseSpeed || !chatContainer || !loadingIndicator ||
-                !historyBtn || !closeHistory || !historySidebar) {
-                console.error('One or more required elements not found');
+                !historyBtn || !promptGuideEl || !promptGuideTitleEl || !promptGuideUseCaseEl || 
+                !promptGuideExampleEl || !promptGuideTipEl || !togglePromptGuideBtn || !useExamplePromptBtn || !showGuideBtn) {
+                console.error('Missing UI elements');
                 return;
             }
 
@@ -548,17 +538,29 @@
                     
                     if (showPromptGuide) {
                         promptGuideEl.style.display = 'block';
+                        togglePromptGuideBtn.textContent = 'Hide Guide';
+                    } else {
+                        promptGuideEl.style.display = 'none';
+                        togglePromptGuideBtn.textContent = 'Show Guide';
                     }
                 } else {
                     promptGuideEl.style.display = 'none';
+                    togglePromptGuideBtn.style.display = 'none';
                 }
             }
 
             // Handle toggle prompt guide visibility
             togglePromptGuideBtn.addEventListener('click', function() {
-                showPromptGuide = !showPromptGuide;
-                promptGuideEl.style.display = showPromptGuide ? 'block' : 'none';
-                togglePromptGuideBtn.textContent = showPromptGuide ? 'Hide Guide' : 'Show Guide';
+                showPromptGuide = false;
+                promptGuideEl.style.display = 'none';
+                showGuideBtn.style.display = 'block';
+            });
+
+            // Show guide button handler
+            showGuideBtn.addEventListener('click', function() {
+                showPromptGuide = true;
+                promptGuideEl.style.display = 'block';
+                showGuideBtn.style.display = 'none';
             });
 
             // Handle use example prompt button
@@ -575,72 +577,97 @@
                 
                 if (!message) return;
                 
-                currentThread.push({ role: 'user', content: message });
+                // Disable input and show loading
+                messageInput.value = '';
+                messageInput.disabled = true;
+                sendMessage.disabled = true;
+                cancelResponse.style.display = 'block';
+                loadingIndicator.style.display = 'inline-block';
+                
+                // Add the user message to the thread
+                currentThread.push({
+                    role: 'user',
+                    content: message
+                });
+                
+                // Add an empty assistant message that we'll update during streaming
+                currentThread.push({
+                    role: 'assistant',
+                    content: ''
+                });
+                
                 renderMessages();
                 
-                messageInput.value = '';
-                
                 try {
-                    loadingIndicator.style.display = 'block';
+                    // Set up a POST request to the backend with the message and selected model
+                    let response = '';
+                    let accumulated = '';
                     
-                    responseController = new AbortController();
-                    
-                    const response = await fetch('/api/chat', {
+                    const fetchResponse = await fetch('/api/chat', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             message: message,
                             model: currentModel,
                             speed: responseSpeed.value
-                        }),
-                        signal: responseController.signal
+                        })
                     });
-
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-
-                    const reader = response.body.getReader();
-                    let fullResponse = '';
                     
-                    // Add an empty assistant message to start
-                    currentThread.push({ role: 'assistant', content: '' });
-                    renderMessages();
+                    // Use ReadableStream instead of EventSource
+                    const reader = fetchResponse.body.getReader();
+                    responseController = reader;
                     
+                    // Process the stream
                     while (true) {
-                        const {done, value} = await reader.read();
-                        if (done) break;
-                        const text = new TextDecoder().decode(value);
-                        fullResponse += text;
+                        const { done, value } = await reader.read();
                         
-                        // Update the assistant message as chunks come in
-                        currentThread[currentThread.length - 1].content = fullResponse;
+                        if (done) {
+                            break;
+                        }
+                        
+                        // Convert the chunk to text
+                        const chunk = new TextDecoder().decode(value);
+                        accumulated += chunk;
+                        
+                        // Update the assistant's message
+                        currentThread[currentThread.length - 1].content = accumulated;
                         renderMessages();
                     }
                     
-                    // No need to add another message, we already added it and updated it
-                    saveToHistory(currentThread);
+                    // Save the completed thread to history
+                    if (currentThread.length >= 2) {
+                        console.log("Saving thread to history", currentThread);
+                        saveToHistory(currentThread);
+                    }
+                    
+                    // Re-enable the UI
+                    messageInput.disabled = false;
+                    sendMessage.disabled = false;
+                    cancelResponse.style.display = 'none';
+                    loadingIndicator.style.display = 'none';
+                    messageInput.focus();
                     
                 } catch (error) {
-                    console.error('Error:', error);
-                    if (error.name === 'AbortError') {
-                        currentThread.push({ role: 'assistant', content: 'Response cancelled by user.' });
-                    } else {
-                        currentThread.push({ role: 'assistant', content: 'Sorry, there was an error processing your request.' });
-                    }
-                    renderMessages();
-                } finally {
+                    console.error('Error sending message:', error);
+                    messageInput.disabled = false;
+                    sendMessage.disabled = false;
+                    cancelResponse.style.display = 'none';
                     loadingIndicator.style.display = 'none';
-                    responseController = null;
                 }
             });
 
             // Add cancel response functionality
             cancelResponse.addEventListener('click', function() {
                 if (responseController) {
-                    responseController.abort();
+                    responseController.cancel();
+                    responseController = null;
+                    
+                    // Re-enable input
+                    messageInput.disabled = false;
+                    sendMessage.disabled = false;
+                    cancelResponse.style.display = 'none';
                     loadingIndicator.style.display = 'none';
                 }
             });
@@ -660,6 +687,7 @@
             // Load history
             historyBtn.addEventListener('click', function() {
                 historySidebar.classList.add('active');
+                loadConversationHistory();
             });
 
             // Close history
@@ -715,10 +743,96 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        thread: thread,
-                        model: currentModel
+                        model: currentModel,
+                        messages: thread
                     })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('History saved:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving history:', error);
                 });
+            }
+
+            // Load conversation history
+            function loadConversationHistory() {
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = '<div class="p-3 text-center">Loading history...</div>';
+                
+                console.log("Loading conversation history...");
+                
+                fetch('/api/history')
+                    .then(response => {
+                        console.log("History API response:", response);
+                        return response.json();
+                    })
+                    .then(threads => {
+                        console.log("Loaded threads:", threads);
+                        
+                        if (!threads || threads.length === 0) {
+                            historyList.innerHTML = '<div class="p-3 text-center">No conversation history found</div>';
+                            return;
+                        }
+                        
+                        historyList.innerHTML = threads.map(thread => {
+                            // Get first user message or use timestamp if no messages
+                            let title = 'Conversation';
+                            if (thread.messages && thread.messages.length > 0) {
+                                // Find first user message
+                                const firstUserMsg = thread.messages.find(msg => msg.role === 'user');
+                                if (firstUserMsg) {
+                                    // Truncate message if too long
+                                    title = firstUserMsg.content.length > 30 
+                                        ? firstUserMsg.content.substring(0, 30) + '...'
+                                        : firstUserMsg.content;
+                                }
+                            }
+                            
+                            // Format date
+                            const date = new Date(thread.created_at);
+                            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            
+                            return `
+                                <div class="history-item" data-thread-id="${thread.id}">
+                                    <div class="history-item-title">${title}</div>
+                                    <div class="history-item-date text-muted">${formattedDate}</div>
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        // Add click event listeners to history items
+                        document.querySelectorAll('.history-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                const threadId = this.getAttribute('data-thread-id');
+                                loadThread(threadId);
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading history:', error);
+                        historyList.innerHTML = '<div class="p-3 text-center">Error loading history: ' + error.message + '</div>';
+                    });
+            }
+            
+            // Load a specific thread
+            function loadThread(threadId) {
+                fetch(`/api/history/${threadId}`)
+                    .then(response => response.json())
+                    .then(thread => {
+                        if (thread.messages) {
+                            currentThread = thread.messages;
+                            currentModel = thread.model;
+                            modelSelect.value = currentModel;
+                            updatePromptGuide(currentModel);
+                            renderMessages();
+                            historySidebar.classList.remove('active');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading thread:', error);
+                    });
             }
             
             // Load prompt guides when page loads

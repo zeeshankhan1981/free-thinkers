@@ -87,6 +87,9 @@ MODEL_PARAMS = {
     }
 }
 
+# Ensure history directory exists
+HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+
 def get_thread_path(thread_id):
     """Get the path to a thread's JSON file."""
     return HISTORY_DIR / f"{thread_id}.json"
@@ -106,11 +109,28 @@ def save_thread(thread_id, model, messages):
 
 def load_history():
     """Load all thread history from disk."""
+    # Ensure history directory exists
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    
     threads = []
-    for file in sorted(HISTORY_DIR.glob("*.json"), reverse=True)[:MAX_HISTORY]:
-        with open(file, 'r') as f:
-            thread = json.load(f)
-            threads.append(thread)
+    try:
+        # Sort by modification time to get newest first
+        json_files = sorted(HISTORY_DIR.glob("*.json"), 
+                          key=lambda x: x.stat().st_mtime, 
+                          reverse=True)[:MAX_HISTORY]
+        
+        for file in json_files:
+            try:
+                with open(file, 'r') as f:
+                    thread = json.load(f)
+                    threads.append(thread)
+            except Exception as e:
+                print(f"Error loading thread file {file}: {e}")
+                continue
+    except Exception as e:
+        print(f"Error loading history: {e}")
+    
+    print(f"Loaded {len(threads)} threads from history")
     return threads
 
 def get_thread(thread_id):
@@ -240,10 +260,18 @@ def get_history():
 @app.route('/api/history/save', methods=['POST'])
 def save_thread_endpoint():
     """Save current thread to history."""
-    data = request.get_json()
-    thread_id = str(uuid.uuid4())
-    save_thread(thread_id, data['model'], data['messages'])
-    return jsonify({"thread_id": thread_id})
+    try:
+        data = request.get_json()
+        if not data or 'model' not in data or 'messages' not in data:
+            print("Invalid save request data:", data)
+            return jsonify({"error": "Invalid data format"}), 400
+            
+        thread_id = str(uuid.uuid4())
+        save_thread(thread_id, data['model'], data['messages'])
+        return jsonify({"thread_id": thread_id, "status": "success"})
+    except Exception as e:
+        print(f"Error saving thread: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/history/<thread_id>')
 def get_thread_endpoint(thread_id):
@@ -254,8 +282,5 @@ def get_thread_endpoint(thread_id):
     return jsonify({"error": "Thread not found"}), 404
 
 if __name__ == '__main__':
-    # Ensure history directory exists
-    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
-    
     # Run the application
     app.run(debug=True, port=5000)
