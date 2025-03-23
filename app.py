@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
+import requests
 import json
 import uuid
 from datetime import datetime
@@ -14,12 +15,56 @@ CORS(app, resources={r"/api/*": {"origins": "http://localhost:5000"}})
 HISTORY_DIR = Path(os.path.expanduser("~/.freethinkers/history/"))
 MAX_HISTORY = 100
 
-# Available models in Ollama
-AVAILABLE_MODELS = {
-    "mistral-7b": {"max_tokens": 2048, "max_context": 4096},
-    "llama3-q8": {"max_tokens": 2048, "max_context": 4096},
-    "llama3-f16": {"max_tokens": 2048, "max_context": 4096},
-    "gemma-2b-it": {"max_tokens": 1024, "max_context": 2048}
+# Model-specific parameters
+MODEL_PARAMS = {
+    "mistral-7b": {
+        "max_tokens": 2048,
+        "max_context": 4096,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 40,
+        "speed_settings": {
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
+            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        }
+    },
+    "llama3-q8": {
+        "max_tokens": 2048,
+        "max_context": 4096,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 40,
+        "speed_settings": {
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
+            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        }
+    },
+    "llama3-f16": {
+        "max_tokens": 2048,
+        "max_context": 4096,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 40,
+        "speed_settings": {
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
+            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        }
+    },
+    "gemma-2b-it": {
+        "max_tokens": 1024,
+        "max_context": 2048,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 40,
+        "speed_settings": {
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
+            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+        }
+    }
 }
 
 def get_thread_path(thread_id):
@@ -63,7 +108,7 @@ def index():
 @app.route('/api/models')
 def get_models():
     """Return list of available models."""
-    return jsonify(["mistral-7b", "llama3-q8", "llama3-f16", "gemma-2b-it"])
+    return jsonify(list(MODEL_PARAMS.keys()))
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -71,17 +116,21 @@ def chat():
     data = request.json
     message = data.get('message', '')
     model = data.get('model', 'mistral-7b')
-    system_prompt = data.get('system_prompt', '')
+    speed = data.get('speed', 'medium')
     
-    if model not in AVAILABLE_MODELS:
+    if model not in MODEL_PARAMS:
         return jsonify({"error": "Invalid model"}), 400
     
     # Validate message length
     if len(message) > 320:
         message = message[:320]  # Truncate if too long
         
+    # Get model parameters
+    base_params = MODEL_PARAMS[model]
+    speed_params = base_params['speed_settings'][speed]
+    
     # Prepare the prompt for Ollama
-    prompt = f"{system_prompt}\n\nUser: {message}\nAssistant:"
+    prompt = f"{message}\nAssistant:"
     
     # Call Ollama API
     response = requests.post(
@@ -90,23 +139,30 @@ def chat():
             'model': model,
             'prompt': prompt,
             'stream': True,
-            'temperature': 0.7,
-            'top_p': 0.95,
-            'top_k': 40,
-            'max_tokens': AVAILABLE_MODELS[model]['max_tokens']
+            'temperature': speed_params['temperature'],
+            'top_p': speed_params['top_p'],
+            'top_k': speed_params['top_k'],
+            'max_tokens': base_params['max_tokens']
         },
-        stream=True
+        stream=True,
+        timeout=300  # 5 minute timeout
     )
     
     def generate():
-        for line in response.iter_lines():
-            if line:
-                try:
-                    chunk = json.loads(line)
-                    if 'response' in chunk:
-                        yield chunk['response']
-                except json.JSONDecodeError:
-                    continue
+        try:
+            for line in response.iter_lines():
+                if line:
+                    try:
+                        chunk = json.loads(line)
+                        if 'response' in chunk:
+                            yield chunk['response']
+                    except json.JSONDecodeError:
+                        continue
+        except requests.exceptions.Timeout:
+            pass  # Timeout is handled by the frontend
+        except Exception as e:
+            print(f"Error in response generation: {e}")
+            pass
     
     return app.response_class(generate(), mimetype='text/event-stream')
 

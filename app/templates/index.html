@@ -400,6 +400,21 @@
                             <button class="btn btn-primary w-100" id="sendMessage">Send</button>
                         </div>
                     </div>
+                    <div class="row mt-2">
+                        <div class="col-auto">
+                            <button class="btn btn-outline-secondary" id="cancelResponse">Cancel</button>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-outline-secondary" id="clearMessages">Clear Messages</button>
+                        </div>
+                        <div class="col-auto">
+                            <select class="form-select" id="responseSpeed" style="width: auto;">
+                                <option value="slow">Slow</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="fast">Fast</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -423,6 +438,7 @@
             let isDarkMode = false;
             let currentThread = [];
             let currentModel = 'mistral-7b';
+            let responseController = null;
 
             // Get all elements
             const darkModeToggle = document.getElementById('darkModeToggle');
@@ -493,6 +509,9 @@
                     // Show loading indicator
                     loadingIndicator.style.display = 'block';
                     
+                    // Create and store AbortController
+                    responseController = new AbortController();
+                    
                     // Send message to server
                     const response = await fetch('/api/chat', {
                         method: 'POST',
@@ -501,8 +520,10 @@
                         },
                         body: JSON.stringify({
                             message: message,
-                            model: currentModel
-                        })
+                            model: currentModel,
+                            speed: document.getElementById('responseSpeed').value
+                        }),
+                        signal: responseController.signal
                     });
 
                     if (!response.ok) {
@@ -533,11 +554,17 @@
                     
                 } catch (error) {
                     console.error('Error:', error);
-                    currentThread.push({ role: 'assistant', content: 'Sorry, there was an error processing your request.' });
+                    if (error.name === 'AbortError') {
+                        currentThread.push({ role: 'assistant', content: 'Response cancelled by user.' });
+                    } else {
+                        currentThread.push({ role: 'assistant', content: 'Sorry, there was an error processing your request.' });
+                    }
                     renderMessages();
                 } finally {
                     // Hide loading indicator
                     loadingIndicator.style.display = 'none';
+                    // Clear the controller
+                    responseController = null;
                 }
             });
 
@@ -600,6 +627,24 @@
                     msg.style.backgroundColor = isDark ? '#3d3d3d' : '#ffffff';
                 });
             }
+
+            // Add cancel response functionality
+            const cancelResponse = document.getElementById('cancelResponse');
+
+            cancelResponse.addEventListener('click', function() {
+                if (responseController) {
+                    responseController.abort();
+                    loadingIndicator.style.display = 'none';
+                }
+            });
+
+            // Add clear messages functionality
+            const clearMessages = document.getElementById('clearMessages');
+
+            clearMessages.addEventListener('click', function() {
+                currentThread = [];
+                renderMessages();
+            });
         });
     </script>
 </body>
