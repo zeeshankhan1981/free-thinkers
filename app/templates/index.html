@@ -83,6 +83,27 @@
         .dark-mode .history-sidebar {
             background-color: #2d2d2d;
         }
+        .loading-indicator {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .dark-mode .loading-indicator {
+            border: 3px solid #4d4d4d;
+            border-top: 3px solid #666;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -99,6 +120,9 @@
 
                 <div class="chat-container" id="chatContainer">
                     <!-- Messages will be inserted here -->
+                    <div class="d-flex justify-content-center align-items-center" style="height: 100%;">
+                        <div class="loading-indicator" id="loadingIndicator"></div>
+                    </div>
                 </div>
 
                 <div class="input-container">
@@ -279,6 +303,12 @@
             // Clear input
             document.getElementById('messageInput').value = '';
 
+            // Show loading indicator
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'block';
+            }
+
             // Send to LLM
             try {
                 const response = await fetch('/api/chat', {
@@ -314,6 +344,11 @@
                     content: 'Sorry, there was an error processing your request.'
                 });
                 renderMessages();
+            } finally {
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
             }
         }
 
