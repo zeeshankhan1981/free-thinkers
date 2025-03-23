@@ -132,7 +132,27 @@
                             </select>
                         </div>
                         <div class="col">
-                            <input type="text" class="form-control" id="systemPrompt" placeholder="System prompt (optional)">
+                            <div class="input-group">
+                                <select class="form-select" id="systemPromptExamples">
+                                    <option value="">Select a template...</option>
+                                    <option value="You are a professional consultant. Always be concise and professional.">
+                                        Professional Consultant
+                                    </option>
+                                    <option value="You are a creative writing assistant. Help generate engaging content.">
+                                        Creative Writing Assistant
+                                    </option>
+                                    <option value="You are a senior software engineer. Explain technical concepts clearly.">
+                                        Software Engineer
+                                    </option>
+                                    <option value="You are a research assistant. Provide detailed, evidence-based answers.">
+                                        Research Assistant
+                                    </option>
+                                    <option value="You are a friendly AI assistant. Always be helpful and friendly.">
+                                        Friendly Assistant
+                                    </option>
+                                </select>
+                                <input type="text" class="form-control" id="systemPrompt" placeholder="Custom system prompt (optional)">
+                            </div>
                         </div>
                     </div>
                     <div class="row g-3 mt-3">
@@ -167,6 +187,32 @@
         let currentThread = [];
         let currentModel = 'mistral-7b';
         let currentSystemPrompt = '';
+
+        // Documentation for system prompts
+        const systemPromptDocs = `
+            <div class="alert alert-info">
+                <h5>System Prompt Guide</h5>
+                <p>The system prompt defines the AI's behavior and personality. Here are some tips:</p>
+                <ul>
+                    <li><strong>Tone:</strong> Set the tone (friendly, professional, etc.)</li>
+                    <li><strong>Role:</strong> Define the AI's role (e.g., "You are a coding expert")</li>
+                    <li><strong>Constraints:</strong> Add rules (e.g., "Never lie")</li>
+                    <li><strong>Specialization:</strong> Focus on specific areas (e.g., "You are a Python expert")</li>
+                </ul>
+                <p>Example: "You are a professional consultant. Always be concise and professional. Provide clear, actionable advice."</p>
+            </div>
+        `;
+
+        // Add documentation to the history sidebar
+        document.getElementById('historySidebar').innerHTML += systemPromptDocs;
+
+        // Event listener for system prompt examples
+        document.getElementById('systemPromptExamples').addEventListener('change', function(e) {
+            const selectedValue = e.target.value;
+            if (selectedValue) {
+                document.getElementById('systemPrompt').value = selectedValue;
+            }
+        });
 
         // Initialize dark mode from localStorage
         if (localStorage.getItem('darkMode') === 'true') {
