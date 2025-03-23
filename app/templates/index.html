@@ -399,6 +399,30 @@
             background: var(--primary-hover);
             transform: translateY(-2px);
         }
+
+        .input-group {
+            position: relative;
+        }
+
+        .char-counter {
+            position: absolute;
+            bottom: 8px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #6c757d;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 0 5px;
+            border-radius: 3px;
+            z-index: 5;
+        }
+
+        .char-counter.warning {
+            color: #ff9900;
+        }
+
+        .char-counter.danger {
+            color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -434,7 +458,10 @@
                 </div>
             </div>
 
-            <textarea class="form-control" id="messageInput" placeholder="Type your message here..."></textarea>
+            <div class="input-group mb-3">
+                <textarea class="form-control" id="messageInput" placeholder="Type your message here..." maxlength="320"></textarea>
+                <span class="char-counter" id="charCounter">0/320</span>
+            </div>
 
             <div class="control-group">
                 <div class="primary-controls">
@@ -526,11 +553,21 @@
             // Update the prompt guide panel for the current model
             function updatePromptGuide(modelName) {
                 if (promptGuides && promptGuides[modelName]) {
-                    const guide = promptGuides[modelName];
-                    promptGuideTitleEl.textContent = `Best for: ${guide.use_case}`;
-                    promptGuideUseCaseEl.textContent = `This model is optimized for ${guide.use_case.toLowerCase()}.`;
-                    promptGuideExampleEl.textContent = guide.example_prompt;
-                    promptGuideTipEl.textContent = `Tip: ${guide.tip}`;
+                    const modelData = promptGuides[modelName];
+                    const guide = modelData.guide;
+                    
+                    promptGuideTitleEl.textContent = `Best for: ${guide.use_case_title || guide.use_case}`;
+                    promptGuideUseCaseEl.textContent = guide.use_case || '';
+                    promptGuideExampleEl.textContent = guide.example_prompt || '';
+                    promptGuideTipEl.textContent = `Tip: ${guide.tip || ''}`;
+                    
+                    // Update character limit if available
+                    if (modelData.limits && modelData.limits.max_input_chars) {
+                        const maxLength = modelData.limits.max_input_chars;
+                        messageInput.setAttribute('maxlength', maxLength);
+                        const charCounter = document.getElementById('charCounter');
+                        charCounter.textContent = `${messageInput.value.length}/${maxLength}`;
+                    }
                     
                     promptGuideEl.style.display = 'block';
                 } else {
@@ -538,11 +575,33 @@
                 }
             }
 
+            // Handle character counting for message input
+            messageInput.addEventListener('input', function() {
+                const maxLength = parseInt(this.getAttribute('maxlength'));
+                const currentLength = this.value.length;
+                const charCounter = document.getElementById('charCounter');
+                
+                // Update counter
+                charCounter.textContent = `${currentLength}/${maxLength}`;
+                
+                // Apply styling based on length
+                charCounter.classList.remove('warning', 'danger');
+                if (currentLength > maxLength * 0.8) {
+                    charCounter.classList.add('warning');
+                }
+                if (currentLength > maxLength * 0.95) {
+                    charCounter.classList.add('danger');
+                }
+            });
+
             // Handle use example prompt button
             useExamplePromptBtn.addEventListener('click', function() {
                 if (promptGuides && promptGuides[currentModel]) {
-                    messageInput.value = promptGuides[currentModel].example_prompt;
+                    const guide = promptGuides[currentModel].guide;
+                    messageInput.value = guide.example_prompt;
                     messageInput.focus();
+                    // Update character counter
+                    messageInput.dispatchEvent(new Event('input'));
                 }
             });
 

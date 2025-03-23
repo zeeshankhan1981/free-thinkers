@@ -18,8 +18,6 @@ MAX_HISTORY = 100
 # Model-specific parameters
 MODEL_PARAMS = {
     "mistral-7b": {
-        "max_tokens": 2048,
-        "max_context": 4096,
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 40,
@@ -29,48 +27,57 @@ MODEL_PARAMS = {
             "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
         },
         "prompt_guide": {
-            "use_case": "Fast, general-purpose tasks, concise outputs",
+            "use_case_title": "Fast, general-purpose tasks, concise outputs",
+            "use_case": "This model is optimized for fast, general-purpose tasks, concise outputs.",
             "example_prompt": "Summarize the main points of 'The Great Gatsby' in 100 words.",
             "tip": "Keep the prompt short and straightforward for best results."
+        },
+        "limits": {
+            "max_tokens": 2048,
+            "max_input_chars": 320
         }
     },
     "llama3-q8": {
-        "max_tokens": 2048,
-        "max_context": 4096,
-        "temperature": 0.7,
+        "temperature": 0.75,
         "top_p": 0.95,
         "top_k": 40,
         "speed_settings": {
-            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
-            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+            "slow": {"temperature": 0.85, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.75, "top_p": 0.95, "top_k": 40},
+            "fast": {"temperature": 0.65, "top_p": 0.9, "top_k": 30}
         },
         "prompt_guide": {
-            "use_case": "Low-memory devices, quick summaries, and simple tasks",
-            "example_prompt": "Describe the process of the water cycle in 3 sentences.",
-            "tip": "Focus on succinct and easily digestible outputs. Works best with clear and direct questions."
+            "use_case_title": "Balanced performance and quality",
+            "use_case": "This model balances performance with output quality.",
+            "example_prompt": "Explain quantum computing to a high school student.",
+            "tip": "Best when you need detailed responses but still want decent performance."
+        },
+        "limits": {
+            "max_tokens": 3072,
+            "max_input_chars": 320
         }
     },
     "llama3-f16": {
-        "max_tokens": 2048,
-        "max_context": 4096,
-        "temperature": 0.7,
+        "temperature": 0.8,
         "top_p": 0.95,
         "top_k": 40,
         "speed_settings": {
-            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
-            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+            "slow": {"temperature": 0.9, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.8, "top_p": 0.95, "top_k": 40},
+            "fast": {"temperature": 0.7, "top_p": 0.9, "top_k": 30}
         },
         "prompt_guide": {
-            "use_case": "Detailed analysis, complex queries, long-form content",
-            "example_prompt": "Explain the economic implications of cryptocurrency adoption in 300 words.",
-            "tip": "Use for in-depth analysis or comparisons requiring multiple aspects. Provide context for better results."
+            "use_case_title": "Highest quality responses",
+            "use_case": "This model produces the highest quality responses for complex questions.",
+            "example_prompt": "Write a detailed analysis of climate change impacts on agriculture.",
+            "tip": "For complex tasks where quality matters more than speed."
+        },
+        "limits": {
+            "max_tokens": 4096,
+            "max_input_chars": 320
         }
     },
     "gemma-2b-it": {
-        "max_tokens": 1024,
-        "max_context": 2048,
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 40,
@@ -80,9 +87,14 @@ MODEL_PARAMS = {
             "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
         },
         "prompt_guide": {
+            "use_case_title": "Creative writing, artistic responses, nuanced storytelling",
             "use_case": "Creative writing, artistic responses, nuanced storytelling",
             "example_prompt": "Write a short story about a dragon who befriends a human child.",
             "tip": "Best for creative and imaginative writing tasks, like storytelling and poetry."
+        },
+        "limits": {
+            "max_tokens": 1536,
+            "max_input_chars": 320
         }
     }
 }
@@ -154,16 +166,23 @@ def get_models():
 def get_model_guides():
     """Return prompt guides for all models."""
     guides = {}
-    for model_name, params in MODEL_PARAMS.items():
+    for model, params in MODEL_PARAMS.items():
         if 'prompt_guide' in params:
-            guides[model_name] = params['prompt_guide']
+            guides[model] = {
+                'guide': params['prompt_guide'],
+                'limits': params['limits']
+            }
     return jsonify(guides)
 
 @app.route('/api/model_guide/<model_name>')
 def get_model_guide(model_name):
-    """Get prompt guide for a specific model."""
+    """Return guide for a specific model."""
     if model_name in MODEL_PARAMS and 'prompt_guide' in MODEL_PARAMS[model_name]:
-        return jsonify(MODEL_PARAMS[model_name]['prompt_guide'])
+        response = {
+            'guide': MODEL_PARAMS[model_name]['prompt_guide'],
+            'limits': MODEL_PARAMS[model_name]['limits']
+        }
+        return jsonify(response)
     return jsonify({"error": "Model guide not found"}), 404
 
 @app.route('/api/chat', methods=['POST'])
@@ -179,8 +198,8 @@ def chat():
         return jsonify({"error": "Invalid model"}), 400
     
     # Validate message length
-    if len(message) > 320:
-        message = message[:320]  # Truncate if too long
+    if len(message) > MODEL_PARAMS[model]['limits']['max_input_chars']:
+        message = message[:MODEL_PARAMS[model]['limits']['max_input_chars']]  # Truncate if too long
     
     # If using guide and message is empty, use example prompt from guide
     if use_guide and not message and 'prompt_guide' in MODEL_PARAMS[model]:
@@ -203,7 +222,7 @@ def chat():
             'temperature': speed_params['temperature'],
             'top_p': speed_params['top_p'],
             'top_k': speed_params['top_k'],
-            'max_tokens': base_params['max_tokens']
+            'max_tokens': base_params['limits']['max_tokens']
         },
         stream=True,
         timeout=300  # 5 minute timeout
