@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Enable GPU acceleration for Apple Silicon
+echo "Enabling GPU acceleration for Apple Silicon M4..."
+export OLLAMA_USE_METAL=true
+export OLLAMA_METAL=true
+export OLLAMA_RAM=8G
+
 # Array of model names
 models=(
     "Meta-Llama-3-8B-Instruct-f16-q8_0"
@@ -15,5 +21,5 @@ for model in "${models[@]}"; do
     sed -i '' "s/%%MODEL_NAME%%/$model/g" Modelfile.tmp
     ollama create "$model" --file Modelfile.tmp
     rm Modelfile.tmp
-    echo "Created $model"
+    echo "Created $model with GPU acceleration enabled"
 done

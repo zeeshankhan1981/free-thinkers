@@ -24,8 +24,17 @@ stop_servers() {
 
 # Function to start servers
 start_servers() {
-    # Start Ollama in background
-    echo "Starting Ollama server..."
+    # Start Ollama in background with GPU acceleration enabled
+    echo "Starting Ollama server with GPU acceleration..."
+    
+    # Enable Metal GPU acceleration for Apple Silicon
+    export OLLAMA_USE_METAL=true
+    export OLLAMA_METAL=true
+    
+    # Allocate more RAM to improve performance 
+    export OLLAMA_RAM=8G
+    
+    # Start Ollama with optimized settings
     ollama serve &
     
     # Wait for Ollama to start

@@ -222,7 +222,17 @@ def chat():
             'temperature': speed_params['temperature'],
             'top_p': speed_params['top_p'],
             'top_k': speed_params['top_k'],
-            'max_tokens': base_params['limits']['max_tokens']
+            'max_tokens': base_params['limits']['max_tokens'],
+            # GPU acceleration parameters
+            'num_gpu': 1,           # Use GPU acceleration 
+            'num_thread': 6,        # Optimized for M4 chip
+            'mirostat': 1,          # Enable adaptive sampling for better response quality
+            'mirostat_tau': 5.0,    # Lower tau for more focused sampling
+            'mirostat_eta': 0.1,    # Learning rate for mirostat algorithm
+            'repeat_penalty': 1.15, # Slightly increased to avoid repetition
+            'seed': -1,             # Random seed for reproducibility (-1 for random)
+            'f16_kv': True,         # Use half-precision for keys/values to speed up processing
+            'tfs_z': 1.0,           # Control tail free sampling
         },
         stream=True,
         timeout=300  # 5 minute timeout
