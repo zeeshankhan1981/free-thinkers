@@ -413,7 +413,16 @@
         <div class="chat-container" id="chatContainer"></div>
 
         <div class="input-container">
-            <div class="prompt-guide" id="promptGuide" style="display: none;">
+            <div class="model-select mb-3">
+                <select class="form-select" id="modelSelect">
+                    <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
+                    <option value="llama3-q8">Llama 3 8B (Q8_0)</option>
+                    <option value="llama3-f16">Llama 3 8B (F16)</option>
+                    <option value="gemma-2b-it">Gemma 2B</option>
+                </select>
+            </div>
+
+            <div class="prompt-guide mb-3" id="promptGuide">
                 <div class="prompt-guide-title">
                     <span id="promptGuideTitle">Best for: General Questions</span>
                 </div>
@@ -422,18 +431,7 @@
                 <div class="prompt-guide-tip" id="promptGuideTip"></div>
                 <div class="prompt-guide-actions">
                     <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use This Example</button>
-                    <button class="btn btn-sm btn-outline-secondary ms-2" id="togglePromptGuide">Hide Guide</button>
                 </div>
-            </div>
-
-            <div class="model-select mb-3">
-                <select class="form-select" id="modelSelect">
-                    <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
-                    <option value="llama3-q8">Llama 3 8B (Q8_0)</option>
-                    <option value="llama3-f16">Llama 3 8B (F16)</option>
-                    <option value="gemma-2b-it">Gemma 2B</option>
-                </select>
-                <button class="btn btn-sm btn-outline-primary mt-2" id="showGuideBtn">Show Guide</button>
             </div>
 
             <textarea class="form-control" id="messageInput" placeholder="Type your message here..."></textarea>
@@ -502,14 +500,12 @@
             const promptGuideUseCaseEl = document.getElementById('promptGuideUseCase');
             const promptGuideExampleEl = document.getElementById('promptGuideExample');
             const promptGuideTipEl = document.getElementById('promptGuideTip');
-            const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
             const useExamplePromptBtn = document.getElementById('useExamplePrompt');
-            const showGuideBtn = document.getElementById('showGuideBtn');
 
             if (!darkModeToggle || !modelSelect || !sendMessage || !messageInput || 
                 !cancelResponse || !clearMessages || !responseSpeed || !chatContainer || !loadingIndicator ||
                 !historyBtn || !promptGuideEl || !promptGuideTitleEl || !promptGuideUseCaseEl || 
-                !promptGuideExampleEl || !promptGuideTipEl || !togglePromptGuideBtn || !useExamplePromptBtn || !showGuideBtn) {
+                !promptGuideExampleEl || !promptGuideTipEl || !useExamplePromptBtn) {
                 console.error('Missing UI elements');
                 return;
             }
@@ -536,32 +532,11 @@
                     promptGuideExampleEl.textContent = guide.example_prompt;
                     promptGuideTipEl.textContent = `Tip: ${guide.tip}`;
                     
-                    if (showPromptGuide) {
-                        promptGuideEl.style.display = 'block';
-                        togglePromptGuideBtn.textContent = 'Hide Guide';
-                    } else {
-                        promptGuideEl.style.display = 'none';
-                        togglePromptGuideBtn.textContent = 'Show Guide';
-                    }
+                    promptGuideEl.style.display = 'block';
                 } else {
                     promptGuideEl.style.display = 'none';
-                    togglePromptGuideBtn.style.display = 'none';
                 }
             }
-
-            // Handle toggle prompt guide visibility
-            togglePromptGuideBtn.addEventListener('click', function() {
-                showPromptGuide = false;
-                promptGuideEl.style.display = 'none';
-                showGuideBtn.style.display = 'block';
-            });
-
-            // Show guide button handler
-            showGuideBtn.addEventListener('click', function() {
-                showPromptGuide = true;
-                promptGuideEl.style.display = 'block';
-                showGuideBtn.style.display = 'none';
-            });
 
             // Handle use example prompt button
             useExamplePromptBtn.addEventListener('click', function() {
