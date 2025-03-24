@@ -37,6 +37,26 @@ MODEL_PARAMS = {
             "max_input_chars": 320
         }
     },
+    "llama3.2": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "top_k": 40,
+        "speed_settings": {
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.7, "top_p": 0.9, "top_k": 40},
+            "fast": {"temperature": 0.6, "top_p": 0.8, "top_k": 30}
+        },
+        "prompt_guide": {
+            "use_case_title": "Versatile, instruction-following tasks",
+            "use_case": "This model excels at following instructions and producing high-quality outputs for various tasks.",
+            "example_prompt": "Explain three ways artificial intelligence can help address climate change.",
+            "tip": "Provide clear instructions for best results. Works well for complex reasoning tasks."
+        },
+        "limits": {
+            "max_tokens": 4096,
+            "max_input_chars": 320
+        }
+    },
     "gemma-2b-it": {
         "temperature": 0.7,
         "top_p": 0.95,

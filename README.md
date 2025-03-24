@@ -5,7 +5,10 @@ A minimalist, local-first web-based chat interface for interacting with LLMs.
 ## Features
 
 - Clean, intuitive interface
-- Multiple LLM model support (Mistral, Llama, Gemma)
+- Multiple LLM models with GPU acceleration:
+  - Mistral 7B - Fast, general-purpose tasks
+  - Llama 3.2 - Versatile, instruction-following tasks
+  - Gemma 2B - Creative writing and artistic responses
 - Dark/Light mode toggle
 - Conversation history management
 - Token and character limit indicators

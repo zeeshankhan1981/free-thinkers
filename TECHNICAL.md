@@ -18,9 +18,11 @@
 - **Model Manager**: Ollama 0.6.2
 - **Models**: 
   - Mistral 7B (Q4_K_M)
-  - Llama 3 8B (Q8_0)
-  - Llama 3 8B (F16)
+  - Llama 3.2
   - Gemma 2B (Italian)
+- **GPU Acceleration**: Metal for Apple Silicon
+  - Environment Variables: OLLAMA_USE_METAL=true, OLLAMA_METAL=true, OLLAMA_RAM=8G
+  - API Optimization: num_gpu=1, num_thread=6, f16_kv=true
 
 ### Storage
 - **Method**: JSON flat file storage
@@ -36,7 +38,7 @@ Content-Type: application/json
 
 {
     "message": "string",
-    "model": "enum[mistral-7b, llama3-q8, llama3-f16, gemma-2b-it]",
+    "model": "enum[mistral-7b, llama3.2, gemma-2b-it]",
     "system_prompt": "optional string"
 }
 ```
@@ -68,8 +70,7 @@ Content-Type: application/json
 | Model | Parameters | Quantization | Max Context | Max Response |
 |-------|------------|--------------|-------------|-------------|
 | Mistral 7B | 7.2B | Q4_K_M | 4096 | 2048 |
-| Llama 3 8B (Q8) | 8.0B | Q8_0 | 4096 | 2048 |
-| Llama 3 8B (F16) | 8.0B | F16 | 4096 | 2048 |
+| Llama 3.2 | 8.0B | Q4_K_M | 8192 | 4096 |
 | Gemma 2B | 2.5B | - | 2048 | 1024 |
 
 ## Environment Variables
