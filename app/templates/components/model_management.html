@@ -1,0 +1,274 @@
+<!-- Model Management Sidebar -->
+<div class="model-management-sidebar" id="modelManagementSidebar">
+    <div class="model-management-header">
+        <h3>Model Management</h3>
+        <button class="btn btn-sm btn-outline-secondary" id="closeModelManagement">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="model-management-content">
+        <!-- Available Models Section -->
+        <div class="models-section">
+            <h4>Available Models</h4>
+            <div class="models-list" id="modelsList">
+                <!-- Models will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Download New Model Section -->
+        <div class="download-section">
+            <h4>Download New Model</h4>
+            <div class="download-form">
+                <div class="form-group">
+                    <label for="modelName">Model Name</label>
+                    <input type="text" class="form-control" id="modelName" placeholder="Enter model name">
+                </div>
+                <div class="form-group">
+                    <label for="modelUrl">Model URL</label>
+                    <input type="url" class="form-control" id="modelUrl" placeholder="Enter model download URL">
+                </div>
+                <button class="btn btn-primary" id="downloadModelBtn">
+                    Download Model
+                </button>
+            </div>
+
+            <!-- Download Progress -->
+            <div class="download-progress" id="downloadProgress" style="display: none;">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Management Styles -->
+<style>
+.model-management-sidebar {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 300px;
+    height: 100%;
+    background-color: var(--bg-color);
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    transition: right 0.3s ease;
+    z-index: 1000;
+}
+
+.model-management-sidebar.active {
+    right: 0;
+}
+
+.model-management-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.models-section, .download-section {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.models-list {
+    margin-top: 1rem;
+}
+
+.model-item {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 0.5rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.model-item .model-info {
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.model-item .model-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.download-form {
+    margin-top: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.download-progress {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.progress {
+    height: 10px;
+    background-color: var(--bg-light);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.dark-mode .model-management-sidebar {
+    background-color: var(--dark-bg);
+}
+
+.dark-mode .model-item {
+    border-color: var(--dark-border);
+}
+
+.dark-mode .progress {
+    background-color: var(--dark-bg-light);
+}
+
+.dark-mode .progress-bar {
+    background-color: var(--primary-color);
+}
+</style>
+
+<!-- Model Management JavaScript -->
+<script>
+let modelManagementOpen = false;
+
+// Initialize model management
+function initModelManagement() {
+    // Toggle model management sidebar
+    document.getElementById('modelManagementBtn').addEventListener('click', () => {
+        const sidebar = document.getElementById('modelManagementSidebar');
+        modelManagementOpen = !modelManagementOpen;
+        sidebar.classList.toggle('active', modelManagementOpen);
+    });
+
+    // Close model management
+    document.getElementById('closeModelManagement').addEventListener('click', () => {
+        const sidebar = document.getElementById('modelManagementSidebar');
+        modelManagementOpen = false;
+        sidebar.classList.remove('active');
+    });
+
+    // Load available models
+    loadModels();
+
+    // Handle model download
+    document.getElementById('downloadModelBtn').addEventListener('click', async () => {
+        const modelName = document.getElementById('modelName').value;
+        const modelUrl = document.getElementById('modelUrl').value;
+
+        if (!modelName || !modelUrl) {
+            alert('Please enter both model name and URL');
+            return;
+        }
+
+        const progressElement = document.getElementById('downloadProgress');
+        const progressBar = progressElement.querySelector('.progress-bar');
+        const progressText = document.getElementById('progressText');
+
+        progressElement.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+
+        try {
+            const response = await fetch('/api/models/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: modelName,
+                    url: modelUrl
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Download failed');
+            }
+
+            const data = await response.json();
+            alert(data.message);
+            loadModels();
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    });
+}
+
+// Load available models
+async function loadModels() {
+    try {
+        const response = await fetch('/api/models/list');
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            const modelsList = document.getElementById('modelsList');
+            modelsList.innerHTML = '';
+
+            data.models.forEach(model => {
+                const modelItem = document.createElement('div');
+                modelItem.className = 'model-item';
+                modelItem.innerHTML = `
+                    <div class="model-info">
+                        <h5>${model.name}</h5>
+                        <p class="text-muted">Version: ${model.version || 'unknown'}</p>
+                    </div>
+                    <div class="model-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="showModelInfo('${model.name}')">
+                            Info
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="selectModel('${model.name}')">
+                            Select
+                        </button>
+                    </div>
+                `;
+                modelsList.appendChild(modelItem);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading models:', error);
+    }
+}
+
+// Show model information
+async function showModelInfo(modelName) {
+    try {
+        const response = await fetch(`/api/models/version?name=${modelName}`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            alert(`Model: ${modelName}\nVersion: ${data.version}`);
+        }
+    } catch (error) {
+        console.error('Error getting model version:', error);
+    }
+}
+
+// Select a model
+function selectModel(modelName) {
+    document.getElementById('modelSelect').value = modelName;
+    updatePromptGuide(modelName);
+    document.getElementById('modelManagementSidebar').classList.remove('active');
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', initModelManagement);
+</script>
