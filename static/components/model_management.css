@@ -26,6 +26,157 @@
     transform: translateY(-2px);
 }
 
+.model-management-sidebar {
+    position: fixed;
+    top: 0;
+    right: -350px;
+    width: 350px;
+    height: 100%;
+    background-color: var(--bg-color);
+    box-shadow: -2px 0 10px rgba(0,0,0,0.15);
+    transition: right 0.3s ease;
+    z-index: 1000;
+    overflow-y: auto;
+    border-left: 1px solid var(--border-color);
+}
+
+.model-management-sidebar.active {
+    right: 0;
+}
+
+.model-management-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.model-management-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.model-management-content {
+    padding-bottom: 2rem;
+}
+
+.models-section, .download-section {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.models-section h4, .download-section h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.models-list {
+    margin-top: 1rem;
+}
+
+.model-item {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 0.75rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    background-color: var(--card-bg);
+}
+
+.model-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.model-item .model-info {
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.model-info-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.model-info-details {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+}
+
+.model-item .model-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.download-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.download-progress {
+    margin-top: 1rem;
+}
+
+.progress {
+    height: 0.5rem;
+    background-color: var(--border-color);
+    border-radius: 0.25rem;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+}
+
 .model-details-modal {
     position: fixed;
     top: 0;
@@ -40,48 +191,68 @@
 }
 
 .model-details-content {
-    background-color: white;
+    background-color: var(--bg-color);
     border-radius: var(--border-radius);
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    border: 1px solid var(--border-color);
 }
 
 .model-details-header {
-    padding: 1rem;
+    padding: 1.25rem;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+.model-details-header h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
 .model-details-body {
-    padding: 1rem;
+    padding: 1.25rem;
+    max-height: 50vh;
+    overflow-y: auto;
 }
 
 .model-details-footer {
-    padding: 1rem;
+    padding: 1rem 1.25rem;
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
+    gap: 0.75rem;
 }
 
 .detail-item {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     display: flex;
 }
 
 .detail-label {
-    font-weight: bold;
-    width: 120px;
+    font-weight: 500;
+    width: 140px;
+    color: var(--secondary-color);
 }
 
 .close-modal {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     cursor: pointer;
     color: var(--secondary-color);
+    padding: 0.25rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-modal:hover {
+    color: var(--text-color);
 }
 
 .notification {
@@ -89,13 +260,15 @@
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%) translateY(100px);
-    background-color: #333;
+    background-color: var(--primary-color);
     color: white;
-    padding: 10px 20px;
-    border-radius: 4px;
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
     z-index: 2000;
     opacity: 0;
     transition: transform 0.3s ease, opacity 0.3s ease;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 .notification.show {
@@ -104,19 +277,19 @@
 }
 
 .loading {
-    padding: 1rem;
+    padding: 1.25rem;
     text-align: center;
     color: var(--secondary-color);
 }
 
 .error {
-    padding: 1rem;
+    padding: 1.25rem;
     text-align: center;
     color: #dc3545;
 }
 
 .no-models {
-    padding: 1rem;
+    padding: 1.25rem;
     text-align: center;
     color: var(--secondary-color);
 }
@@ -132,10 +305,33 @@ body.dark-mode .model-details-footer {
     border-color: #444;
 }
 
+body.dark-mode .model-item {
+    background-color: #333;
+}
+
+body.dark-mode .model-item:hover {
+    border-color: var(--primary-color);
+    background-color: #3a3a3a;
+}
+
+body.dark-mode .form-control {
+    background-color: #333;
+    color: #f8f9fa;
+    border-color: #444;
+}
+
+body.dark-mode .form-control:focus {
+    border-color: var(--primary-color);
+}
+
 body.dark-mode .close-modal {
+    color: #adb5bd;
+}
+
+body.dark-mode .close-modal:hover {
     color: #f8f9fa;
 }
 
-body.dark-mode .notification {
+body.dark-mode .progress {
     background-color: #444;
 }
