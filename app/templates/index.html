@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/model_management.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}?v=0.2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components/conversation_manager.css') }}?v=0.2.0">
     <style>
         :root {
             --primary-color: #007bff;
@@ -712,6 +713,11 @@
             <button class="btn btn-sm btn-outline-secondary" id="parameterControlsBtn">
                 <i class="fas fa-sliders-h"></i> Parameters
             </button>
+            <div class="sidebar-toggle">
+                <button class="btn btn-outline-secondary" id="toggleConversationManager">
+                    <i class="fas fa-comments"></i>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -790,6 +796,7 @@
 
     {% include 'components/model_management.html' %}
     {% include 'components/parameter_controls.html' %}
+    {% include 'components/conversation_manager.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=0.2.0"></script>
     <script>
@@ -912,6 +919,17 @@
                 const userInput = messageInput.value.trim();
                 if (!userInput) return;
                 
+                // Get or create active conversation
+                let activeConversation = null;
+                if (typeof window.conversationManager !== 'undefined') {
+                    activeConversation = window.conversationManager.getCurrentConversation();
+                    if (!activeConversation) {
+                        // Create a new conversation with first message as title
+                        const title = userInput.length > 30 ? userInput.substring(0, 30) + '...' : userInput;
+                        activeConversation = window.conversationManager.createConversation(title);
+                    }
+                }
+                
                 // Get current parameters
                 let params = window.currentParameters;
                 if (typeof window.getCurrentParameters === 'function') {
@@ -926,6 +944,11 @@
                     role: 'user',
                     content: userInput
                 });
+                
+                // Sync with conversation manager immediately after adding user message
+                if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                    window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                }
                 
                 // Clear input
                 messageInput.value = '';
@@ -1008,6 +1031,7 @@
                     
                     // Process the stream
                     let assistantResponse = '';
+                    let lastSyncLength = 0; // Track when we last synced
                     
                     // Handle incoming messages
                     eventSource.onmessage = function(event) {
@@ -1024,6 +1048,15 @@
                                 
                                 // Render messages
                                 renderMessages();
+                                
+                                // Periodically sync with conversation manager during streaming
+                                // This ensures conversations are updated in real-time
+                                if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                                    if (assistantResponse.length - lastSyncLength > 100) { // Every ~100 chars
+                                        window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                                        lastSyncLength = assistantResponse.length;
+                                    }
+                                }
                             }
                             
                             if (data.error) {
@@ -1035,6 +1068,11 @@
                             if (data.done) {
                                 // Stream is complete
                                 eventSource.close();
+                                
+                                // Final sync with conversation manager
+                                if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                                    window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                                }
                                 
                                 // Save thread to history
                                 saveToHistory({
@@ -1068,6 +1106,11 @@
                         currentThread[currentThread.length - 1].content += "\n\nConnection error. Please try again.";
                         renderMessages();
                         
+                        // Final sync with conversation manager even on error
+                        if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                            window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                        }
+                        
                         // Hide loading indicator
                         loadingIndicator.style.display = 'none';
                         
@@ -1085,10 +1128,13 @@
                     if (responseController) {
                         responseController.signal.addEventListener('abort', () => {
                             eventSource.close();
+                            
+                            // Final sync with conversation manager on cancellation
+                            if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                                window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                            }
                         });
                     }
-                    
-                    // Note: Thread is saved to history when streaming is done
                     
                 } catch (error) {
                     if (error.name === 'AbortError') {
@@ -1459,5 +1505,11 @@
     
     <!-- Include parameter controls component -->
     <script src="{{ url_for('static', filename='components/parameter_controls.js') }}"></script>
+    
+    <!-- Include conversation manager component -->
+    <script src="{{ url_for('static', filename='js/conversation_manager.js') }}"></script>
+    
+    <!-- Main script -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

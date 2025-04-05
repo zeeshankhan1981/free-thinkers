@@ -113,7 +113,7 @@
     - Cost estimation for API-based models
     - Token efficiency recommendations
 
-- [ ] Support model fine-tuning (for compatible models)
+- [x] Support model fine-tuning (for compatible models)
   - Create a simple fine-tuning interface:
     - Step-by-step wizard for fine-tuning process
     - Configuration options with explanations

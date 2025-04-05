@@ -13,6 +13,38 @@ body.dark-mode {
     --tooltip-text: #f8f9fa;
 }
 
+/* Fix for unwanted vertical lines */
+input[type="range"]::before,
+input[type="range"]::after,
+input[type="range"]::-webkit-slider-runnable-track::before,
+input[type="range"]::-webkit-slider-runnable-track::after,
+input[type="range"]::-moz-range-track::before,
+input[type="range"]::-moz-range-track::after {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    border: none !important;
+}
+
+/* Additional fix for any other vertical lines */
+.slider-container::before,
+.slider-container::after,
+.form-range::before,
+.form-range::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* Override any Bootstrap range pseudo elements */
+.form-range::-webkit-slider-runnable-track {
+    border: none !important;
+}
+
+.form-range::-moz-range-track {
+    border: none !important;
+}
+
 .parameter-controls-btn {
     position: fixed;
     bottom: 1.5rem;
@@ -134,6 +166,7 @@ body.dark-mode {
     margin-bottom: 1.5rem;
     padding-bottom: 1.25rem;
     border-bottom: 1px solid var(--border-color);
+    position: relative; /* Add position relative for potential pseudo-elements */
 }
 
 .parameter-group:last-child {
@@ -164,6 +197,7 @@ body.dark-mode {
     align-items: center;
     gap: 1rem;
     margin-top: 0.75rem;
+    position: relative; /* Add position relative */
 }
 
 .form-range {
@@ -174,6 +208,8 @@ body.dark-mode {
     background: var(--border-color);
     border-radius: 3px;
     outline: none;
+    position: relative; /* Add position relative */
+    border: none; /* Ensure no border */
 }
 
 .form-range::-webkit-slider-thumb {
@@ -185,6 +221,7 @@ body.dark-mode {
     background: var(--primary-color);
     cursor: pointer;
     transition: all 0.2s ease;
+    border: none; /* Ensure no border */
 }
 
 .form-range::-moz-range-thumb {
@@ -200,7 +237,7 @@ body.dark-mode {
 .form-range::-webkit-slider-thumb:hover,
 .form-range::-moz-range-thumb:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+    box-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.5);
 }
 
 .form-range:focus::-webkit-slider-thumb {
