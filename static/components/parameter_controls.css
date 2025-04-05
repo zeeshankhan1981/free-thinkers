@@ -1,0 +1,130 @@
+/**
+ * Parameter Controls Component Styles
+ */
+
+.parameter-controls-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 9.5rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    z-index: 100;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.parameter-controls-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.presets-list {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    flex: 1;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.parameter-group {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.parameter-group:last-child {
+    border-bottom: none;
+}
+
+.parameter-group h5 {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.parameter-description {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+    margin-bottom: 0.75rem;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.slider-value {
+    min-width: 40px;
+    text-align: center;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.controls-section {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+}
+
+/* Parameter tooltip */
+.parameter-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.parameter-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.parameter-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Dark mode styles */
+body.dark-mode .parameter-description {
+    color: #adb5bd;
+}
+
+body.dark-mode .parameter-group {
+    border-color: #444;
+}
+
+body.dark-mode .slider-value {
+    color: var(--primary-color);
+}
+
+body.dark-mode .parameter-tooltip .tooltip-text {
+    background-color: #555;
+}

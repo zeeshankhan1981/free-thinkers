@@ -6,6 +6,8 @@
     <title>Free Thinkers - Local AI Chat</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components/model_management.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}">
     <style>
         :root {
             --primary-color: #007bff;
@@ -459,6 +461,90 @@
         .char-counter.danger {
             color: #dc3545;
         }
+
+        /* Token Visualization Styles */
+        .token-visualization {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .token-info {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .token-count,
+        .token-limit,
+        .token-percentage {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--secondary-color);
+        }
+
+        .token-count span,
+        .token-limit span,
+        .token-percentage span {
+            font-weight: 500;
+        }
+
+        .token-progress {
+            width: 100%;
+            height: 8px;
+        }
+
+        .token-progress .progress {
+            height: 100%;
+            background-color: #e9ecef;
+            border-radius: var(--border-radius);
+        }
+
+        .token-progress .progress-bar {
+            height: 100%;
+            border-radius: var(--border-radius);
+            background-color: var(--primary-color);
+            transition: width 0.2s ease, background-color 0.2s ease;
+        }
+
+        body.dark-mode .token-visualization {
+            background-color: #2d2d2d;
+            border-color: #444;
+        }
+
+        body.dark-mode .token-progress .progress {
+            background-color: #444;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            background-color: #007bff;
+            color: white;
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+            transform: translateX(100%);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-success {
+            background-color: #28a745;
+        }
+
+        .notification-error {
+            background-color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -510,6 +596,8 @@
                 <textarea class="form-control" id="messageInput" placeholder="Type your message here..." maxlength="320"></textarea>
                 <span class="char-counter" id="charCounter">0/320</span>
             </div>
+
+            {% include 'components/token_visualization.html' %}
 
             <div class="control-group">
                 <div class="primary-controls">
@@ -665,91 +753,218 @@
                 }
             });
 
-            // Handle send message
-            sendMessage.addEventListener('click', async function() {
-                const message = messageInput.value.trim();
-                
-                if (!message) return;
-                
-                // Add user message
-                currentThread.push({
-                    role: 'user',
-                    content: message
-                });
+            // Send a message to the AI
+            async function sendMessageToAI() {
+                const userInput = messageInput.value.trim();
+                if (!userInput) return;
                 
                 // Get current parameters
-                const parameters = window.currentParameters || {
-                    temperature: 0.7,
-                    top_p: 0.95,
-                    top_k: 40,
-                    repetition_penalty: 1.1,
-                    context_window: 2048
-                };
-
-                // Add loading indicator
-                loadingIndicator.style.display = 'block';
+                let params = window.currentParameters;
+                if (typeof window.getCurrentParameters === 'function') {
+                    params = window.getCurrentParameters();
+                }
+                
+                // Get speed setting
+                const speed = responseSpeed.value;
+                
+                // Add user message to thread
+                currentThread.push({
+                    role: 'user',
+                    content: userInput
+                });
+                
+                // Clear input
+                messageInput.value = '';
+                
+                // Render messages
+                renderMessages();
+                
+                // Show loading indicator
+                loadingIndicator.style.display = 'flex';
+                
+                // Disable send button
+                sendMessage.disabled = true;
+                
+                // Show cancel button
+                cancelResponse.style.display = 'block';
                 
                 try {
-                    // Create a new controller for this request
+                    // Create a new AbortController
                     responseController = new AbortController();
                     const signal = responseController.signal;
                     
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            message: message,
-                            model: currentModel,
-                            parameters: parameters
-                        }),
-                        signal: signal
-                    });
-
-                    // Get response text first, then parse as JSON
-                    const textResponse = await response.text();
-                    let data = { response: '' };
+                    // Prepare request data
+                    const requestData = {
+                        model: currentModel,
+                        messages: currentThread,
+                        stream: true,
+                        temperature: params.temperature,
+                        top_p: params.top_p,
+                        top_k: params.top_k,
+                        repetition_penalty: params.repetition_penalty,
+                        context_window: params.context_window
+                    };
                     
-                    try {
-                        data = JSON.parse(textResponse);
-                    } catch (parseError) {
-                        console.log('Response is not JSON, using as plain text:', textResponse);
-                        data = { response: textResponse };
+                    // Apply speed settings if available
+                    const modelParams = {
+                        "mistral-7b": {
+                            "speed_settings": {
+                                "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+                                "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
+                                "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+                            }
+                        }
+                    };
+                    
+                    if (modelParams[currentModel] && 
+                        modelParams[currentModel].speed_settings && 
+                        modelParams[currentModel].speed_settings[speed]) {
+                        const speedSettings = modelParams[currentModel].speed_settings[speed];
+                        requestData.temperature = speedSettings.temperature || requestData.temperature;
+                        requestData.top_p = speedSettings.top_p || requestData.top_p;
+                        requestData.top_k = speedSettings.top_k || requestData.top_k;
                     }
                     
-                    // Add assistant message
+                    console.log('Sending request with parameters:', requestData);
+                    
+                    // First, initialize the chat with a POST request
+                    const initResponse = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestData),
+                        signal
+                    });
+                    
+                    // Check if initialization was successful
+                    if (!initResponse.ok) {
+                        const errorData = await initResponse.json();
+                        throw new Error(errorData.error || `HTTP error! status: ${initResponse.status}`);
+                    }
+                    
+                    // Create a new assistant message
                     currentThread.push({
                         role: 'assistant',
-                        content: data.response
+                        content: ''
                     });
-
-                    // Save to history
-                    saveToHistory({
-                        model: currentModel,
-                        messages: currentThread
-                    });
-
-                    // Update UI
-                    messageInput.value = '';
-                    renderMessages();
+                    
+                    // Set up EventSource for streaming
+                    const eventSource = new EventSource('/api/chat?_=' + new Date().getTime());
+                    
+                    // Process the stream
+                    let assistantResponse = '';
+                    
+                    // Handle incoming messages
+                    eventSource.onmessage = function(event) {
+                        try {
+                            // Parse the event data
+                            const data = JSON.parse(event.data);
+                            
+                            if (data.content) {
+                                // Append to assistant response
+                                assistantResponse += data.content;
+                                
+                                // Update current thread
+                                currentThread[currentThread.length - 1].content = assistantResponse;
+                                
+                                // Render messages
+                                renderMessages();
+                            }
+                            
+                            if (data.error) {
+                                console.error('Error from server:', data.error);
+                                currentThread[currentThread.length - 1].content += "\n\nError: " + data.error;
+                                renderMessages();
+                            }
+                            
+                            if (data.done) {
+                                // Stream is complete
+                                eventSource.close();
+                                
+                                // Save thread to history
+                                saveToHistory({
+                                    model: currentModel,
+                                    messages: currentThread
+                                });
+                                
+                                // Hide loading indicator
+                                loadingIndicator.style.display = 'none';
+                                
+                                // Enable send button
+                                sendMessage.disabled = false;
+                                
+                                // Hide cancel button
+                                cancelResponse.style.display = 'none';
+                                
+                                // Reset controller
+                                responseController = null;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing event data:', e);
+                        }
+                    };
+                    
+                    // Handle errors
+                    eventSource.onerror = function(error) {
+                        console.error('EventSource error:', error);
+                        eventSource.close();
+                        
+                        // Add error message
+                        currentThread[currentThread.length - 1].content += "\n\nConnection error. Please try again.";
+                        renderMessages();
+                        
+                        // Hide loading indicator
+                        loadingIndicator.style.display = 'none';
+                        
+                        // Enable send button
+                        sendMessage.disabled = false;
+                        
+                        // Hide cancel button
+                        cancelResponse.style.display = 'none';
+                        
+                        // Reset controller
+                        responseController = null;
+                    };
+                    
+                    // Handle cancellation
+                    if (responseController) {
+                        responseController.signal.addEventListener('abort', () => {
+                            eventSource.close();
+                        });
+                    }
+                    
+                    // Note: Thread is saved to history when streaming is done
                     
                 } catch (error) {
                     if (error.name === 'AbortError') {
-                        console.log('Request was aborted');
+                        console.log('Request was cancelled');
                     } else {
                         console.error('Error:', error);
-                        currentThread.push({
-                            role: 'assistant',
-                            content: 'Sorry, there was an error processing your request.'
-                        });
-                        renderMessages();
+                        alert(`Error: ${error.message}`);
                     }
                 } finally {
-                    responseController = null;
+                    // Hide loading indicator
                     loadingIndicator.style.display = 'none';
+                    
+                    // Enable send button
+                    sendMessage.disabled = false;
+                    
+                    // Hide cancel button
+                    cancelResponse.style.display = 'none';
+                    
+                    // Reset controller
+                    responseController = null;
+                    
+                    // Update token visualization
+                    if (typeof updateTokenVisualization === 'function') {
+                        updateTokenVisualization('', currentModel);
+                    }
                 }
-            });
+            }
+
+            // Handle send message
+            sendMessage.addEventListener('click', sendMessageToAI);
 
             // Add cancel response functionality
             cancelResponse.addEventListener('click', function() {
@@ -772,10 +987,48 @@
             });
 
             // Handle model change
-            modelSelect.addEventListener('change', function(e) {
-                currentModel = e.target.value;
+            modelSelect.addEventListener('change', function() {
+                currentModel = this.value;
+                console.log('Model changed to:', currentModel);
+                
+                // Update prompt guide
                 updatePromptGuide(currentModel);
+                
+                // Update token visualization
+                if (typeof updateTokenVisualization === 'function') {
+                    const userInput = document.getElementById('userInput');
+                    if (userInput) {
+                        updateTokenVisualization(userInput.value, currentModel);
+                    } else {
+                        updateTokenVisualization('', currentModel);
+                    }
+                }
+                
+                // Show notification
+                showNotification(`Model changed to ${currentModel}`);
             });
+            
+            /**
+             * Show a notification message
+             */
+            function showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 10);
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000);
+            }
 
             // Load history
             historyBtn.addEventListener('click', function() {
@@ -818,32 +1071,46 @@
             }
             
             // Function to update parameter display
-            function updateParameterDisplay(parameters) {
+            function updateParameterDisplay(params) {
                 const parameterDisplay = document.getElementById('currentParameters');
-                if (parameterDisplay) {
-                    parameterDisplay.innerHTML = `
-                        <div class="parameter-display-item">
-                            <span>Temp:</span> ${parameters.temperature.toFixed(1)}
-                        </div>
-                        <div class="parameter-display-item">
-                            <span>Top P:</span> ${parameters.top_p.toFixed(2)}
-                        </div>
-                        <div class="parameter-display-item">
-                            <span>Top K:</span> ${parameters.top_k}
-                        </div>
-                        <div class="parameter-display-item">
-                            <span>Rep Pen:</span> ${parameters.repetition_penalty.toFixed(1)}
-                        </div>
-                        <div class="parameter-display-item">
-                            <span>Context:</span> ${parameters.context_window}
-                        </div>
-                    `;
+                if (!parameterDisplay) return;
+                
+                if (!params) {
+                    params = window.currentParameters;
+                    if (typeof window.getCurrentParameters === 'function') {
+                        params = window.getCurrentParameters();
+                    }
                 }
+                
+                let html = '<div class="parameter-display-items">';
+                
+                if (params.temperature) {
+                    html += `<div class="parameter-display-item"><span>Temp: ${params.temperature}</span></div>`;
+                }
+                
+                if (params.top_p) {
+                    html += `<div class="parameter-display-item"><span>Top P: ${params.top_p}</span></div>`;
+                }
+                
+                if (params.top_k) {
+                    html += `<div class="parameter-display-item"><span>Top K: ${params.top_k}</span></div>`;
+                }
+                
+                html += '</div>';
+                
+                parameterDisplay.innerHTML = html;
             }
 
             // Render messages
             function renderMessages() {
                 const chatMessages = document.getElementById('chatMessages');
+                
+                // Ensure currentThread is an array before using map
+                if (!Array.isArray(currentThread)) {
+                    console.warn('currentThread is not an array, resetting to empty array');
+                    currentThread = [];
+                }
+                
                 chatMessages.innerHTML = currentThread.map(msg => `
                     <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
                         ${msg.content}
@@ -877,6 +1144,11 @@
             // Load conversation history
             function loadConversationHistory() {
                 const historyList = document.getElementById('historyList');
+                if (!historyList) {
+                    console.error('History list element not found');
+                    return;
+                }
+                
                 historyList.innerHTML = '<div class="p-3 text-center">Loading history...</div>';
                 
                 console.log("Loading conversation history...");
@@ -884,20 +1156,31 @@
                 fetch('/api/history')
                     .then(response => {
                         console.log("History API response:", response);
+                        if (!response.ok) {
+                            throw new Error(`History API returned ${response.status}: ${response.statusText}`);
+                        }
                         return response.json();
                     })
                     .then(threads => {
                         console.log("Loaded threads:", threads);
                         
-                        if (!threads || threads.length === 0) {
+                        if (!threads || !Array.isArray(threads) || threads.length === 0) {
                             historyList.innerHTML = '<div class="p-3 text-center">No conversation history found</div>';
                             return;
                         }
                         
-                        historyList.innerHTML = threads.map(thread => {
+                        let historyHTML = '';
+                        
+                        // Process each thread
+                        for (const thread of threads) {
+                            if (!thread || !thread.id || !thread.messages || !Array.isArray(thread.messages)) {
+                                console.warn('Invalid thread data:', thread);
+                                continue;
+                            }
+                            
                             // Get first user message or use timestamp if no messages
                             let title = 'Conversation';
-                            if (thread.messages && thread.messages.length > 0) {
+                            if (thread.messages.length > 0) {
                                 // Find first user message
                                 const firstUserMsg = thread.messages.find(msg => msg.role === 'user');
                                 if (firstUserMsg) {
@@ -909,47 +1192,100 @@
                             }
                             
                             // Format date
-                            const date = new Date(thread.created_at);
-                            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            let formattedDate = 'Unknown date';
+                            try {
+                                if (thread.created_at) {
+                                    const date = new Date(thread.created_at);
+                                    formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                }
+                            } catch (e) {
+                                console.warn('Error formatting date:', e);
+                            }
                             
-                            return `
+                            historyHTML += `
                                 <div class="history-item" data-thread-id="${thread.id}">
                                     <div class="history-item-title">${title}</div>
                                     <div class="history-item-date text-muted">${formattedDate}</div>
                                 </div>
                             `;
-                        }).join('');
+                        }
                         
-                        // Add click event listeners to history items
-                        document.querySelectorAll('.history-item').forEach(item => {
-                            item.addEventListener('click', function() {
-                                const threadId = this.getAttribute('data-thread-id');
-                                loadThread(threadId);
+                        if (historyHTML) {
+                            historyList.innerHTML = historyHTML;
+                            
+                            // Add click event listeners to history items
+                            document.querySelectorAll('.history-item').forEach(item => {
+                                item.addEventListener('click', function() {
+                                    const threadId = this.getAttribute('data-thread-id');
+                                    if (threadId) {
+                                        loadThread(threadId);
+                                    }
+                                });
                             });
-                        });
+                        } else {
+                            historyList.innerHTML = '<div class="p-3 text-center">No valid conversations found</div>';
+                        }
                     })
                     .catch(error => {
                         console.error('Error loading history:', error);
                         historyList.innerHTML = '<div class="p-3 text-center">Error loading history: ' + error.message + '</div>';
                     });
             }
-            
+
             // Load a specific thread
             function loadThread(threadId) {
+                if (!threadId) {
+                    console.error('Invalid thread ID');
+                    return;
+                }
+                
+                console.log(`Loading thread: ${threadId}`);
+                
                 fetch(`/api/history/${threadId}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Thread API returned ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
                     .then(thread => {
-                        if (thread.messages) {
+                        console.log('Thread data:', thread);
+                        
+                        if (thread && thread.messages && Array.isArray(thread.messages)) {
+                            // Valid thread data
                             currentThread = thread.messages;
-                            currentModel = thread.model;
-                            modelSelect.value = currentModel;
+                            currentModel = thread.model || 'mistral-7b';
+                            
+                            // Update UI
+                            const modelSelect = document.getElementById('modelSelect');
+                            if (modelSelect) {
+                                modelSelect.value = currentModel;
+                            }
+                            
+                            // Update prompt guide
                             updatePromptGuide(currentModel);
+                            
+                            // Render messages
                             renderMessages();
-                            historySidebar.classList.remove('active');
+                            
+                            // Close history sidebar
+                            const historySidebar = document.getElementById('historySidebar');
+                            if (historySidebar) {
+                                historySidebar.classList.remove('active');
+                            }
+                            
+                            // Initialize token visualization with the current model
+                            if (typeof updateTokenVisualization === 'function') {
+                                updateTokenVisualization('', currentModel);
+                            }
+                        } else {
+                            console.error('Invalid thread data:', thread);
+                            alert('Could not load conversation. The thread data is invalid.');
                         }
                     })
                     .catch(error => {
                         console.error('Error loading thread:', error);
+                        alert('Error loading conversation. Please try again.');
                     });
             }
             
@@ -960,5 +1296,19 @@
             updateParameterDisplay(window.currentParameters);
         });
     </script>
+    
+    <!-- Include token visualization component -->
+    <script src="{{ url_for('static', filename='components/token_visualization.js') }}"></script>
+    
+    <!-- Include model management component -->
+    <script src="{{ url_for('static', filename='components/model_management.js') }}"></script>
+    
+    <!-- Include parameter controls component -->
+    <script src="{{ url_for('static', filename='components/parameter_controls.js') }}"></script>
+</body>
+</html>
+    
+    <!-- Include parameter controls component -->
+    <script src="{{ url_for('static', filename='components/parameter_controls.js') }}"></script>
 </body>
 </html>
