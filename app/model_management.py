@@ -5,32 +5,26 @@ import json
 from pathlib import Path
 import os
 
-model_management = Blueprint('model_management', __name__)
+model_management = Blueprint('model_management', __name__, url_prefix='/model_management')
 
 # Directory for model downloads
 MODEL_DOWNLOAD_DIR = Path(os.path.expanduser("~/.freethinkers/models/"))
 
-@model_management.route('/api/models/list', methods=['GET'])
+@model_management.route('/api/models', methods=['GET'])
 def list_models():
     """List all available models."""
     try:
         response = requests.get('http://localhost:11434/api/tags')
         if response.status_code == 200:
             models = response.json().get('models', [])
-            return jsonify({
-                'models': models,
-                'status': 'success'
-            })
+            # Extract just the model names
+            model_names = [model['name'] for model in models]
+            return jsonify(model_names)
         else:
-            return jsonify({
-                'error': 'Failed to fetch models',
-                'status': 'error'
-            }), 500
+            return jsonify([]), 500
     except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'status': 'error'
-        }), 500
+        print(f"Error fetching models: {str(e)}")
+        return jsonify([]), 500
 
 @model_management.route('/api/models/download', methods=['POST'])
 @cross_origin()
@@ -50,42 +44,24 @@ def download_model():
         # Create download directory if it doesn't exist
         MODEL_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
         
-        # Download the model with progress tracking
-        response = requests.get(model_url, stream=True)
-        total_size = int(response.headers.get('content-length', 0))
-        
-        download_path = MODEL_DOWNLOAD_DIR / f"{model_name}.gguf"
-        
-        with open(download_path, 'wb') as f:
-            downloaded = 0
-            for data in response.iter_content(chunk_size=4096):
-                downloaded += len(data)
-                f.write(data)
-                progress = (downloaded / total_size) * 100
-                
-                # Send progress update to frontend
-                yield f"data: {json.dumps({'progress': progress})}\n\n"
-        
-        # Create model in Ollama
+        # Download model
         response = requests.post(
-            'http://localhost:11434/api/create',
-            json={
-                'name': model_name,
-                'file': str(download_path)
-            }
+            'http://localhost:11434/api/pull',
+            json={'name': model_name}
         )
         
         if response.status_code == 200:
             return jsonify({
-                'message': f'Model {model_name} downloaded and created successfully',
+                'message': f'Model {model_name} downloaded successfully',
                 'status': 'success'
             })
         else:
             return jsonify({
-                'error': f'Failed to create model in Ollama',
+                'error': 'Failed to download model',
                 'status': 'error'
             }), 500
     except Exception as e:
+        print(f"Error downloading model: {str(e)}")
         return jsonify({
             'error': str(e),
             'status': 'error'
@@ -101,24 +77,22 @@ def get_model_version():
             'error': 'Model name is required',
             'status': 'error'
         }), 400
-
+    
     try:
-        response = requests.get(
-            f'http://localhost:11434/api/show?name={model_name}'
-        )
-        
+        response = requests.get(f'http://localhost:11434/api/tags/{model_name}')
         if response.status_code == 200:
             model_info = response.json()
             return jsonify({
-                'version': model_info.get('version', 'unknown'),
-                'status': 'success'
+                'status': 'success',
+                'info': model_info
             })
         else:
             return jsonify({
-                'error': 'Failed to fetch model information',
+                'error': 'Model not found',
                 'status': 'error'
-            }), 500
+            }), 404
     except Exception as e:
+        print(f"Error fetching model info: {str(e)}")
         return jsonify({
             'error': str(e),
             'status': 'error'

@@ -1,0 +1,416 @@
+<!-- Parameter Controls Sidebar -->
+<div class="parameter-controls-sidebar" id="parameterControlsSidebar">
+    <div class="parameter-controls-header">
+        <h3>Model Parameters</h3>
+        <button class="btn btn-sm btn-outline-secondary" id="closeParameterControls">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="parameter-controls-content">
+        <!-- Presets Section -->
+        <div class="presets-section">
+            <h4>Presets</h4>
+            <div class="presets-list">
+                <button class="btn btn-outline-primary preset-btn" data-preset="balanced">
+                    <i class="fas fa-balance-scale"></i> Balanced
+                </button>
+                <button class="btn btn-outline-success preset-btn" data-preset="creative">
+                    <i class="fas fa-paint-brush"></i> Creative
+                </button>
+                <button class="btn btn-outline-info preset-btn" data-preset="precise">
+                    <i class="fas fa-bullseye"></i> Precise
+                </button>
+            </div>
+        </div>
+
+        <!-- Parameters Section -->
+        <div class="parameters-section">
+            <div class="parameter-group">
+                <h5>Temperature</h5>
+                <p class="parameter-description">
+                    Controls the randomness of predictions. Higher values make output more random, while lower values make it more deterministic.
+                </p>
+                <div class="slider-container">
+                    <input type="range" min="0.1" max="1.0" step="0.1" value="0.7" class="form-range" id="temperatureSlider">
+                    <div class="slider-value">0.7</div>
+                </div>
+            </div>
+
+            <div class="parameter-group">
+                <h5>Top P (Nucleus Sampling)</h5>
+                <p class="parameter-description">
+                    Controls the diversity of the output. Only considers the top P% of tokens with the highest probability.
+                </p>
+                <div class="slider-container">
+                    <input type="range" min="0.0" max="1.0" step="0.05" value="0.95" class="form-range" id="topPSlider">
+                    <div class="slider-value">0.95</div>
+                </div>
+            </div>
+
+            <div class="parameter-group">
+                <h5>Top K</h5>
+                <p class="parameter-description">
+                    Controls the diversity of the output. Only considers the top K tokens with the highest probability.
+                </p>
+                <div class="slider-container">
+                    <input type="range" min="1" max="50" step="1" value="40" class="form-range" id="topKSlider">
+                    <div class="slider-value">40</div>
+                </div>
+            </div>
+
+            <div class="parameter-group">
+                <h5>Repetition Penalty</h5>
+                <p class="parameter-description">
+                    Controls how much the model is penalized for repeating the same tokens. Higher values reduce repetition.
+                </p>
+                <div class="slider-container">
+                    <input type="range" min="1.0" max="2.0" step="0.1" value="1.1" class="form-range" id="repetitionPenaltySlider">
+                    <div class="slider-value">1.1</div>
+                </div>
+            </div>
+
+            <div class="parameter-group">
+                <h5>Context Window</h5>
+                <p class="parameter-description">
+                    Maximum number of tokens to consider when generating responses.
+                </p>
+                <div class="slider-container">
+                    <input type="range" min="512" max="4096" step="128" value="2048" class="form-range" id="contextWindowSlider">
+                    <div class="slider-value">2048</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save/Reset Section -->
+        <div class="controls-section">
+            <button class="btn btn-outline-primary" id="saveParameters">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+            <button class="btn btn-outline-secondary" id="resetParameters">
+                <i class="fas fa-undo"></i> Reset to Default
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Parameter Controls Styles -->
+<style>
+.parameter-controls-sidebar {
+    position: fixed;
+    top: 0;
+    right: -350px;
+    width: 350px;
+    height: 100vh;
+    background-color: var(--bg-color);
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    transition: right 0.3s ease;
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.parameter-controls-sidebar.active {
+    right: 0;
+}
+
+.parameter-controls-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.presets-section {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.presets-list {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.preset-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.parameters-section {
+    padding: 1.5rem;
+}
+
+.parameter-group {
+    margin-bottom: 2rem;
+}
+
+.parameter-group h5 {
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.parameter-description {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+}
+
+.slider-container {
+    position: relative;
+    margin: 0.5rem 0;
+}
+
+.form-range {
+    width: 100%;
+    height: 2px;
+    background-color: var(--border-color);
+    border-radius: 1px;
+    -webkit-appearance: none;
+}
+
+.form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.form-range::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.slider-value {
+    position: absolute;
+    top: -2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-light);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    color: var(--primary-color);
+}
+
+.controls-section {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 1rem;
+}
+
+.dark-mode .parameter-controls-sidebar {
+    background-color: var(--dark-bg);
+}
+
+.dark-mode .parameter-description {
+    color: var(--dark-text);
+}
+
+.dark-mode .form-range {
+    background-color: var(--dark-border);
+}
+
+.dark-mode .form-range::-webkit-slider-thumb {
+    background-color: var(--primary-color);
+}
+
+.dark-mode .slider-value {
+    background-color: var(--dark-bg-light);
+    color: var(--primary-color);
+}
+</style>
+
+<!-- Parameter Controls JavaScript -->
+<script>
+let parameterControlsOpen = false;
+const defaultParameters = {
+    temperature: 0.7,
+    top_p: 0.95,
+    top_k: 40,
+    repetition_penalty: 1.1,
+    context_window: 2048
+};
+
+// Initialize parameter controls
+function initParameterControls() {
+    // Toggle parameter controls sidebar
+    document.getElementById('parameterControlsBtn').addEventListener('click', () => {
+        const sidebar = document.getElementById('parameterControlsSidebar');
+        parameterControlsOpen = !parameterControlsOpen;
+        sidebar.classList.toggle('active', parameterControlsOpen);
+    });
+
+    // Close parameter controls
+    document.getElementById('closeParameterControls').addEventListener('click', () => {
+        const sidebar = document.getElementById('parameterControlsSidebar');
+        parameterControlsOpen = false;
+        sidebar.classList.remove('active');
+    });
+
+    // Initialize sliders
+    initializeSliders();
+
+    // Handle preset buttons
+    document.querySelectorAll('.preset-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            applyPreset(button.dataset.preset);
+        });
+    });
+
+    // Save parameters
+    document.getElementById('saveParameters').addEventListener('click', saveParameters);
+
+    // Reset parameters
+    document.getElementById('resetParameters').addEventListener('click', () => {
+        applyPreset('default');
+    });
+}
+
+// Initialize all sliders
+function initializeSliders() {
+    const sliders = {
+        temperature: document.getElementById('temperatureSlider'),
+        top_p: document.getElementById('topPSlider'),
+        top_k: document.getElementById('topKSlider'),
+        repetition_penalty: document.getElementById('repetitionPenaltySlider'),
+        context_window: document.getElementById('contextWindowSlider')
+    };
+
+    Object.entries(sliders).forEach(([key, slider]) => {
+        const value = defaultParameters[key];
+        slider.value = value;
+        updateSliderValue(slider, value);
+
+        slider.addEventListener('input', (e) => {
+            const newValue = parseFloat(e.target.value);
+            updateSliderValue(slider, newValue);
+            updateParameters(key, newValue);
+        });
+    });
+}
+
+// Update slider value display
+function updateSliderValue(slider, value) {
+    const valueElement = slider.nextElementSibling;
+    valueElement.textContent = value;
+}
+
+// Update parameters in real-time
+function updateParameters(key, value) {
+    const parameters = {
+        temperature: parseFloat(document.getElementById('temperatureSlider').value),
+        top_p: parseFloat(document.getElementById('topPSlider').value),
+        top_k: parseInt(document.getElementById('topKSlider').value),
+        repetition_penalty: parseFloat(document.getElementById('repetitionPenaltySlider').value),
+        context_window: parseInt(document.getElementById('contextWindowSlider').value)
+    };
+
+    // Update the global parameters object
+    window.currentParameters = parameters;
+
+    // Update the parameter display in the chat interface
+    if (typeof updateParameterDisplay === 'function') {
+        updateParameterDisplay(parameters);
+    } else {
+        console.log('Parameters updated:', parameters);
+    }
+}
+
+// Apply preset values
+function applyPreset(preset) {
+    const presets = {
+        default: defaultParameters,
+        balanced: {
+            temperature: 0.7,
+            top_p: 0.95,
+            top_k: 40,
+            repetition_penalty: 1.1,
+            context_window: 2048
+        },
+        creative: {
+            temperature: 0.9,
+            top_p: 0.9,
+            top_k: 50,
+            repetition_penalty: 1.0,
+            context_window: 3072
+        },
+        precise: {
+            temperature: 0.3,
+            top_p: 0.8,
+            top_k: 30,
+            repetition_penalty: 1.2,
+            context_window: 2048
+        }
+    };
+
+    const values = presets[preset];
+    if (!values) return;
+
+    Object.entries(values).forEach(([key, value]) => {
+        const slider = document.getElementById(`${key}Slider`);
+        if (slider) {
+            slider.value = value;
+            updateSliderValue(slider, value);
+        }
+    });
+    
+    // Update parameters with appropriate key/value
+    const parameters = {
+        temperature: parseFloat(document.getElementById('temperatureSlider').value),
+        top_p: parseFloat(document.getElementById('topPSlider').value),
+        top_k: parseInt(document.getElementById('topKSlider').value),
+        repetition_penalty: parseFloat(document.getElementById('repetitionPenaltySlider').value),
+        context_window: parseInt(document.getElementById('contextWindowSlider').value)
+    };
+
+    // Update the global parameters object
+    window.currentParameters = parameters;
+
+    // Update the parameter display in the chat interface
+    if (typeof updateParameterDisplay === 'function') {
+        updateParameterDisplay(parameters);
+    } else {
+        console.log('Preset applied:', preset, parameters);
+    }
+}
+
+// Save parameters to localStorage
+function saveParameters() {
+    const parameters = window.currentParameters;
+    localStorage.setItem('modelParameters', JSON.stringify(parameters));
+    alert('Parameters saved successfully!');
+}
+
+// Update parameter display in chat
+function updateParameterDisplay(parameters) {
+    const parameterDisplay = document.getElementById('currentParameters');
+    if (parameterDisplay) {
+        parameterDisplay.innerHTML = `
+            <div class="parameter-display-item">
+                <span>Temp:</span> ${parameters.temperature.toFixed(1)}
+            </div>
+            <div class="parameter-display-item">
+                <span>Top P:</span> ${parameters.top_p.toFixed(2)}
+            </div>
+            <div class="parameter-display-item">
+                <span>Top K:</span> ${parameters.top_k}
+            </div>
+            <div class="parameter-display-item">
+                <span>Rep Pen:</span> ${parameters.repetition_penalty.toFixed(1)}
+            </div>
+            <div class="parameter-display-item">
+                <span>Context:</span> ${parameters.context_window}
+            </div>
+        `;
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', initParameterControls);
+</script>

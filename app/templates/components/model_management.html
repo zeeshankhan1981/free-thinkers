@@ -189,7 +189,7 @@ function initModelManagement() {
         progressText.textContent = '0%';
 
         try {
-            const response = await fetch('/api/models/download', {
+            const response = await fetch('/model_management/api/models/download', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -216,49 +216,63 @@ function initModelManagement() {
 // Load available models
 async function loadModels() {
     try {
-        const response = await fetch('/api/models/list');
-        const data = await response.json();
-
-        if (data.status === 'success') {
-            const modelsList = document.getElementById('modelsList');
-            modelsList.innerHTML = '';
-
-            data.models.forEach(model => {
-                const modelItem = document.createElement('div');
-                modelItem.className = 'model-item';
-                modelItem.innerHTML = `
-                    <div class="model-info">
-                        <h5>${model.name}</h5>
-                        <p class="text-muted">Version: ${model.version || 'unknown'}</p>
-                    </div>
-                    <div class="model-actions">
-                        <button class="btn btn-sm btn-outline-primary" onclick="showModelInfo('${model.name}')">
-                            Info
-                        </button>
-                        <button class="btn btn-sm btn-outline-success" onclick="selectModel('${model.name}')">
-                            Select
-                        </button>
-                    </div>
-                `;
-                modelsList.appendChild(modelItem);
-            });
+        const response = await fetch('/model_management/api/models');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        const models = await response.json();
+        
+        const modelsList = document.getElementById('modelsList');
+        modelsList.innerHTML = '';
+
+        // Extract just the model names from the detailed response
+        const modelNames = models.map(model => model.name);
+        
+        modelNames.forEach(modelName => {
+            const modelItem = document.createElement('div');
+            modelItem.className = 'model-item';
+            modelItem.innerHTML = `
+                <div class="model-info">
+                    <h5>${modelName}</h5>
+                </div>
+                <div class="model-actions">
+                    <button class="btn btn-sm btn-outline-success" onclick="selectModel('${modelName}')">
+                        Select
+                    </button>
+                </div>
+            `;
+            modelsList.appendChild(modelItem);
+        });
     } catch (error) {
         console.error('Error loading models:', error);
+        alert('Error loading models. Please try again.');
     }
 }
 
 // Show model information
 async function showModelInfo(modelName) {
     try {
-        const response = await fetch(`/api/models/version?name=${modelName}`);
+        const response = await fetch(`/model_management/api/models/version?name=${modelName}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
 
         if (data.status === 'success') {
-            alert(`Model: ${modelName}\nVersion: ${data.version}`);
+            const modelInfo = data.info;
+            const infoModal = new bootstrap.Modal(document.getElementById('modelInfoModal'));
+            
+            document.getElementById('modelInfoName').textContent = modelName;
+            document.getElementById('modelInfoVersion').textContent = modelInfo.version || 'N/A';
+            document.getElementById('modelInfoDescription').textContent = modelInfo.description || 'No description available';
+            
+            infoModal.show();
+        } else {
+            alert(`Error: ${data.error}`);
         }
     } catch (error) {
-        console.error('Error getting model version:', error);
+        console.error('Error fetching model info:', error);
+        alert('Error fetching model information');
     }
 }
 

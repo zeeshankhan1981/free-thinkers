@@ -70,6 +70,41 @@
             overflow-y: auto;
         }
 
+        .parameter-display {
+            padding: 1rem;
+            background-color: var(--bg-light);
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .parameter-display-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--secondary-color);
+        }
+
+        .parameter-display-item span {
+            font-weight: 500;
+        }
+
+        .dark-mode .parameter-display {
+            background-color: var(--dark-bg-light);
+            color: var(--dark-text);
+        }
+
+        .dark-mode .parameter-display-item {
+            color: var(--dark-text);
+        }
+
+        .dark-mode .parameter-display-item span {
+            color: var(--primary-color);
+        }
+
         .message {
             padding: 1rem;
             margin-bottom: var(--spacing);
@@ -434,11 +469,21 @@
             <button class="btn btn-sm btn-outline-secondary" id="modelManagementBtn">
                 <i class="fas fa-cog"></i> Model Management
             </button>
+            <button class="btn btn-sm btn-outline-secondary" id="parameterControlsBtn">
+                <i class="fas fa-sliders-h"></i> Parameters
+            </button>
         </div>
     </header>
 
     <div class="app-container">
-        <div class="chat-container" id="chatContainer"></div>
+        <div class="chat-container" id="chatContainer">
+            <div class="parameter-display" id="currentParameters">
+                <!-- Parameters will be displayed here -->
+            </div>
+            <div id="chatMessages">
+                <!-- Messages will be displayed here -->
+            </div>
+        </div>
 
         <div class="input-container">
             <div class="model-select mb-3">
@@ -502,6 +547,7 @@
     </button>
 
     {% include 'components/model_management.html' %}
+    {% include 'components/parameter_controls.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -512,6 +558,15 @@
             let responseController = null;
             let promptGuides = {};
             let showPromptGuide = true;
+            
+            // Initialize default parameters
+            window.currentParameters = {
+                temperature: 0.7,
+                top_p: 0.95,
+                top_k: 40,
+                repetition_penalty: 1.1,
+                context_window: 2048
+            };
 
             const darkModeToggle = document.getElementById('darkModeToggle');
             const modelSelect = document.getElementById('modelSelect');
@@ -616,33 +671,30 @@
                 
                 if (!message) return;
                 
-                // Disable input and show loading
-                messageInput.value = '';
-                messageInput.disabled = true;
-                sendMessage.disabled = true;
-                cancelResponse.style.display = 'block';
-                loadingIndicator.style.display = 'inline-block';
-                
-                // Add the user message to the thread
+                // Add user message
                 currentThread.push({
                     role: 'user',
                     content: message
                 });
                 
-                // Add an empty assistant message that we'll update during streaming
-                currentThread.push({
-                    role: 'assistant',
-                    content: ''
-                });
-                
-                renderMessages();
+                // Get current parameters
+                const parameters = window.currentParameters || {
+                    temperature: 0.7,
+                    top_p: 0.95,
+                    top_k: 40,
+                    repetition_penalty: 1.1,
+                    context_window: 2048
+                };
+
+                // Add loading indicator
+                loadingIndicator.style.display = 'block';
                 
                 try {
-                    // Set up a POST request to the backend with the message and selected model
-                    let response = '';
-                    let accumulated = '';
+                    // Create a new controller for this request
+                    responseController = new AbortController();
+                    const signal = responseController.signal;
                     
-                    const fetchResponse = await fetch('/api/chat', {
+                    const response = await fetch('/api/chat', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -650,49 +702,51 @@
                         body: JSON.stringify({
                             message: message,
                             model: currentModel,
-                            speed: responseSpeed.value
-                        })
+                            parameters: parameters
+                        }),
+                        signal: signal
                     });
+
+                    // Get response text first, then parse as JSON
+                    const textResponse = await response.text();
+                    let data = { response: '' };
                     
-                    // Use ReadableStream instead of EventSource
-                    const reader = fetchResponse.body.getReader();
-                    responseController = reader;
-                    
-                    // Process the stream
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        
-                        if (done) {
-                            break;
-                        }
-                        
-                        // Convert the chunk to text
-                        const chunk = new TextDecoder().decode(value);
-                        accumulated += chunk;
-                        
-                        // Update the assistant's message
-                        currentThread[currentThread.length - 1].content = accumulated;
-                        renderMessages();
+                    try {
+                        data = JSON.parse(textResponse);
+                    } catch (parseError) {
+                        console.log('Response is not JSON, using as plain text:', textResponse);
+                        data = { response: textResponse };
                     }
                     
-                    // Save the completed thread to history
-                    if (currentThread.length >= 2) {
-                        console.log("Saving thread to history", currentThread);
-                        saveToHistory(currentThread);
-                    }
-                    
-                    // Re-enable the UI
-                    messageInput.disabled = false;
-                    sendMessage.disabled = false;
-                    cancelResponse.style.display = 'none';
-                    loadingIndicator.style.display = 'none';
-                    messageInput.focus();
+                    // Add assistant message
+                    currentThread.push({
+                        role: 'assistant',
+                        content: data.response
+                    });
+
+                    // Save to history
+                    saveToHistory({
+                        model: currentModel,
+                        messages: currentThread
+                    });
+
+                    // Update UI
+                    messageInput.value = '';
+                    renderMessages();
                     
                 } catch (error) {
-                    console.error('Error sending message:', error);
-                    messageInput.disabled = false;
-                    sendMessage.disabled = false;
-                    cancelResponse.style.display = 'none';
+                    if (error.name === 'AbortError') {
+                        console.log('Request was aborted');
+                    } else {
+                        console.error('Error:', error);
+                        currentThread.push({
+                            role: 'assistant',
+                            content: 'Sorry, there was an error processing your request.'
+                        });
+                        renderMessages();
+                    }
+                } finally {
+                    responseController = null;
                     loadingIndicator.style.display = 'none';
                 }
             });
@@ -762,10 +816,35 @@
                     msg.style.backgroundColor = isDark ? '#3d3d3d' : '#ffffff';
                 });
             }
+            
+            // Function to update parameter display
+            function updateParameterDisplay(parameters) {
+                const parameterDisplay = document.getElementById('currentParameters');
+                if (parameterDisplay) {
+                    parameterDisplay.innerHTML = `
+                        <div class="parameter-display-item">
+                            <span>Temp:</span> ${parameters.temperature.toFixed(1)}
+                        </div>
+                        <div class="parameter-display-item">
+                            <span>Top P:</span> ${parameters.top_p.toFixed(2)}
+                        </div>
+                        <div class="parameter-display-item">
+                            <span>Top K:</span> ${parameters.top_k}
+                        </div>
+                        <div class="parameter-display-item">
+                            <span>Rep Pen:</span> ${parameters.repetition_penalty.toFixed(1)}
+                        </div>
+                        <div class="parameter-display-item">
+                            <span>Context:</span> ${parameters.context_window}
+                        </div>
+                    `;
+                }
+            }
 
             // Render messages
             function renderMessages() {
-                chatContainer.innerHTML = currentThread.map(msg => `
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = currentThread.map(msg => `
                     <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
                         ${msg.content}
                     </div>
@@ -876,6 +955,9 @@
             
             // Load prompt guides when page loads
             fetchPromptGuides();
+            
+            // Initialize parameter display
+            updateParameterDisplay(window.currentParameters);
         });
     </script>
 </body>

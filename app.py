@@ -1,15 +1,21 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
+import sys
 import requests
+from pathlib import Path
 import json
 import uuid
 from datetime import datetime
-import requests
-from pathlib import Path
 
-app = Flask(__name__, template_folder='app/templates')
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5000"}})
+# Add the project root to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.model_management import model_management
+
+app = Flask(__name__)
+app.template_folder = 'app/templates'
+CORS(app)
 
 # Configuration
 HISTORY_DIR = Path(os.path.expanduser("~/.freethinkers/history/"))
@@ -47,13 +53,13 @@ MODEL_PARAMS = {
             "fast": {"temperature": 0.6, "top_p": 0.8, "top_k": 30}
         },
         "prompt_guide": {
-            "use_case_title": "Versatile, instruction-following tasks",
-            "use_case": "This model excels at following instructions and producing high-quality outputs for various tasks.",
-            "example_prompt": "Explain three ways artificial intelligence can help address climate change.",
-            "tip": "Provide clear instructions for best results. Works well for complex reasoning tasks."
+            "use_case_title": "General-purpose tasks, balanced outputs",
+            "use_case": "This model is optimized for general-purpose tasks with balanced outputs.",
+            "example_prompt": "Explain the concept of quantum entanglement in simple terms.",
+            "tip": "Use clear, concise language for best results."
         },
         "limits": {
-            "max_tokens": 4096,
+            "max_tokens": 2048,
             "max_input_chars": 320
         }
     },
@@ -133,6 +139,9 @@ def get_thread(thread_id):
             return json.load(f)
     return None
 
+# Register blueprints
+app.register_blueprint(model_management, url_prefix='/model_management')
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -167,74 +176,86 @@ def get_model_guide(model_name):
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    """Handle chat requests and stream responses."""
-    data = request.json
+    data = request.get_json()
     message = data.get('message', '')
-    model = data.get('model', 'mistral-7b')
-    speed = data.get('speed', 'medium')
-    use_guide = data.get('use_guide', False)
-    
-    if model not in MODEL_PARAMS:
-        return jsonify({"error": "Invalid model"}), 400
-    
-    # Validate message length
-    if len(message) > MODEL_PARAMS[model]['limits']['max_input_chars']:
-        message = message[:MODEL_PARAMS[model]['limits']['max_input_chars']]  # Truncate if too long
-    
-    # If using guide and message is empty, use example prompt from guide
-    if use_guide and not message and 'prompt_guide' in MODEL_PARAMS[model]:
-        message = MODEL_PARAMS[model]['prompt_guide']['example_prompt']
+    model = data.get('model', 'llama2')
+    parameters = data.get('parameters', {
+        'temperature': 0.7,
+        'top_p': 0.95,
+        'top_k': 40,
+        'repetition_penalty': 1.1,
+        'context_window': 2048
+    })
+
+    try:
+        # Get the model parameters
+        model_params = MODEL_PARAMS.get(model, {})
         
-    # Get model parameters
-    base_params = MODEL_PARAMS[model]
-    speed_params = base_params['speed_settings'][speed]
-    
-    # Prepare the prompt for Ollama
-    prompt = f"{message}\nAssistant:"
-    
-    # Call Ollama API
-    response = requests.post(
-        'http://127.0.0.1:11434/api/generate',
-        json={
-            'model': model,
-            'prompt': prompt,
-            'stream': True,
-            'temperature': speed_params['temperature'],
-            'top_p': speed_params['top_p'],
-            'top_k': speed_params['top_k'],
-            'max_tokens': base_params['limits']['max_tokens'],
-            # GPU acceleration parameters
-            'num_gpu': 1,           # Use GPU acceleration 
-            'num_thread': 6,        # Optimized for M4 chip
-            'mirostat': 1,          # Enable adaptive sampling for better response quality
-            'mirostat_tau': 5.0,    # Lower tau for more focused sampling
-            'mirostat_eta': 0.1,    # Learning rate for mirostat algorithm
-            'repeat_penalty': 1.15, # Slightly increased to avoid repetition
-            'seed': -1,             # Random seed for reproducibility (-1 for random)
-            'f16_kv': True,         # Use half-precision for keys/values to speed up processing
-            'tfs_z': 1.0,           # Control tail free sampling
-        },
-        stream=True,
-        timeout=300  # 5 minute timeout
-    )
-    
-    def generate():
-        try:
-            for line in response.iter_lines():
-                if line:
-                    try:
-                        chunk = json.loads(line)
-                        if 'response' in chunk:
-                            yield chunk['response']
-                    except json.JSONDecodeError:
-                        continue
-        except requests.exceptions.Timeout:
-            pass  # Timeout is handled by the frontend
-        except Exception as e:
-            print(f"Error in response generation: {e}")
-            pass
-    
-    return app.response_class(generate(), mimetype='text/event-stream')
+        # Combine default parameters with user parameters
+        final_params = {
+            'temperature': float(parameters.get('temperature', 0.7)),
+            'top_p': float(parameters.get('top_p', 0.95)),
+            'top_k': int(parameters.get('top_k', 40)),
+            'repetition_penalty': float(parameters.get('repetition_penalty', 1.1)),
+            'num_gpu': 1,
+            'num_thread': 6,
+            'mirostat': model_params.get('mirostat', 2),
+            'mirostat_tau': model_params.get('mirostat_tau', 0.7),
+            'mirostat_eta': model_params.get('mirostat_eta', 0.1),
+            'f16_kv': True,
+            'repeat_penalty': float(parameters.get('repetition_penalty', 1.1)),
+            'tfs_z': model_params.get('tfs_z', 1.0)
+        }
+
+        # Stream the response
+        response = requests.post(
+            'http://127.0.0.1:11434/api/generate',
+            json={
+                'model': model,
+                'prompt': f"{message}\nAssistant:",
+                'stream': True,
+                'temperature': final_params['temperature'],
+                'top_p': final_params['top_p'],
+                'top_k': final_params['top_k'],
+                'max_tokens': MODEL_PARAMS[model]['limits']['max_tokens'],
+                # GPU acceleration parameters
+                'num_gpu': final_params['num_gpu'],           # Use GPU acceleration 
+                'num_thread': final_params['num_thread'],        # Optimized for M4 chip
+                'mirostat': final_params['mirostat'],          # Enable adaptive sampling for better response quality
+                'mirostat_tau': final_params['mirostat_tau'],    # Lower tau for more focused sampling
+                'mirostat_eta': final_params['mirostat_eta'],    # Learning rate for mirostat algorithm
+                'repeat_penalty': final_params['repeat_penalty'], # Slightly increased to avoid repetition
+                'seed': -1,             # Random seed for reproducibility (-1 for random)
+                'f16_kv': final_params['f16_kv'],         # Use half-precision for keys/values to speed up processing
+                'tfs_z': final_params['tfs_z'],           # Control tail free sampling
+            },
+            stream=True,
+            timeout=300  # 5 minute timeout
+        )
+        
+        def generate():
+            try:
+                for line in response.iter_lines():
+                    if line:
+                        try:
+                            chunk = json.loads(line)
+                            if 'response' in chunk:
+                                yield chunk['response']
+                        except json.JSONDecodeError:
+                            continue
+            except requests.exceptions.Timeout:
+                pass  # Timeout is handled by the frontend
+            except Exception as e:
+                print(f"Error in response generation: {e}")
+                pass
+        
+        return app.response_class(generate(), mimetype='text/event-stream')
+
+    except Exception as e:
+        print(f"Error in chat: {str(e)}")
+        return jsonify({
+            'error': str(e)
+        }), 500
 
 @app.route('/api/guided_chat', methods=['POST'])
 def guided_chat():
@@ -291,5 +312,4 @@ def get_thread_endpoint(thread_id):
     return jsonify({"error": "Thread not found"}), 404
 
 if __name__ == '__main__':
-    # Run the application
-    app.run(debug=True, port=5000)
+    app.run(host='127.0.0.1', port=5000, debug=True)
