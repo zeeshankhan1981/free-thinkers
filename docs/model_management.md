@@ -127,6 +127,29 @@ Free Thinkers supports multiple language models, each with its own strengths and
 - Higher values (e.g., 4096) make the model slower but with more context
 - Default: 2048
 
+## Performance Optimizations
+
+1. Model Parameter Optimizations:
+   - Reduced max_tokens from 2048 to 1024 for faster generation across all models
+   - Optimized temperature and sampling parameters for faster responses
+   - Enhanced GPU acceleration:
+     - use_gpu: True to force GPU usage
+     - Optimized gpu_layers for each model type
+     - Added num_batch parameter for efficient token processing
+     - Increased num_thread to 8 for better parallelization
+
+2. Multimodal-Specific Improvements:
+   - Reduced prompt complexity and response length limits for llava models
+   - Added cache optimization with cache_mode: balanced
+   - Special handling for llava models in chat endpoints
+   - Optimized token limits for faster image processing
+
+3. API Endpoint Enhancements:
+   - Optimized parameters in both chat and chat_with_image endpoints
+   - Disabled mirostat sampling for faster responses
+   - Improved model-specific parameter passing
+   - Updated TOKEN_COUNTS with new token limits
+
 ## Preset Settings
 
 ### Creative Mode

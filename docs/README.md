@@ -15,6 +15,7 @@ A minimalist, local-first web-based chat interface for interacting with LLMs.
 - Token and character limit indicators
 - Responsive design
 - Multimodal image upload support with models like llava-phi3
+- Optimized performance with GPU acceleration and reduced token limits
 
 ## Requirements
 
@@ -85,6 +86,29 @@ pip install -r requirements.txt
 - **Method**: JSON flat file storage
 - **Location**: `~/.freethinkers/history/`
 - **Format**: Thread-based JSON files with UUIDs
+
+### Performance Optimizations
+
+1. Model Parameter Optimizations:
+   - Reduced max_tokens from 2048 to 1024 for faster generation
+   - Optimized temperature and sampling parameters for faster responses
+   - Enhanced GPU acceleration:
+     - use_gpu: True for forced GPU usage
+     - Optimized gpu_layers for each model type
+     - num_batch parameter for efficient token processing
+     - Increased num_thread to 8 for better parallelization
+
+2. Multimodal-Specific Improvements:
+   - Reduced prompt complexity and response length limits
+   - Added cache optimization with cache_mode: balanced
+   - Special handling for llava models in chat endpoints
+   - Optimized token limits for faster image processing
+
+3. API Endpoint Enhancements:
+   - Optimized parameters in both chat and chat_with_image endpoints
+   - Disabled mirostat sampling for faster responses
+   - Improved model-specific parameter passing
+   - Updated TOKEN_COUNTS with new token limits
 
 ### API Endpoints
 

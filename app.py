@@ -62,10 +62,17 @@ MODEL_PARAMS = {
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 40,
+        "num_gpu": 1,
+        "num_thread": 8,
+        "num_batch": 4,
+        "f16_kv": True,
+        "use_gpu": True,
+        "gpu_layers": 36,
+        "low_vram": False,
         "speed_settings": {
-            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
-            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50, "max_tokens": 2048},
+            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40, "max_tokens": 1024},
+            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30, "max_tokens": 512}
         },
         "prompt_guide": {
             "use_case_title": "Fast, general-purpose tasks, concise outputs",
@@ -74,7 +81,7 @@ MODEL_PARAMS = {
             "tip": "Keep the prompt short and straightforward for best results."
         },
         "limits": {
-            "max_tokens": 2048,
+            "max_tokens": 1024,  # Reduced for better performance
             "max_input_chars": 320
         }
     },
@@ -82,10 +89,17 @@ MODEL_PARAMS = {
         "temperature": 0.7,
         "top_p": 0.9,
         "top_k": 40,
+        "num_gpu": 1,
+        "num_thread": 8,
+        "num_batch": 4,
+        "f16_kv": True,
+        "use_gpu": True,
+        "gpu_layers": 40,  # Llama models benefit from more GPU layers
+        "low_vram": False,
         "speed_settings": {
-            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.7, "top_p": 0.9, "top_k": 40},
-            "fast": {"temperature": 0.6, "top_p": 0.8, "top_k": 30}
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50, "max_tokens": 2048},
+            "medium": {"temperature": 0.7, "top_p": 0.9, "top_k": 40, "max_tokens": 1024},
+            "fast": {"temperature": 0.6, "top_p": 0.8, "top_k": 30, "max_tokens": 512}
         },
         "prompt_guide": {
             "use_case_title": "General-purpose tasks, balanced outputs",
@@ -94,8 +108,8 @@ MODEL_PARAMS = {
             "tip": "Use clear, concise language for best results."
         },
         "limits": {
-            "max_tokens": 2048,
-            "max_input_chars": 320
+            "max_tokens": 1024,  # Reduced for better performance
+            "max_input_chars": 256  # Reduced for better performance
         }
     },
     "gemma-2b-it": {
@@ -124,15 +138,21 @@ MODEL_PARAMS = {
         }
     },
     "llava-phi3:latest": {
-        "temperature": 0.7,
-        "top_p": 0.9,
-        "top_k": 40,
+        "temperature": 0.65,
+        "top_p": 0.85,
+        "top_k": 30,
         "num_gpu": 1,
         "f16_kv": True,
+        "num_thread": 8,
+        "num_batch": 4,
+        "max_tokens": 1024,     # Limit output tokens for faster responses
+        "use_gpu": True,        # Force GPU usage for better performance
+        "gpu_layers": 42,       # Optimize GPU utilization
+        "low_vram": False,      # Assuming sufficient GPU memory
         "speed_settings": {
-            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.7, "top_p": 0.9, "top_k": 40},
-            "fast": {"temperature": 0.5, "top_p": 0.85, "top_k": 30}
+            "slow": {"temperature": 0.75, "top_p": 0.9, "top_k": 40, "max_tokens": 2048},
+            "medium": {"temperature": 0.65, "top_p": 0.85, "top_k": 30, "max_tokens": 1024},
+            "fast": {"temperature": 0.5, "top_p": 0.75, "top_k": 20, "max_tokens": 512}
         },
         "prompt_guide": {
             "use_case_title": "Multimodal image analysis and description",
@@ -141,8 +161,8 @@ MODEL_PARAMS = {
             "tip": "For best results, upload clear images and ask specific questions about the content."
         },
         "limits": {
-            "max_tokens": 2048,
-            "max_input_chars": 320
+            "max_tokens": 1024,  # Reduced from 2048 for better performance
+            "max_input_chars": 256  # Reduced from 320 for better performance
         }
     }
 }
@@ -253,11 +273,11 @@ initialize_model_params()
 
 TOKEN_COUNTS = {
     "mistral-7b": {
-        "max_tokens": 2048,
+        "max_tokens": 1024,
         "tokenizer": "default"
     },
     "llama3.2": {
-        "max_tokens": 2048,
+        "max_tokens": 1024,
         "tokenizer": "default"
     },
     "gemma-2b-it": {
@@ -265,7 +285,7 @@ TOKEN_COUNTS = {
         "tokenizer": "default"
     },
     "llava-phi3:latest": {
-        "max_tokens": 2048,
+        "max_tokens": 1024,
         "tokenizer": "default"
     }
 }
@@ -413,7 +433,7 @@ def chat():
                 print(f"Streaming for model: {model}")
                 print(f"Temperature: {temperature}, Top-P: {top_p}, Top-K: {top_k}")
                 
-                # Default Ollama parameters
+                # Enhanced Ollama parameters with GPU optimization
                 ollama_params = {
                     'model': model,
                     'prompt': prompt,
@@ -422,19 +442,27 @@ def chat():
                     'top_p': top_p,
                     'top_k': top_k,
                     'max_tokens': max_tokens,
-                    'num_gpu': 1,
-                    'num_thread': 6,
-                    'mirostat': model_params.get('mirostat', 2),
-                    'mirostat_tau': model_params.get('mirostat_tau', 0.7),
-                    'mirostat_eta': model_params.get('mirostat_eta', 0.1),
+                    'num_gpu': model_params.get('num_gpu', 1),
+                    'num_thread': model_params.get('num_thread', 8),
+                    'num_batch': model_params.get('num_batch', 4),
+                    'mirostat': model_params.get('mirostat', 0),  # Disable mirostat for speed
                     'repeat_penalty': repetition_penalty,
                     'seed': -1,
-                    'f16_kv': True,
+                    'f16_kv': model_params.get('f16_kv', True),
+                    'use_gpu': model_params.get('use_gpu', True), # Ensure GPU usage
+                    'gpu_layers': model_params.get('gpu_layers', 42), # Optimize GPU layer split
                     'tfs_z': model_params.get('tfs_z', 1.0),
                 }
                 
-                # Add model-specific parameters
-                if model == 'gemma-2b-it':
+                # Add model-specific parameters for multimodal handling
+                if model.startswith('llava'):
+                    ollama_params.update({
+                        'num_thread': model_params.get('num_thread', 8),
+                        'num_batch': model_params.get('num_batch', 4),
+                        'gpu_layers': model_params.get('gpu_layers', 42),
+                        'use_gpu': True
+                    })
+                elif model == 'gemma-2b-it':
                     ollama_params.update({
                         'num_thread': model_params.get('num_thread', 8),
                         'num_batch': model_params.get('num_batch', 2),
@@ -553,7 +581,11 @@ def chat_with_image():
         
         def generate_events():
             try:
-                # Prepare Ollama API request
+                # Get model parameters for optimization
+                model_params = MODEL_PARAMS.get(model, {})
+                max_tokens = model_params.get('max_tokens', 1024)
+                
+                # Prepare optimized Ollama API request
                 ollama_request = {
                     'model': model,
                     'prompt': formatted_prompt,
@@ -561,7 +593,15 @@ def chat_with_image():
                     'images': [image_data],  # Pass base64 image data to Ollama
                     'temperature': temperature,
                     'top_p': top_p,
-                    'top_k': top_k
+                    'top_k': top_k,
+                    'max_tokens': model_params.get('max_tokens', 1024),
+                    'num_gpu': model_params.get('num_gpu', 1),
+                    'num_thread': model_params.get('num_thread', 8),
+                    'num_batch': model_params.get('num_batch', 4),
+                    'f16_kv': model_params.get('f16_kv', True),
+                    'use_gpu': model_params.get('use_gpu', True),
+                    'gpu_layers': model_params.get('gpu_layers', 42),
+                    'cache_mode': 'balanced'  # Optimize cache usage
                 }
                 
                 # Send request to Ollama API
