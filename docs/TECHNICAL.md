@@ -20,6 +20,7 @@
   - Mistral 7B (Q4_K_M)
   - Llama 3.2
   - Gemma 2B (Italian)
+  - Llava Phi3
 - **GPU Acceleration**: Metal for Apple Silicon
   - Environment Variables: OLLAMA_USE_METAL=true, OLLAMA_METAL=true, OLLAMA_RAM=8G
   - API Optimization: num_gpu=1, num_thread=6, f16_kv=true
@@ -39,6 +40,19 @@ Content-Type: application/json
 {
     "message": "string",
     "model": "enum[mistral-7b, llama3.2, gemma-2b-it]",
+    "system_prompt": "optional string"
+}
+```
+
+### Image Chat Endpoint
+```http
+POST /api/chat_with_image
+Content-Type: multipart/form-data
+
+{
+    "message": "string",
+    "model": "enum[llava-phi3]",
+    "image": "file",
     "system_prompt": "optional string"
 }
 ```
@@ -67,11 +81,12 @@ Content-Type: application/json
 
 ### Model Specifications
 
-| Model | Parameters | Quantization | Max Context | Max Response |
-|-------|------------|--------------|-------------|-------------|
-| Mistral 7B | 7.2B | Q4_K_M | 4096 | 2048 |
-| Llama 3.2 | 8.0B | Q4_K_M | 8192 | 4096 |
-| Gemma 2B | 2.5B | - | 2048 | 1024 |
+| Model | Parameters | Quantization | Max Context | Max Response | Capabilities |
+|-------|------------|--------------|-------------|-------------|--------------|
+| Mistral 7B | 7.2B | Q4_K_M | 4096 | 2048 | Text-only |
+| Llama 3.2 | 8.0B | Q4_K_M | 8192 | 4096 | Text-only |
+| Gemma 2B | 2.5B | - | 2048 | 1024 | Text-only |
+| Llava Phi3 | 3.8B | Q4_K_M | 4096 | 2048 | Text + Image |
 
 ## Environment Variables
 

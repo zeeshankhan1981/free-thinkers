@@ -122,6 +122,28 @@ MODEL_PARAMS = {
             "max_tokens": 1024,
             "max_input_chars": 256
         }
+    },
+    "llava-phi3:latest": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "top_k": 40,
+        "num_gpu": 1,
+        "f16_kv": True,
+        "speed_settings": {
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+            "medium": {"temperature": 0.7, "top_p": 0.9, "top_k": 40},
+            "fast": {"temperature": 0.5, "top_p": 0.85, "top_k": 30}
+        },
+        "prompt_guide": {
+            "use_case_title": "Multimodal image analysis and description",
+            "use_case": "This model can analyze images and provide descriptions or answer questions about them.",
+            "example_prompt": "What's in this image? Provide a detailed description.",
+            "tip": "For best results, upload clear images and ask specific questions about the content."
+        },
+        "limits": {
+            "max_tokens": 2048,
+            "max_input_chars": 320
+        }
     }
 }
 
@@ -240,6 +262,10 @@ TOKEN_COUNTS = {
     },
     "gemma-2b-it": {
         "max_tokens": 1024,
+        "tokenizer": "default"
+    },
+    "llava-phi3:latest": {
+        "max_tokens": 2048,
         "tokenizer": "default"
     }
 }
@@ -487,6 +513,88 @@ def chat():
                 'error': 'Failed to initialize chat',
                 'error_info': str(e)
             }), 500
+
+@app.route('/api/chat_with_image', methods=['POST'])
+def chat_with_image():
+    """Handle chat with image upload for multimodal models."""
+    try:
+        # Get form data
+        model = request.form.get('model', 'llava-phi3:latest')
+        prompt = request.form.get('prompt', '')
+        temperature = float(request.form.get('temperature', 0.7))
+        top_p = float(request.form.get('top_p', 0.95))
+        top_k = int(request.form.get('top_k', 40))
+        
+        # Check if image is in the request
+        if 'image' not in request.files:
+            return jsonify({"error": "No image uploaded"}), 400
+            
+        image_file = request.files['image']
+        
+        # Validate image file
+        if image_file.filename == '':
+            return jsonify({"error": "Empty image file"}), 400
+            
+        # Check if it's a valid image type
+        if not image_file.content_type.startswith('image/'):
+            return jsonify({"error": "Invalid file type. Please upload an image."}), 400
+        
+        # Read the image file and encode to base64
+        import base64
+        image_data = base64.b64encode(image_file.read()).decode('utf-8')
+        
+        # Format the prompt for the multimodal model
+        # For Ollama's llava-phi3, we format with image data directly in the prompt
+        formatted_prompt = prompt if prompt else "Describe this image in detail."
+        
+        # Log info about the request
+        print(f"Processing image request with model: {model}")
+        print(f"Image type: {image_file.content_type}, Prompt: {formatted_prompt}")
+        
+        def generate_events():
+            try:
+                # Prepare Ollama API request
+                ollama_request = {
+                    'model': model,
+                    'prompt': formatted_prompt,
+                    'stream': True,
+                    'images': [image_data],  # Pass base64 image data to Ollama
+                    'temperature': temperature,
+                    'top_p': top_p,
+                    'top_k': top_k
+                }
+                
+                # Send request to Ollama API
+                response = requests.post(
+                    'http://127.0.0.1:11434/api/generate',
+                    json=ollama_request,
+                    stream=True,
+                    timeout=300
+                )
+                
+                for line in response.iter_lines():
+                    if line:
+                        try:
+                            chunk = json.loads(line)
+                            if 'response' in chunk:
+                                yield f"data: {json.dumps({'content': chunk['response']})}\n\n"
+                        except json.JSONDecodeError as e:
+                            print(f"JSON decode error: {e}, line: {line}")
+                            continue
+                
+                # End of stream
+                yield f"data: {json.dumps({'done': True})}\n\n"
+                
+            except Exception as e:
+                print(f"Error in image processing stream: {str(e)}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
+        
+        return app.response_class(generate_events(), mimetype='text/event-stream')
+        
+    except Exception as e:
+        print(f"Error in chat_with_image: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/guided_chat', methods=['POST'])
 def guided_chat():

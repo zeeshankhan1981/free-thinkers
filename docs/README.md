@@ -14,6 +14,7 @@ A minimalist, local-first web-based chat interface for interacting with LLMs.
 - Conversation history management
 - Token and character limit indicators
 - Responsive design
+- Multimodal image upload support with models like llava-phi3
 
 ## Requirements
 
@@ -95,6 +96,19 @@ Content-Type: application/json
 {
     "message": "string",
     "model": "enum[mistral-7b, llama3.2, gemma-2b-it]",
+    "system_prompt": "optional string"
+}
+```
+
+#### Image Chat Endpoint
+```http
+POST /api/chat_with_image
+Content-Type: multipart/form-data
+
+{
+    "message": "string",
+    "model": "enum[llava-phi3]",
+    "image": "file",
     "system_prompt": "optional string"
 }
 ```

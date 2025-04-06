@@ -895,6 +895,93 @@
         .notification-error {
             background-color: #dc3545;
         }
+        
+        /* Image Upload Styles */
+        .image-upload-container {
+            background-color: var(--bg-light, #f8f9fa);
+            border-radius: var(--border-radius);
+            padding: 0.75rem;
+            border: 1px dashed var(--border-color);
+        }
+        
+        .image-upload-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .image-upload-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .image-preview {
+            margin-top: 0.75rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 0.5rem;
+            background-color: white;
+        }
+        
+        .image-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+        }
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 4px;
+        }
+        
+        body.dark-mode .image-upload-container {
+            background-color: var(--dark-bg-light, #2d2d2d);
+            border-color: #444;
+        }
+        
+        body.dark-mode .image-preview {
+            background-color: #1a1a1a;
+            border-color: #444;
+        }
+        
+        body.dark-mode .image-upload-header {
+            border-color: #444;
+        }
+        
+        /* Message with image styling */
+        .message-with-image {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .image-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(var(--primary-color-rgb), 0.1);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.85rem;
+            color: var(--primary-color);
+        }
     </style>
 </head>
 <body>
@@ -953,6 +1040,7 @@
                     <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
                     <option value="llama3.2">Llama 3.2</option>
                     <option value="gemma-2b-it">Gemma 2B</option>
+                    <option value="llava-phi3:latest">LLaVA-Phi3 (Multimodal)</option>
                 </select>
                 <!-- Model management button will be added by model_integration.js -->
             </div>
@@ -979,6 +1067,34 @@
                 </div>
             </div>
 
+            <!-- Image Upload Container -->
+            <div class="image-upload-container mb-3" id="imageUploadContainer" style="display: none;">
+                <div class="image-upload-header">
+                    <span>Image Analysis</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="closeImageUpload">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="image-upload-controls">
+                    <div class="upload-buttons">
+                        <input type="file" id="imageUploadInput" accept="image/*" style="display: none;">
+                        <button class="btn btn-sm btn-outline-primary" id="selectImageBtn">
+                            <i class="fas fa-image"></i> Select Image
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" id="removeImageBtn" style="display: none;">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    </div>
+                    <div class="image-preview" id="imagePreview" style="display: none;">
+                        <div class="image-preview-header">
+                            <span id="imageFileName">image.jpg</span>
+                            <span id="imageFileSize">0 KB</span>
+                        </div>
+                        <img id="previewImg" src="#" alt="Preview">
+                    </div>
+                </div>
+            </div>
+
             <div class="input-group mb-3">
                 <textarea class="form-control" id="messageInput" placeholder="Type your message here..." maxlength="320"></textarea>
                 <span class="char-counter" id="charCounter">0/320</span>
@@ -993,6 +1109,9 @@
                 </div>
                 <div class="secondary-controls">
                     <button class="btn btn-outline-secondary" id="clearMessages">Clear</button>
+                    <button class="btn btn-outline-secondary" id="toggleImageUpload" title="Toggle image analysis mode" style="display: none;">
+                        <i class="fas fa-image"></i>
+                    </button>
                     <select class="form-select" id="responseSpeed">
                         <option value="slow">Slow</option>
                         <option value="medium" selected>Medium</option>
@@ -1031,6 +1150,21 @@
             let showPromptGuide = true;
             window.activeSidebar = null;
             
+            // Image upload state
+            let imageUploadEnabled = false;
+            let selectedImage = null;
+            
+            // Make resetImageUpload available globally
+            window.resetImageUpload = function() {
+                imageUploadEnabled = false;
+                selectedImage = null;
+                if (imageUploadInput) imageUploadInput.value = '';
+                if (imagePreview) imagePreview.style.display = 'none';
+                if (removeImageBtn) removeImageBtn.style.display = 'none';
+                if (imageUploadContainer) imageUploadContainer.style.display = 'none';
+                if (toggleImageUploadBtn) toggleImageUploadBtn.classList.remove('active');
+            };
+            
             // Initialize default parameters
             window.currentParameters = {
                 temperature: 0.7,
@@ -1052,6 +1186,18 @@
             const historyBtn = document.getElementById('historyBtn');
             const closeHistory = document.getElementById('closeHistory');
             const historySidebar = document.getElementById('historySidebar');
+            
+            // Image upload elements
+            const toggleImageUploadBtn = document.getElementById('toggleImageUpload');
+            const imageUploadContainer = document.getElementById('imageUploadContainer');
+            const selectImageBtn = document.getElementById('selectImageBtn');
+            const imageUploadInput = document.getElementById('imageUploadInput');
+            const removeImageBtn = document.getElementById('removeImageBtn');
+            const closeImageUploadBtn = document.getElementById('closeImageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const imageFileName = document.getElementById('imageFileName');
+            const imageFileSize = document.getElementById('imageFileSize');
             
             // Prompt guide elements
             const promptGuideEl = document.getElementById('promptGuide');
@@ -1137,9 +1283,319 @@
                 }
             });
 
+            // Initialize image upload functionality
+            function initImageUpload() {
+                // Only show image upload button for multimodal models
+                function updateImageUploadVisibility() {
+                    const isMultimodalModel = currentModel.startsWith('llava-phi3');
+                    toggleImageUploadBtn.style.display = isMultimodalModel ? 'block' : 'none';
+                    
+                    // If we switched away from a multimodal model, hide the image upload container
+                    if (!isMultimodalModel && imageUploadEnabled) {
+                        window.resetImageUpload();
+                    }
+                }
+                
+                // Event listeners for image upload
+                if (toggleImageUploadBtn) {
+                    toggleImageUploadBtn.addEventListener('click', function() {
+                        imageUploadEnabled = !imageUploadEnabled;
+                        imageUploadContainer.style.display = imageUploadEnabled ? 'block' : 'none';
+                        toggleImageUploadBtn.classList.toggle('active', imageUploadEnabled);
+                    });
+                }
+                
+                if (closeImageUploadBtn) {
+                    closeImageUploadBtn.addEventListener('click', function() {
+                        resetImageUpload();
+                    });
+                }
+                
+                if (selectImageBtn && imageUploadInput) {
+                    selectImageBtn.addEventListener('click', function() {
+                        imageUploadInput.click();
+                    });
+                    
+                    imageUploadInput.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            selectedImage = file;
+                            
+                            // Show file details
+                            imageFileName.textContent = file.name;
+                            imageFileSize.textContent = formatFileSize(file.size);
+                            
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                previewImg.src = e.target.result;
+                                imagePreview.style.display = 'block';
+                                removeImageBtn.style.display = 'block';
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+                
+                if (removeImageBtn) {
+                    removeImageBtn.addEventListener('click', function() {
+                        selectedImage = null;
+                        imageUploadInput.value = '';
+                        imagePreview.style.display = 'none';
+                        removeImageBtn.style.display = 'none';
+                    });
+                }
+                
+                // Format file size for display
+                function formatFileSize(bytes) {
+                    if (bytes < 1024) {
+                        return bytes + ' B';
+                    } else if (bytes < 1024 * 1024) {
+                        return (bytes / 1024).toFixed(1) + ' KB';
+                    } else {
+                        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+                    }
+                }
+                
+                // Use the global resetImageUpload function
+                
+                // Update visibility on model change
+                modelSelect.addEventListener('change', updateImageUploadVisibility);
+                
+                // Initial setup
+                updateImageUploadVisibility();
+            }
+            
+            // Convert file to base64
+            function fileToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = error => reject(error);
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            // Send a message with image to the AI
+            async function sendMessageWithImage(userInput, imageFile) {
+                if (!userInput && !imageFile) return;
+                
+                // Get or create active conversation
+                let activeConversation = null;
+                if (typeof window.conversationManager !== 'undefined') {
+                    activeConversation = window.conversationManager.getCurrentConversation();
+                    if (!activeConversation) {
+                        // Create a new conversation
+                        const title = userInput.length > 30 ? userInput.substring(0, 30) + '...' : userInput || 'Image Analysis';
+                        activeConversation = window.conversationManager.createConversation(title);
+                    }
+                }
+                
+                // Get current parameters
+                let params = window.currentParameters;
+                if (typeof window.getCurrentParameters === 'function') {
+                    params = window.getCurrentParameters();
+                }
+                
+                // Convert image to base64
+                let base64Image = '';
+                try {
+                    base64Image = await fileToBase64(imageFile);
+                } catch (error) {
+                    console.error('Error converting image to base64:', error);
+                    alert('Error processing image. Please try again.');
+                    return;
+                }
+                
+                // Create user message with both text and image
+                const userMessage = {
+                    role: 'user',
+                    content: userInput,
+                    image: {
+                        name: imageFile.name,
+                        type: imageFile.type,
+                        data: base64Image
+                    }
+                };
+                
+                // Add user message to thread
+                currentThread.push(userMessage);
+                
+                // Sync with conversation manager
+                if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                    window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                }
+                
+                // Clear input
+                messageInput.value = '';
+                window.resetImageUpload();
+                
+                // Render messages (with special handling for images)
+                renderMessages();
+                
+                // Show loading indicator
+                const loadingModelInfo = document.getElementById('loadingModelInfo');
+                loadingModelInfo.textContent = `Using ${currentModel} model for image analysis...`;
+                loadingIndicator.style.display = 'block';
+                
+                // Scroll to loading indicator
+                loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                
+                // Disable send button
+                sendMessage.disabled = true;
+                
+                // Show cancel button
+                cancelResponse.style.display = 'block';
+                
+                try {
+                    // Create a new AbortController
+                    responseController = new AbortController();
+                    const signal = responseController.signal;
+                    
+                    // Create FormData for multipart request
+                    const formData = new FormData();
+                    formData.append('image', imageFile);
+                    formData.append('prompt', userInput);
+                    formData.append('model', currentModel);
+                    formData.append('temperature', params.temperature);
+                    formData.append('top_p', params.top_p);
+                    formData.append('top_k', params.top_k);
+                    
+                    // Send API request
+                    const response = await fetch('/api/chat_with_image', {
+                        method: 'POST',
+                        body: formData,
+                        signal
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText || `HTTP error! status: ${response.status}`);
+                    }
+                    
+                    // Create response stream reader
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    
+                    // Create a new assistant message
+                    currentThread.push({
+                        role: 'assistant',
+                        content: ''
+                    });
+                    
+                    // Process the stream
+                    let assistantResponse = '';
+                    let lastSyncLength = 0;
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        
+                        if (done) {
+                            break;
+                        }
+                        
+                        // Decode the chunk
+                        const chunk = decoder.decode(value, { stream: true });
+                        
+                        // Parse JSON chunk (streaming is in the format: data: {"content": "chunk"})
+                        try {
+                            // Split by lines and process each line
+                            const lines = chunk.split('\n');
+                            for (const line of lines) {
+                                if (line.startsWith('data:')) {
+                                    const jsonStr = line.substring(5).trim();
+                                    if (jsonStr) {
+                                        const data = JSON.parse(jsonStr);
+                                        
+                                        if (data.content) {
+                                            // Append to assistant response
+                                            assistantResponse += data.content;
+                                            
+                                            // Update current thread
+                                            currentThread[currentThread.length - 1].content = assistantResponse;
+                                            
+                                            // Render messages
+                                            renderMessages();
+                                            
+                                            // Periodically sync with conversation manager
+                                            if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                                                if (assistantResponse.length - lastSyncLength > 100) {
+                                                    window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                                                    lastSyncLength = assistantResponse.length;
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (data.done) {
+                                            // Stream is complete
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error parsing chunk:', e, chunk);
+                        }
+                    }
+                    
+                    // Final sync with conversation manager
+                    if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                        window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                    }
+                    
+                    // Save thread to history
+                    saveToHistory({
+                        model: currentModel,
+                        messages: currentThread
+                    });
+                    
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log('Request was cancelled');
+                    } else {
+                        console.error('Error:', error);
+                        
+                        // Add error message
+                        if (currentThread.length > 0 && currentThread[currentThread.length - 1].role === 'assistant') {
+                            currentThread[currentThread.length - 1].content += "\n\nError: " + error.message;
+                        } else {
+                            currentThread.push({
+                                role: 'assistant',
+                                content: "Error: " + error.message
+                            });
+                        }
+                        
+                        renderMessages();
+                    }
+                } finally {
+                    // Hide loading indicator
+                    loadingIndicator.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingIndicator.style.display = 'none';
+                        loadingIndicator.style.opacity = '1';
+                    }, 300);
+                    
+                    // Enable send button
+                    sendMessage.disabled = false;
+                    
+                    // Hide cancel button
+                    cancelResponse.style.display = 'none';
+                    
+                    // Reset controller
+                    responseController = null;
+                }
+            }
+            
             // Send a message to the AI
             async function sendMessageToAI() {
                 const userInput = messageInput.value.trim();
+                
+                // If we have an image selected and we're in image upload mode, use the image API
+                if (imageUploadEnabled && selectedImage) {
+                    await sendMessageWithImage(userInput, selectedImage);
+                    return;
+                }
+                
                 if (!userInput) return;
                 
                 // Get or create active conversation
@@ -1610,11 +2066,29 @@
                     currentThread = [];
                 }
                 
-                chatMessages.innerHTML = currentThread.map(msg => `
-                    <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
-                        ${msg.content}
-                    </div>
-                `).join('');
+                chatMessages.innerHTML = currentThread.map(msg => {
+                    if (msg.role === 'user' && msg.image) {
+                        // User message with image
+                        return `
+                            <div class="message user-message message-with-image">
+                                <div class="image-indicator">
+                                    <i class="fas fa-image"></i> Image Uploaded
+                                </div>
+                                <div>${msg.content || 'Analyze this image'}</div>
+                                <div class="message-image">
+                                    <img src="data:${msg.image.type};base64,${msg.image.data}" alt="User uploaded image" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Standard message without image
+                        return `
+                            <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
+                                ${msg.content}
+                            </div>
+                        `;
+                    }
+                }).join('');
                 
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
@@ -1793,6 +2267,9 @@
             
             // Initialize parameter display
             updateParameterDisplay(window.currentParameters);
+            
+            // Initialize image upload functionality
+            initImageUpload();
         });
     </script>
     

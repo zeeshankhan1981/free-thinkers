@@ -73,20 +73,22 @@ Free Thinkers supports multiple language models, each with its own strengths and
 - **phi3:3.8b**: 3.8B parameter model with specialized training for various tasks
 - **mistral-7b:latest**: Latest version of the Mistral model with 7B parameters
 - **zephyr:latest**: Latest version of the Zephyr model, optimized for conversation
+- **llava-phi3:latest**: 3.8B parameter multimodal model specialized in image understanding and description
 
 ### Model Comparison
 
-| Model | Parameters | Size | Best Use Case |
-|-------|------------|------|---------------|
-| gemma3:4b | 4B | 3.3GB | General conversation |
-| gemma3:1b | 1B | 815MB | Resource-constrained devices |
-| llama3.1:8b | 8B | ~8GB | Complex reasoning |
-| llama3.2:latest | 8B | ~8GB | Latest performance |
-| llama2-uncensored:7b | 7B | ~7GB | Creative content |
-| phi3:3.8b | 3.8B | ~4GB | Specialized tasks |
-| mistral-7b:latest | 7B | ~7GB | Balanced performance |
-| zephyr:latest | N/A | N/A | Conversational AI |
-| gemma-2b-it:latest | 2B | ~2GB | Italian language tasks |
+| Model | Parameters | Size | Best Use Case | Capabilities |
+|-------|------------|------|---------------|--------------|
+| gemma3:4b | 4B | 3.3GB | General conversation | Text-only |
+| gemma3:1b | 1B | 815MB | Resource-constrained devices | Text-only |
+| llama3.1:8b | 8B | ~8GB | Complex reasoning | Text-only |
+| llama3.2:latest | 8B | ~8GB | Latest performance | Text-only |
+| llama2-uncensored:7b | 7B | ~7GB | Creative content | Text-only |
+| phi3:3.8b | 3.8B | ~4GB | Specialized tasks | Text-only |
+| mistral-7b:latest | 7B | ~7GB | Balanced performance | Text-only |
+| zephyr:latest | N/A | N/A | Conversational AI | Text-only |
+| gemma-2b-it:latest | 2B | ~2GB | Italian language tasks | Text-only |
+| llava-phi3:latest | 3.8B | ~4GB | Image analysis and description | Text + Image |
 
 ### Model Parameters
 
