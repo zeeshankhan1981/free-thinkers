@@ -287,8 +287,20 @@ document.addEventListener('DOMContentLoaded', function() {
      * Show a notification message
      */
     function showNotification(message) {
+        // Use the global notification system if available
+        if (window.showToast) {
+            // Use toast for model changes (matches Free Thinkers UI)
+            window.showToast(message, 'success', 3000);
+            return;
+        } else if (window.showNotification) {
+            // Fallback to the standard notification
+            window.showNotification(message, 'success', 3000);
+            return;
+        }
+        
+        // Legacy fallback if notification system is not available
         const notification = document.createElement('div');
-        notification.className = 'notification';
+        notification.className = 'notification notification-success';
         notification.textContent = message;
         
         document.body.appendChild(notification);

@@ -701,7 +701,7 @@ function handleSearch(event) {
         conversationItem.textContent = conversation.title || 'Untitled Conversation';
         conversationItem.dataset.id = conversation.id;
         
-        // Add click handler
+        // Add click event to load conversation and show details
         conversationItem.addEventListener('click', () => {
             // First update the display
             const items = document.querySelectorAll('.conversation-item');
@@ -877,6 +877,29 @@ function processImportFile() {
 
 // Show notification
 function showNotification(message, type = 'success') {
+    // Use the unified notification system if available
+    if (window.showToast) {
+        // Use toast notification system (cleanest UI option)
+        window.showToast(message, type, 3000);
+        return;
+    } else if (window.createLoadingIndicator) {
+        // Alternative option using the loading indicator
+        const indicator = window.createLoadingIndicator(message);
+        if (type === 'success') {
+            setTimeout(() => indicator.complete(message), 100);
+        } else if (type === 'error') {
+            setTimeout(() => indicator.error(message), 100);
+        } else {
+            setTimeout(() => indicator.dismiss(), 3000);
+        }
+        return;
+    } else if (window.showNotification) {
+        // Fall back to standard notification
+        window.showNotification(message, type, 3000);
+        return;
+    }
+    
+    // Fallback to local implementation if no global notification system exists
     const notification = document.getElementById('conversationNotification');
     if (!notification) return;
 

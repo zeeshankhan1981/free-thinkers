@@ -1213,6 +1213,18 @@
              * Show a notification message
              */
             function showNotification(message, type = 'success') {
+                // Use the global notification system if available
+                if (window.showToast) {
+                    // Use toast notifications (best UI match for Free Thinkers design)
+                    window.showToast(message, type, 3000);
+                    return;
+                } else if (window.showNotification && window.showNotification !== showNotification) {
+                    // Use the external notification system if available (avoid recursion)
+                    window.showNotification(message, type, 3000);
+                    return;
+                }
+                
+                // Fallback to inline implementation
                 const notification = document.createElement('div');
                 notification.className = `notification notification-${type}`;
                 notification.textContent = message;
