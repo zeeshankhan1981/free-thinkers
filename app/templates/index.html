@@ -1507,14 +1507,17 @@
     <!-- Include parameter controls component -->
     <script src="{{ url_for('static', filename='components/parameter_controls.js') }}"></script>
     
-    <!-- Include notification system -->
+    <!-- Include notification system (must come first) -->
     <script src="{{ url_for('static', filename='js/notification_system.js') }}"></script>
     
-    <!-- Include conversation manager component -->
-    <script src="{{ url_for('static', filename='js/conversation_manager.js') }}"></script>
+    <!-- Include conversation store -->
+    <script src="{{ url_for('static', filename='js/conversation_store.js') }}"></script>
     
     <!-- Include conversation UI handler -->
     <script src="{{ url_for('static', filename='js/conversation_ui.js') }}"></script>
+    
+    <!-- Include original conversation manager for backward compatibility -->
+    <script src="{{ url_for('static', filename='js/conversation_manager.js') }}"></script>
     
     <!-- Main script -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>

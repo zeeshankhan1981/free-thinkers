@@ -673,34 +673,52 @@ class ConversationManager {
             this.createConversation();
         }
         
-        // Get current thread and add any new messages to the conversation
-        const currentMessages = this.currentConversation.messages;
-        const threadMessages = window.currentThread;
-        
-        if (!Array.isArray(threadMessages) || threadMessages.length === 0) {
-            return;
+        // Create a very subtle loading indicator for thread syncing
+        let syncNotif = null;
+        if (window.createConversationLoadingIndicator) {
+            syncNotif = window.createConversationLoadingIndicator('Syncing conversation...');
         }
         
-        const currentMessageIds = new Set(currentMessages.map(msg => msg.id));
-        let hasNewMessages = false;
-        
-        threadMessages.forEach(threadMsg => {
-            // Skip if message already exists in conversation
-            if (!threadMsg.id || currentMessageIds.has(threadMsg.id)) {
+        try {
+            // Get current thread and add any new messages to the conversation
+            const currentMessages = this.currentConversation.messages;
+            const threadMessages = window.currentThread;
+            
+            if (!Array.isArray(threadMessages) || threadMessages.length === 0) {
+                if (syncNotif) syncNotif.dismiss();
                 return;
             }
             
-            currentMessages.push(threadMsg);
-            hasNewMessages = true;
-        });
-        
-        if (hasNewMessages) {
-            this.currentConversation.updatedAt = new Date().toISOString();
-            this.isUnsavedChanges = true;
-            this.saveConversations();
+            const currentMessageIds = new Set(currentMessages.map(msg => msg.id));
+            let hasNewMessages = false;
             
-            // Re-sort conversations
-            this.sortConversations();
+            threadMessages.forEach(threadMsg => {
+                // Skip if message already exists in conversation
+                if (!threadMsg.id || currentMessageIds.has(threadMsg.id)) {
+                    return;
+                }
+                
+                currentMessages.push(threadMsg);
+                hasNewMessages = true;
+            });
+            
+            if (hasNewMessages) {
+                this.currentConversation.updatedAt = new Date().toISOString();
+                this.isUnsavedChanges = true;
+                this.saveConversations();
+                
+                // Re-sort conversations
+                this.sortConversations();
+                
+                // Complete sync notification with success
+                if (syncNotif) syncNotif.complete('Conversation updated', 'success');
+            } else {
+                // Dismiss notification if no changes
+                if (syncNotif) syncNotif.dismiss();
+            }
+        } catch (error) {
+            console.error('Error syncing with current thread:', error);
+            if (syncNotif) syncNotif.error('Error syncing conversation');
         }
     }
 
@@ -716,29 +734,56 @@ class ConversationManager {
         const conversation = this.getConversationById(conversationId);
         if (!conversation) return false;
         
-        // Set as current conversation
-        this.currentConversation = conversation;
-        
-        // Save this as the last active conversation
-        localStorage.setItem('lastActiveConversation', conversationId);
-        
-        // Clear the current thread
-        if (window.currentThread) {
-            window.currentThread = [];
+        // Create loading indicator with a friendly message
+        let loadingIndicator = null;
+        if (window.createConversationLoadingIndicator) {
+            loadingIndicator = window.createConversationLoadingIndicator('Loading conversation...');
         }
         
-        // Load messages into the thread
-        if (conversation.messages && conversation.messages.length > 0) {
-            window.currentThread = [...conversation.messages];
+        try {
+            // Set as current conversation
+            this.currentConversation = conversation;
+            
+            // Save this as the last active conversation
+            localStorage.setItem('lastActiveConversation', conversationId);
+            
+            // Clear the current thread
+            if (window.currentThread) {
+                window.currentThread = [];
+            }
+            
+            // Load messages into the thread
+            if (conversation.messages && conversation.messages.length > 0) {
+                window.currentThread = [...conversation.messages];
+                
+                // Update loading message
+                if (loadingIndicator) {
+                    loadingIndicator.updateText(`Loading ${conversation.messages.length} messages...`);
+                }
+            }
+            
+            // Update the UI if a handler is available
+            if (typeof window.handleConversationLoaded === 'function') {
+                window.handleConversationLoaded(conversation);
+            }
+            
+            // Complete the loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.complete('Conversation loaded', 'success');
+            }
+            
+            this.triggerEvent('conversationLoaded', conversation);
+            return true;
+        } catch (error) {
+            console.error('Error loading conversation to thread:', error);
+            
+            // Show error in loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.error('Error loading conversation');
+            }
+            
+            return false;
         }
-        
-        // Update the UI if a handler is available
-        if (typeof window.handleConversationLoaded === 'function') {
-            window.handleConversationLoaded(conversation);
-        }
-        
-        this.triggerEvent('conversationLoaded', conversation);
-        return true;
     }
 
     // Setup keyboard shortcuts

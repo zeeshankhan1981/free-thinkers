@@ -1,332 +1,487 @@
 /**
- * Conversation UI Handler
+ * Conversation UI Manager
  * 
- * Handles all UI interactions for the conversation management system.
+ * Manages all UI interactions for the conversation management system.
+ * This class connects the conversation store with the UI components.
  */
 
 class ConversationUI {
     constructor() {
-        this.manager = window.conversationManager;
+        // Get the store
+        this.store = window.conversationStore;
+        if (!this.store) {
+            console.error('Conversation store not found');
+            return;
+        }
+        
+        // UI state
+        this.currentCategory = 'All';
+        this.searchQuery = '';
+        this.isSearching = false;
+        
+        // Initialize UI and event listeners
+        this.initializeUI();
         this.setupEventListeners();
+        
+        // Drag and drop state
         this.dragState = {
             isDragging: false,
             draggedElement: null,
             originalIndex: -1,
             dropIndicator: null
         };
-        this.tooltips = [];
-        this.init();
     }
     
-    init() {
-        // Initialize UI components
-        this.renderConversations();
-        this.setupDragAndDrop();
-        this.setupTooltips();
-        this.setupEmptyStates();
+    /**
+     * Initialize UI components
+     */
+    initializeUI() {
+        // Create loading state for initial load
+        const loader = this.createLoadingIndicator('Loading conversations...');
         
-        // Show keyboard shortcuts panel on first visit
-        if (!localStorage.getItem('hasSeenKeyboardShortcuts')) {
-            setTimeout(() => {
-                this.toggleKeyboardShortcutsPanel(true);
-                localStorage.setItem('hasSeenKeyboardShortcuts', 'true');
-            }, 1000);
+        // Initialize empty states and placeholders
+        const sidebar = document.getElementById('conversationManagerSidebar');
+        if (sidebar) {
+            this.populateEmptyUI(sidebar);
+        }
+        
+        // Subscribe to store events
+        this.store.on('stateChanged', () => this.renderUI());
+        this.store.on('error', (error) => this.handleError(error));
+        
+        // When store finishes loading, render UI and remove loader
+        this.store.on('conversationsLoaded', () => {
+            this.renderUI();
+            loader.complete('Conversations loaded');
+        });
+        
+        // Initial render
+        this.renderUI();
+    }
+    
+    /**
+     * Create empty placeholder UI
+     * @param {HTMLElement} sidebar - The sidebar element
+     */
+    populateEmptyUI(sidebar) {
+        // Find the lists sections
+        const categoriesList = sidebar.querySelector('#categoriesList');
+        const conversationsList = sidebar.querySelector('#conversationsList');
+        
+        if (categoriesList) {
+            categoriesList.innerHTML = `
+                <div class="skeleton-loading">
+                    <div class="skeleton skeleton-item"></div>
+                    <div class="skeleton skeleton-item"></div>
+                </div>
+            `;
+        }
+        
+        if (conversationsList) {
+            conversationsList.innerHTML = `
+                <div class="skeleton-loading">
+                    <div class="skeleton skeleton-item"></div>
+                    <div class="skeleton skeleton-item"></div>
+                    <div class="skeleton skeleton-item"></div>
+                </div>
+            `;
         }
     }
     
+    /**
+     * Set up all event listeners
+     */
     setupEventListeners() {
         // Sidebar toggle
         const toggleBtn = document.getElementById('conversationManagerBtn');
         const closeBtn = document.getElementById('closeConversationManager');
         const sidebar = document.getElementById('conversationManagerSidebar');
         
-        if (toggleBtn) {
+        if (toggleBtn && sidebar) {
             toggleBtn.addEventListener('click', () => {
-                if (sidebar) {
-                    sidebar.classList.toggle('active');
-                    this.renderConversations();
+                // Close any other sidebars that might be open
+                const otherSidebars = document.querySelectorAll('.parameter-controls-sidebar.active, .model-management-sidebar.active');
+                otherSidebars.forEach(s => s.classList.remove('active'));
+                
+                // Toggle this sidebar
+                sidebar.classList.toggle('active');
+                toggleBtn.setAttribute('aria-expanded', sidebar.classList.contains('active'));
+                
+                // If opening, ensure UI is rendered with latest data
+                if (sidebar.classList.contains('active')) {
+                    this.renderUI();
+                    
+                    // Show subtle loading indicator when sidebar is opened
+                    const loader = this.createLoadingIndicator('Refreshing conversations...');
+                    
+                    // Check for server updates
+                    if (this.store && typeof this.store.syncWithServer === 'function') {
+                        this.store.syncWithServer()
+                            .then(() => loader.complete('Conversations updated'))
+                            .catch(() => loader.dismiss());
+                    } else {
+                        // Hide loader if no sync method
+                        setTimeout(() => loader.dismiss(), 500);
+                    }
                 }
             });
         }
         
-        if (closeBtn) {
+        if (closeBtn && sidebar) {
             closeBtn.addEventListener('click', () => {
-                if (sidebar) {
-                    sidebar.classList.remove('active');
+                sidebar.classList.remove('active');
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('aria-expanded', 'false');
                 }
             });
         }
         
-        // Search functionality
+        // New conversation button
+        const newConvBtn = document.getElementById('newConversationBtn');
+        if (newConvBtn) {
+            newConvBtn.addEventListener('click', () => this.createNewConversation());
+        }
+        
+        // Search input
         const searchInput = document.getElementById('conversationSearch');
         if (searchInput) {
-            searchInput.addEventListener('input', this.handleSearch.bind(this));
+            // Debounced search handler
+            let searchTimeout = null;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.searchQuery = e.target.value.trim();
+                    this.isSearching = this.searchQuery !== '';
+                    this.renderUI();
+                }, 300);
+            });
+            
+            // Handle Escape key to clear search
             searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     searchInput.value = '';
-                    this.handleSearch({ target: searchInput });
+                    this.searchQuery = '';
+                    this.isSearching = false;
+                    this.renderUI();
                     searchInput.blur();
                 }
             });
         }
         
-        // Category toggles
+        // Category selection
         document.addEventListener('click', (e) => {
-            if (e.target.closest('.category-toggle')) {
-                const toggle = e.target.closest('.category-toggle');
-                const categoryId = toggle.getAttribute('data-category');
-                const list = document.querySelector(`.category-${categoryId}-list`);
-                
-                toggle.classList.toggle('collapsed');
-                list?.classList.toggle('collapsed');
+            // Categories can be clicked from the list
+            const categoryItem = e.target.closest('.category-item');
+            if (categoryItem) {
+                const category = categoryItem.getAttribute('data-category');
+                if (category) {
+                    this.currentCategory = category;
+                    this.renderUI();
+                }
             }
-        });
-        
-        // New conversation button
-        const newConvBtn = document.getElementById('newConversationBtn');
-        if (newConvBtn) {
-            newConvBtn.addEventListener('click', () => {
-                const newConversation = this.manager.createConversation();
-                this.renderConversations();
-                
-                // Scroll to the new conversation
-                setTimeout(() => {
-                    const newItem = document.querySelector(`.conversation-item[data-id="${newConversation.id}"]`);
-                    if (newItem) {
-                        newItem.scrollIntoView({ behavior: 'smooth' });
+            
+            // Or from category toggles in the UI
+            const categoryToggle = e.target.closest('.category-header');
+            if (categoryToggle) {
+                const category = categoryToggle.getAttribute('data-category');
+                if (category) {
+                    categoryToggle.classList.toggle('collapsed');
+                    const categoryContent = document.querySelector(`.category-content[data-category="${category}"]`);
+                    if (categoryContent) {
+                        categoryContent.classList.toggle('collapsed');
                     }
-                }, 100);
-            });
-        }
-        
-        // Listen for conversation clicked
-        document.addEventListener('click', (e) => {
-            const conversationItem = e.target.closest('.conversation-item');
-            if (conversationItem && !e.target.closest('.conversation-item-actions') && 
-                !e.target.closest('.title-edit-input')) {
-                const id = conversationItem.getAttribute('data-id');
-                this.manager.setCurrentConversation(id);
-                this.renderConversations();
-            }
-        });
-        
-        // Handle conversation action buttons
-        document.addEventListener('click', (e) => {
-            const actionBtn = e.target.closest('.action-btn');
-            if (!actionBtn) return;
-            
-            const conversationItem = actionBtn.closest('.conversation-item');
-            const id = conversationItem?.getAttribute('data-id');
-            if (!id) return;
-            
-            // Pin/Unpin
-            if (actionBtn.classList.contains('pin-btn')) {
-                this.manager.togglePinned(id);
-                this.renderConversations();
-            }
-            
-            // Delete
-            if (actionBtn.classList.contains('delete-btn')) {
-                if (confirm('Are you sure you want to delete this conversation?')) {
-                    this.manager.deleteConversation(id);
-                    this.renderConversations();
                 }
             }
         });
         
-        // Handle inline title editing
+        // Conversation click handler
+        document.addEventListener('click', (e) => {
+            const conversationItem = e.target.closest('.conversation-item');
+            if (!conversationItem) return;
+            
+            // Ignore if clicked on title during editing or on action buttons
+            if (e.target.closest('.conversation-item-title.editing') || 
+                e.target.closest('.conversation-item-actions')) {
+                return;
+            }
+            
+            const id = conversationItem.getAttribute('data-id');
+            if (id) {
+                this.selectConversation(id);
+            }
+        });
+        
+        // Action buttons
+        document.addEventListener('click', (e) => {
+            // Handle pin/unpin
+            const pinBtn = e.target.closest('.pin-btn');
+            if (pinBtn) {
+                const conversationItem = pinBtn.closest('.conversation-item');
+                if (conversationItem) {
+                    const id = conversationItem.getAttribute('data-id');
+                    if (id) {
+                        this.togglePin(id);
+                        e.stopPropagation();
+                    }
+                }
+            }
+            
+            // Handle delete
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (deleteBtn) {
+                const conversationItem = deleteBtn.closest('.conversation-item');
+                if (conversationItem) {
+                    const id = conversationItem.getAttribute('data-id');
+                    if (id) {
+                        this.deleteConversation(id);
+                        e.stopPropagation();
+                    }
+                }
+            }
+        });
+        
+        // Title editing
         document.addEventListener('click', (e) => {
             const titleEl = e.target.closest('.conversation-item-title');
-            if (titleEl && !titleEl.classList.contains('editing')) {
-                const conversationItem = titleEl.closest('.conversation-item');
-                const id = conversationItem?.getAttribute('data-id');
-                if (!id) return;
-                
-                // Create edit input
-                titleEl.classList.add('editing');
-                const currentTitle = titleEl.textContent.trim();
-                titleEl.innerHTML = `<input type="text" class="title-edit-input" value="${currentTitle.replace(/"/g, '&quot;')}">`;
-                
-                const inputEl = titleEl.querySelector('input');
-                inputEl.focus();
-                inputEl.select();
-                
-                const handleTitleSave = () => {
-                    const newTitle = inputEl.value.trim();
-                    if (newTitle && newTitle !== currentTitle) {
-                        this.manager.updateConversationTitle(id, newTitle);
-                    }
-                    
-                    titleEl.classList.remove('editing');
-                    this.renderConversations();
-                };
-                
-                // Handle saving on blur and enter key
-                inputEl.addEventListener('blur', handleTitleSave);
-                inputEl.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        handleTitleSave();
-                    } else if (e.key === 'Escape') {
-                        titleEl.classList.remove('editing');
-                        this.renderConversations();
-                    }
-                });
-            }
-        });
-        
-        // Listen for current conversation changed
-        document.addEventListener('currentConversationChanged', (e) => {
-            // Update UI to reflect new current conversation
-            this.renderConversations();
+            if (!titleEl || titleEl.classList.contains('editing')) return;
             
-            // Load conversation messages into the chat UI
-            if (window.loadConversationMessages && e.detail) {
-                window.loadConversationMessages(e.detail.messages);
-            }
+            const conversationItem = titleEl.closest('.conversation-item');
+            if (!conversationItem) return;
+            
+            const id = conversationItem.getAttribute('data-id');
+            if (!id) return;
+            
+            // Enable editing mode
+            this.enableTitleEditing(titleEl, id);
+            e.stopPropagation();
         });
         
-        // Keyboard shortcuts panel
+        // Import/Export buttons
+        const importBtn = document.getElementById('importConversationBtn');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => this.showImportModal());
+        }
+        
+        const exportBtn = document.getElementById('exportConversationBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.showExportModal());
+        }
+        
+        // Handle modal close buttons
         document.addEventListener('click', (e) => {
-            if (e.target.closest('#keyboardShortcutsBtn')) {
-                this.toggleKeyboardShortcutsPanel(true);
+            const closeModalBtn = e.target.closest('.close-modal, [data-dismiss="modal"]');
+            if (closeModalBtn) {
+                const modal = closeModalBtn.closest('.modal-container');
+                if (modal) {
+                    this.hideModal(modal.id);
+                }
+            }
+        });
+        
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Only handle keyboard shortcuts if sidebar is visible
+            const sidebar = document.getElementById('conversationManagerSidebar');
+            if (!sidebar || !sidebar.classList.contains('active')) return;
+            
+            // Skip if focus is in editable area
+            if (e.target.tagName === 'INPUT' || 
+                e.target.tagName === 'TEXTAREA' || 
+                e.target.isContentEditable) {
+                return;
             }
             
-            if (e.target.closest('#closeKeyboardShortcuts') || 
-                e.target.id === 'keyboardShortcutsPanel' && e.target.classList.contains('active')) {
-                this.toggleKeyboardShortcutsPanel(false);
+            // Create new conversation: Ctrl+N or Cmd+N
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                this.createNewConversation();
+            }
+            
+            // Toggle sidebar: Escape
+            if (e.key === 'Escape') {
+                sidebar.classList.remove('active');
+                if (document.getElementById('toggleConversationManager')) {
+                    document.getElementById('toggleConversationManager').setAttribute('aria-expanded', 'false');
+                }
             }
         });
         
-        // Sync with current thread when messages are sent
-        document.addEventListener('messageSent', () => {
-            this.manager.syncWithCurrentThread();
-            this.renderConversations();
+        // Set up drag and drop for conversations
+        this.setupDragAndDrop();
+        
+        // Export event handlers
+        document.addEventListener('click', (e) => {
+            // Export as JSON
+            if (e.target.closest('#exportAsJSON')) {
+                const currentConversation = this.store.getCurrentConversation();
+                if (currentConversation) {
+                    this.exportAsJSON(currentConversation.id);
+                }
+            }
+            
+            // Export as Markdown
+            if (e.target.closest('#exportAsMarkdown')) {
+                const currentConversation = this.store.getCurrentConversation();
+                if (currentConversation) {
+                    this.exportAsMarkdown(currentConversation.id);
+                }
+            }
         });
         
-        // Add unsaved changes indicator to window close event
-        window.addEventListener('beforeunload', (e) => {
-            if (this.manager.isUnsavedChanges) {
-                e.preventDefault();
-                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-                return e.returnValue;
+        // Import event handlers
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#importConversation')) {
+                this.handleImport();
             }
         });
     }
     
-    renderConversations() {
-        const conversationsList = document.getElementById('conversationsList');
+    /**
+     * Render the UI with current state
+     */
+    renderUI() {
+        // Render categories list
+        this.renderCategories();
+        
+        // Render conversations list
+        this.renderConversations();
+    }
+    
+    /**
+     * Render categories list
+     */
+    renderCategories() {
         const categoriesList = document.getElementById('categoriesList');
-        if (!conversationsList || !categoriesList) return;
+        if (!categoriesList) return;
         
-        // Clear existing lists
-        conversationsList.innerHTML = '';
-        categoriesList.innerHTML = '';
+        const categories = this.store.categories;
         
-        // Add categories
-        const categories = this.manager.categories;
-        if (categories.length === 0) {
-            categoriesList.innerHTML = '<div class="empty-message"><i class="fas fa-folder"></i><p>No categories found</p></div>';
-        } else {
-            categories.forEach((category, index) => {
-                const safeId = this.getSafeCategoryId(category);
-                const categoryEl = document.createElement('div');
-                categoryEl.className = 'category-item';
-                categoryEl.setAttribute('data-category', category);
-                categoryEl.innerHTML = `
-                    <span>${category}</span>
-                    <button class="category-toggle" data-category="${safeId}">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                `;
-                categoriesList.appendChild(categoryEl);
-            });
+        // Always have these base categories
+        if (!categories.includes('All')) {
+            categories.unshift('All');
         }
         
-        // Get current conversation for highlighting
-        const currentId = this.manager.currentConversation?.id;
+        if (!categories.includes('Uncategorized')) {
+            categories.push('Uncategorized');
+        }
         
-        // Add conversations
-        const conversations = this.manager.conversations;
-        if (conversations.length === 0) {
-            this.showEmptyState(conversationsList);
+        if (categories.length === 0) {
+            categoriesList.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-folder"></i>
+                    <p>No categories found</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Build categories HTML
+        const categoryElements = categories.map(category => {
+            const isActive = this.currentCategory === category;
+            const count = category === 'All' ? 
+                this.store.conversations.length : 
+                this.store.conversations.filter(c => c.category === category).length;
+            
+            return `
+                <div class="category-item ${isActive ? 'active' : ''}" 
+                     data-category="${category}" role="button" tabindex="0">
+                    <span class="category-name">${category}</span>
+                    <span class="category-count">${count}</span>
+                </div>
+            `;
+        }).join('');
+        
+        categoriesList.innerHTML = categoryElements;
+    }
+    
+    /**
+     * Render conversations list
+     */
+    renderConversations() {
+        const conversationsList = document.getElementById('conversationsList');
+        if (!conversationsList) return;
+        
+        // Get filtered conversations
+        let conversations;
+        if (this.isSearching) {
+            // If searching, filter by query (across all categories)
+            conversations = this.store.searchConversations(this.searchQuery);
+        } else if (this.currentCategory !== 'All') {
+            // Filter by selected category
+            conversations = this.store.conversations.filter(c => c.category === this.currentCategory);
         } else {
-            conversations.forEach((conversation, index) => {
-                const conversationEl = document.createElement('div');
-                conversationEl.className = 'conversation-item';
-                conversationEl.setAttribute('data-id', conversation.id);
-                conversationEl.setAttribute('data-category', conversation.category);
-                conversationEl.setAttribute('draggable', 'true');
+            // Show all conversations
+            conversations = this.store.conversations;
+        }
+        
+        // Empty state
+        if (conversations.length === 0) {
+            let message;
+            if (this.isSearching) {
+                message = `No conversations found matching "${this.searchQuery}"`;
+            } else if (this.currentCategory !== 'All') {
+                message = `No conversations in "${this.currentCategory}"`;
+            } else {
+                message = 'No conversations yet';
+            }
+            
+            conversationsList.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-comments"></i>
+                    <p>${message}</p>
+                    <p class="empty-message-help">Click "New Conversation" to get started</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Get current conversation ID
+        const currentId = this.store.currentConversationId;
+        
+        // Build conversations HTML
+        const conversationElements = conversations.map(conversation => {
+            const isActive = conversation.id === currentId;
+            
+            // "What's New" badge for newly added conversations
+            const newBadge = conversation.isNew ? 
+                '<span class="whats-new-badge">NEW</span>' : '';
+            
+            // Unsaved indicator
+            const unsavedIndicator = (currentId === conversation.id && this.store.pendingChanges.has(conversation.id)) ?
+                '<span class="unsaved-indicator" title="Unsaved changes"></span>' : '';
                 
-                if (conversation.id === currentId) {
-                    conversationEl.classList.add('active');
-                }
+            // Pin button state
+            const isPinned = conversation.isPinned;
                 
-                // Add "What's New" badge for new conversations
-                const newBadge = conversation.isNew ? 
-                    '<span class="whats-new-badge">NEW</span>' : '';
-                
-                // Add unsaved indicator if needed
-                const unsavedIndicator = this.manager.isUnsavedChanges && conversation.id === currentId ?
-                    '<span class="unsaved-indicator" title="Unsaved changes"></span>' : '';
-                
-                conversationEl.innerHTML = `
-                    <span class="drag-handle">
+            return `
+                <div class="conversation-item ${isActive ? 'active' : ''}" 
+                     data-id="${conversation.id}" data-category="${conversation.category}"
+                     draggable="true" role="button" tabindex="0">
+                    <span class="drag-handle" aria-hidden="true">
                         <i class="fas fa-grip-vertical"></i>
                     </span>
                     <div class="conversation-item-title">
                         ${conversation.title}${newBadge}${unsavedIndicator}
                     </div>
                     <div class="conversation-item-actions">
-                        <button class="action-btn pin-btn ${conversation.isPinned ? 'pinned' : ''}" title="${conversation.isPinned ? 'Unpin' : 'Pin'}">
+                        <button class="action-btn pin-btn ${isPinned ? 'pinned' : ''}" 
+                                title="${isPinned ? 'Unpin' : 'Pin'}" aria-label="${isPinned ? 'Unpin' : 'Pin'}">
                             <i class="fas fa-thumbtack"></i>
                         </button>
-                        <button class="action-btn delete-btn" title="Delete">
+                        <button class="action-btn delete-btn" title="Delete" aria-label="Delete">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
-                `;
-                conversationsList.appendChild(conversationEl);
-            });
-        }
+                </div>
+            `;
+        }).join('');
         
-        // Re-setup tooltips after DOM changes
-        this.setupTooltips();
+        conversationsList.innerHTML = conversationElements;
     }
     
-    showEmptyState(container) {
-        container.innerHTML = `
-            <div class="empty-message">
-                <i class="fas fa-comments"></i>
-                <p>No conversations yet</p>
-                <p class="empty-message-help">Click the "New Conversation" button to get started</p>
-            </div>
-        `;
-    }
-    
-    setupEmptyStates() {
-        // Add What's New button to header
-        const header = document.querySelector('.conversation-manager-header');
-        if (header) {
-            // Add keyboard shortcuts button
-            const shortcutsBtn = document.createElement('button');
-            shortcutsBtn.id = 'keyboardShortcutsBtn';
-            shortcutsBtn.className = 'btn btn-sm btn-outline-secondary';
-            shortcutsBtn.title = 'Keyboard Shortcuts';
-            shortcutsBtn.innerHTML = '<i class="fas fa-keyboard"></i>';
-            
-            // Insert before close button
-            const closeBtn = header.querySelector('.close-btn');
-            if (closeBtn) {
-                header.insertBefore(shortcutsBtn, closeBtn);
-            } else {
-                header.appendChild(shortcutsBtn);
-            }
-        }
-        
-        // Create keyboard shortcuts panel
-        this.createKeyboardShortcutsPanel();
-    }
-    
+    /**
+     * Set up drag and drop for conversations
+     */
     setupDragAndDrop() {
         // Handle drag start
         document.addEventListener('dragstart', (e) => {
@@ -337,20 +492,20 @@ class ConversationUI {
             this.dragState.draggedElement = conversationItem;
             
             // Get original index
-            const items = Array.from(document.querySelectorAll('.conversation-item'));
-            this.dragState.originalIndex = items.indexOf(conversationItem);
+            const conversations = Array.from(document.querySelectorAll('.conversation-item'));
+            this.dragState.originalIndex = conversations.indexOf(conversationItem);
             
             // Add dragging class
             conversationItem.classList.add('dragging');
             
-            // Set transparent drag image for smoother ux
+            // Set custom drag image (invisible element)
             const dragImage = document.createElement('div');
             dragImage.style.opacity = '0';
             document.body.appendChild(dragImage);
             e.dataTransfer.setDragImage(dragImage, 0, 0);
             setTimeout(() => document.body.removeChild(dragImage), 0);
             
-            // Set data
+            // Set data (item ID)
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', conversationItem.getAttribute('data-id'));
         });
@@ -364,30 +519,29 @@ class ConversationUI {
             const conversationsList = document.getElementById('conversationsList');
             if (!conversationsList) return;
             
-            // Find the item we're dragging over
+            // Find closest item to drop position
             const targetItem = this.getClosestDragTarget(e.clientY);
             if (!targetItem) return;
             
-            // Get the target index
-            const items = Array.from(conversationsList.querySelectorAll('.conversation-item:not(.dragging)'));
-            const targetIndex = items.indexOf(targetItem);
-            
-            // Create or move drop indicator
-            this.updateDropIndicator(targetIndex, targetItem);
+            // Update drop indicator
+            this.updateDropIndicator(targetItem);
         });
         
         // Handle drag end
-        document.addEventListener('dragend', (e) => {
+        document.addEventListener('dragend', () => {
             if (!this.dragState.isDragging) return;
             
-            const draggedItem = this.dragState.draggedElement;
-            draggedItem.classList.remove('dragging');
+            // Clean up dragging state
+            if (this.dragState.draggedElement) {
+                this.dragState.draggedElement.classList.remove('dragging');
+            }
             
             // Remove drop indicator
             if (this.dragState.dropIndicator && this.dragState.dropIndicator.parentNode) {
                 this.dragState.dropIndicator.parentNode.removeChild(this.dragState.dropIndicator);
             }
             
+            // Reset drag state
             this.dragState.isDragging = false;
             this.dragState.draggedElement = null;
             this.dragState.dropIndicator = null;
@@ -402,38 +556,35 @@ class ConversationUI {
             const conversationsList = document.getElementById('conversationsList');
             if (!conversationsList) return;
             
-            // Find the target item
+            // Find target position
             const targetItem = this.getClosestDragTarget(e.clientY);
             if (!targetItem) return;
             
-            // Get the indices
-            const items = Array.from(conversationsList.querySelectorAll('.conversation-item:not(.dragging)'));
-            const targetIndex = items.indexOf(targetItem);
+            // Calculate indices
+            const conversations = Array.from(conversationsList.querySelectorAll('.conversation-item:not(.dragging)'));
+            const targetIndex = conversations.indexOf(targetItem);
             const fromIndex = this.dragState.originalIndex;
-            let toIndex = targetIndex;
             
-            // Adjust index if dragging downward
-            if (fromIndex < toIndex) {
-                toIndex += 1;
-            }
-            
-            // Reorder in the manager
-            this.manager.reorderConversation(fromIndex, toIndex);
-            
-            // Refresh the UI
-            this.renderConversations();
+            // Execute reorder
+            this.reorderConversation(fromIndex, targetIndex);
         });
     }
     
+    /**
+     * Find the closest drag target based on Y position
+     * @param {number} clientY - Mouse Y position
+     * @returns {Element|null} - Target element
+     */
     getClosestDragTarget(clientY) {
-        const conversationItems = document.querySelectorAll('.conversation-item:not(.dragging)');
+        const items = document.querySelectorAll('.conversation-item:not(.dragging)');
+        
         let closestItem = null;
         let closestDistance = Number.POSITIVE_INFINITY;
         
-        conversationItems.forEach(item => {
+        items.forEach(item => {
             const rect = item.getBoundingClientRect();
-            const center = rect.top + rect.height / 2;
-            const distance = Math.abs(clientY - center);
+            const centerY = rect.top + rect.height / 2;
+            const distance = Math.abs(clientY - centerY);
             
             if (distance < closestDistance) {
                 closestDistance = distance;
@@ -444,448 +595,732 @@ class ConversationUI {
         return closestItem;
     }
     
-    updateDropIndicator(targetIndex, targetItem) {
+    /**
+     * Update drop indicator position
+     * @param {Element} targetItem - Target element to position indicator
+     */
+    updateDropIndicator(targetItem) {
+        // Create indicator if it doesn't exist
         if (!this.dragState.dropIndicator) {
             this.dragState.dropIndicator = document.createElement('div');
             this.dragState.dropIndicator.className = 'drop-indicator';
         }
         
-        // Remove drop indicator from current parent
+        // Remove from current parent
         if (this.dragState.dropIndicator.parentNode) {
             this.dragState.dropIndicator.parentNode.removeChild(this.dragState.dropIndicator);
         }
         
-        // Add drop indicator to appropriate position
+        // Insert before target
         const conversationsList = document.getElementById('conversationsList');
-        if (targetItem && conversationsList) {
+        if (conversationsList && targetItem) {
             conversationsList.insertBefore(this.dragState.dropIndicator, targetItem);
         }
     }
     
-    handleSearch(e) {
-        const query = e.target.value.trim().toLowerCase();
-        const conversationItems = document.querySelectorAll('.conversation-item');
+    /**
+     * Reorder a conversation in the list
+     * @param {number} fromIndex - Original index
+     * @param {number} toIndex - Target index
+     */
+    reorderConversation(fromIndex, toIndex) {
+        // Different reordering for actual store vs UI
+        const actualFromIndex = this.isSearching || this.currentCategory !== 'All' ? 
+            null : fromIndex;
+            
+        const actualToIndex = this.isSearching || this.currentCategory !== 'All' ? 
+            null : toIndex;
         
-        if (query === '') {
-            // Show all conversations
-            conversationItems.forEach(item => {
-                item.classList.remove('filtered');
-                item.style.display = '';
-            });
+        // If we're in filtered view, we need to get the actual indices
+        if (actualFromIndex !== null && actualToIndex !== null) {
+            this.store.reorderConversation(actualFromIndex, actualToIndex);
+        } else {
+            // Get the IDs of the conversations to reorder
+            const conversations = Array.from(document.querySelectorAll('.conversation-item'));
+            const fromId = conversations[fromIndex].getAttribute('data-id');
+            const toId = conversations[toIndex].getAttribute('data-id');
+            
+            // Get the indices in the full list
+            const fromIdxInFull = this.store.conversations.findIndex(c => c.id === fromId);
+            const toIdxInFull = this.store.conversations.findIndex(c => c.id === toId);
+            
+            if (fromIdxInFull !== -1 && toIdxInFull !== -1) {
+                this.store.reorderConversation(fromIdxInFull, toIdxInFull);
+            }
+        }
+        
+        // Re-render UI
+        this.renderUI();
+    }
+    
+    /**
+     * Create a new conversation
+     */
+    createNewConversation() {
+        // Create a new untitled conversation
+        const newConversation = this.store.createConversation('New Conversation');
+        
+        // Update UI
+        this.renderUI();
+        
+        // Get the conversation element and scroll to it
+        const conversationItem = document.querySelector(`.conversation-item[data-id="${newConversation.id}"]`);
+        if (conversationItem) {
+            // Since we added at the top, we can just scroll to top
+            const conversationsList = document.getElementById('conversationsList');
+            if (conversationsList) {
+                conversationsList.scrollTop = 0;
+            }
+            
+            // Focus on the title and make it editable immediately
+            setTimeout(() => {
+                const titleEl = conversationItem.querySelector('.conversation-item-title');
+                if (titleEl) {
+                    this.enableTitleEditing(titleEl, newConversation.id);
+                }
+            }, 100);
+        }
+        
+        // Create a notification
+        this.createNotification('New conversation created', 'success');
+    }
+    
+    /**
+     * Select a conversation
+     * @param {string} conversationId - ID of conversation to select
+     */
+    selectConversation(conversationId) {
+        // Load conversation into the thread
+        const success = this.store.loadConversationToThread(conversationId);
+        
+        if (success) {
+            // Update UI
+            this.renderUI();
+            
+            // Re-render messages in the chat UI
+            this.renderMessages();
+            
+            // Close sidebar on mobile
+            const sidebar = document.getElementById('conversationManagerSidebar');
+            if (sidebar && window.innerWidth < 768) {
+                sidebar.classList.remove('active');
+            }
+            
+            // Create a subtle notification
+            this.createNotification('Conversation loaded', 'info');
+        }
+    }
+    
+    /**
+     * Enable title editing for a conversation
+     * @param {Element} titleEl - Title element
+     * @param {string} conversationId - Conversation ID
+     */
+    enableTitleEditing(titleEl, conversationId) {
+        // Get current title
+        const conversation = this.store.getConversationById(conversationId);
+        if (!conversation) return;
+        
+        const currentTitle = conversation.title;
+        
+        // Add editing class
+        titleEl.classList.add('editing');
+        
+        // Create input field
+        titleEl.innerHTML = `
+            <input type="text" class="title-edit-input" 
+                   value="${currentTitle.replace(/"/g, '&quot;')}" 
+                   aria-label="Edit conversation title">
+        `;
+        
+        // Focus input
+        const inputEl = titleEl.querySelector('input');
+        inputEl.focus();
+        inputEl.select();
+        
+        // Define save function
+        const saveTitleEdit = () => {
+            const newTitle = inputEl.value.trim();
+            if (newTitle && newTitle !== currentTitle) {
+                this.store.updateConversation(conversationId, { title: newTitle });
+            }
+            
+            // Remove editing class
+            titleEl.classList.remove('editing');
+            this.renderUI();
+        };
+        
+        // Save on blur
+        inputEl.addEventListener('blur', saveTitleEdit);
+        
+        // Save on Enter, cancel on Escape
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveTitleEdit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                titleEl.classList.remove('editing');
+                this.renderUI();
+            }
+        });
+    }
+    
+    /**
+     * Toggle pinned status for a conversation
+     * @param {string} conversationId - Conversation ID
+     */
+    togglePin(conversationId) {
+        const isPinned = this.store.togglePinned(conversationId);
+        
+        // Create notification
+        this.createNotification(
+            isPinned ? 'Conversation pinned' : 'Conversation unpinned', 
+            'success'
+        );
+    }
+    
+    /**
+     * Delete a conversation
+     * @param {string} conversationId - Conversation ID
+     */
+    deleteConversation(conversationId) {
+        // Get conversation title for confirmation
+        const conversation = this.store.getConversationById(conversationId);
+        if (!conversation) return;
+        
+        // Confirm deletion
+        if (!confirm(`Are you sure you want to delete "${conversation.title}"? This cannot be undone.`)) {
             return;
         }
         
-        // Search results
-        const results = this.manager.searchConversations(query);
-        const resultIds = new Set(results.map(r => r.id));
+        // Delete conversation
+        this.store.deleteConversation(conversationId).then(() => {
+            // Create notification
+            this.createNotification('Conversation deleted', 'success');
+        }).catch(error => {
+            console.error('Error deleting conversation:', error);
+            this.createNotification('Error deleting conversation', 'error');
+        });
+    }
+    
+    /**
+     * Show import modal
+     */
+    showImportModal() {
+        const importModal = document.getElementById('importModal');
+        if (!importModal) return;
         
-        // Filter the list
-        conversationItems.forEach(item => {
-            const id = item.getAttribute('data-id');
-            if (resultIds.has(id)) {
-                item.classList.remove('filtered');
-                item.style.display = '';
-                
-                // Highlight matching text
-                const titleEl = item.querySelector('.conversation-item-title');
-                if (titleEl) {
-                    const title = titleEl.textContent;
-                    const lowerTitle = title.toLowerCase();
-                    const index = lowerTitle.indexOf(query);
+        // Clear any previous input
+        const jsonInput = document.getElementById('jsonFileInput');
+        const markdownInput = document.getElementById('markdownFileInput');
+        
+        if (jsonInput) jsonInput.value = '';
+        if (markdownInput) markdownInput.value = '';
+        
+        // Show modal
+        importModal.style.display = 'flex';
+        
+        // Add outside click handler for dismissal
+        const outsideClickHandler = (e) => {
+            if (e.target === importModal) {
+                this.hideModal('importModal');
+                document.removeEventListener('click', outsideClickHandler);
+            }
+        };
+        
+        document.addEventListener('click', outsideClickHandler);
+    }
+    
+    /**
+     * Show export modal
+     */
+    showExportModal() {
+        const exportModal = document.getElementById('exportModal');
+        if (!exportModal) return;
+        
+        // Only allow export if there's a current conversation
+        const currentConversation = this.store.getCurrentConversation();
+        if (!currentConversation) {
+            this.createNotification('No conversation selected to export', 'error');
+            return;
+        }
+        
+        // Show modal
+        exportModal.style.display = 'flex';
+        
+        // Add outside click handler for dismissal
+        const outsideClickHandler = (e) => {
+            if (e.target === exportModal) {
+                this.hideModal('exportModal');
+                document.removeEventListener('click', outsideClickHandler);
+            }
+        };
+        
+        document.addEventListener('click', outsideClickHandler);
+    }
+    
+    /**
+     * Hide a modal
+     * @param {string} modalId - ID of modal to hide
+     */
+    hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Handle import operation
+     */
+    handleImport() {
+        // Get file inputs
+        const jsonInput = document.getElementById('jsonFileInput');
+        const markdownInput = document.getElementById('markdownFileInput');
+        
+        // Check if we have a file
+        if ((jsonInput && jsonInput.files.length === 0) && 
+            (markdownInput && markdownInput.files.length === 0)) {
+            this.createNotification('Please select a file to import', 'error');
+            return;
+        }
+        
+        // Create loading indicator
+        const loader = this.createLoadingIndicator('Importing conversation...');
+        
+        // Handle JSON import
+        if (jsonInput && jsonInput.files.length > 0) {
+            const file = jsonInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const jsonContent = e.target.result;
+                    const imported = this.store.importFromJSON(jsonContent);
                     
-                    if (index >= 0) {
-                        const before = title.substring(0, index);
-                        const match = title.substring(index, index + query.length);
-                        const after = title.substring(index + query.length);
+                    if (imported) {
+                        this.hideModal('importModal');
+                        loader.complete('Conversation imported successfully');
                         
-                        titleEl.innerHTML = `${before}<span class="search-result-highlight">${match}</span>${after}`;
+                        // Select the imported conversation
+                        this.selectConversation(imported.id);
+                    } else {
+                        loader.error('Failed to import conversation');
                     }
+                } catch (error) {
+                    console.error('Error reading JSON file:', error);
+                    loader.error('Error reading JSON file');
                 }
-            } else {
-                item.classList.add('filtered');
-                item.style.display = 'none';
-            }
-        });
+            };
+            
+            reader.onerror = () => {
+                console.error('Error reading file');
+                loader.error('Error reading file');
+            };
+            
+            reader.readAsText(file);
+            return;
+        }
+        
+        // Handle Markdown import
+        if (markdownInput && markdownInput.files.length > 0) {
+            const file = markdownInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const markdownContent = e.target.result;
+                    const imported = this.store.importFromMarkdown(markdownContent);
+                    
+                    if (imported) {
+                        this.hideModal('importModal');
+                        loader.complete('Conversation imported successfully');
+                        
+                        // Select the imported conversation
+                        this.selectConversation(imported.id);
+                    } else {
+                        loader.error('Failed to import conversation');
+                    }
+                } catch (error) {
+                    console.error('Error reading Markdown file:', error);
+                    loader.error('Error reading Markdown file');
+                }
+            };
+            
+            reader.onerror = () => {
+                console.error('Error reading file');
+                loader.error('Error reading file');
+            };
+            
+            reader.readAsText(file);
+        }
     }
     
-    setupTooltips() {
-        // Clear existing tooltips
-        this.tooltips.forEach(tooltip => {
-            if (tooltip.element) {
-                tooltip.element.removeEventListener('mouseenter', tooltip.mouseEnterHandler);
-                tooltip.element.removeEventListener('mouseleave', tooltip.mouseLeaveHandler);
-            }
-        });
-        this.tooltips = [];
-        
-        // Action buttons
-        const actionButtons = document.querySelectorAll('.action-btn');
-        actionButtons.forEach(btn => {
-            this.addTooltip(btn, btn.getAttribute('title') || '', 'top');
-        });
-        
-        // Keyboard shortcut button
-        const shortcutsBtn = document.getElementById('keyboardShortcutsBtn');
-        if (shortcutsBtn) {
-            this.addTooltip(shortcutsBtn, 'Keyboard Shortcuts <span class="shortcut-key">Ctrl</span>+<span class="shortcut-key">?</span>', 'left');
+    /**
+     * Export conversation as JSON
+     * @param {string} conversationId - Conversation ID
+     */
+    exportAsJSON(conversationId) {
+        // Get JSON content
+        const jsonContent = this.store.exportToJSON(conversationId);
+        if (!jsonContent) {
+            this.createNotification('Error exporting conversation', 'error');
+            return;
         }
         
-        // New conversation button
-        const newBtn = document.getElementById('newConversationBtn');
-        if (newBtn) {
-            this.addTooltip(newBtn, 'New Conversation <span class="shortcut-key">Ctrl</span>+<span class="shortcut-key">N</span>', 'top');
-        }
+        // Get conversation title for filename
+        const conversation = this.store.getConversationById(conversationId);
+        if (!conversation) return;
         
-        // Conversation manager button
-        const managerBtn = document.getElementById('conversationManagerBtn');
-        if (managerBtn) {
-            this.addTooltip(managerBtn, 'Manage Conversations <span class="shortcut-key">Ctrl</span>+<span class="shortcut-key">,</span>', 'left');
-        }
+        // Create safe filename
+        const safeTitle = conversation.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const filename = `${safeTitle}_${new Date().toISOString().split('T')[0]}.json`;
         
-        // Search input
-        const searchInput = document.getElementById('conversationSearch');
-        if (searchInput) {
-            this.addTooltip(searchInput.parentElement, 'Search Conversations <span class="shortcut-key">Ctrl</span>+<span class="shortcut-key">/</span>', 'bottom');
-        }
+        // Create download
+        this.downloadFile(jsonContent, filename, 'application/json');
+        
+        // Hide modal
+        this.hideModal('exportModal');
+        
+        // Show notification
+        this.createNotification('Conversation exported as JSON', 'success');
     }
     
-    addTooltip(element, content, position = 'top') {
-        if (!element) return;
-        
-        // Remove existing title to avoid browser tooltip
-        const title = element.getAttribute('title');
-        if (title) {
-            element.setAttribute('data-original-title', title);
-            element.removeAttribute('title');
+    /**
+     * Export conversation as Markdown
+     * @param {string} conversationId - Conversation ID
+     */
+    exportAsMarkdown(conversationId) {
+        // Get Markdown content
+        const markdownContent = this.store.exportToMarkdown(conversationId);
+        if (!markdownContent) {
+            this.createNotification('Error exporting conversation', 'error');
+            return;
         }
         
-        // Create tooltip element if needed
-        if (!element.querySelector('.tooltip')) {
-            const tooltip = document.createElement('div');
-            tooltip.className = `tooltip ${position}`;
-            tooltip.innerHTML = content;
-            element.classList.add('tooltip-container');
-            element.appendChild(tooltip);
+        // Get conversation title for filename
+        const conversation = this.store.getConversationById(conversationId);
+        if (!conversation) return;
+        
+        // Create safe filename
+        const safeTitle = conversation.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const filename = `${safeTitle}_${new Date().toISOString().split('T')[0]}.md`;
+        
+        // Create download
+        this.downloadFile(markdownContent, filename, 'text/markdown');
+        
+        // Hide modal
+        this.hideModal('exportModal');
+        
+        // Show notification
+        this.createNotification('Conversation exported as Markdown', 'success');
+    }
+    
+    /**
+     * Download file helper
+     * @param {string} content - File content
+     * @param {string} filename - Filename
+     * @param {string} mimeType - MIME type
+     */
+    downloadFile(content, filename, mimeType) {
+        // Create blob
+        const blob = new Blob([content], { type: mimeType });
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        setTimeout(() => {
+            URL.revokeObjectURL(link.href);
+            document.body.removeChild(link);
+        }, 100);
+    }
+    
+    /**
+     * Create a notification
+     * @param {string} message - Notification message
+     * @param {string} type - Notification type ('success', 'error', 'info')
+     * @param {number} duration - Duration in ms
+     * @returns {Object} - The notification controller
+     */
+    createNotification(message, type = 'success', duration = 3000) {
+        // Use the unified notification system if available
+        if (window.showNotification) {
+            return window.showNotification(message, type, duration);
         }
         
-        // Store handlers for cleanup
-        const mouseEnterHandler = () => {
-            const tooltip = element.querySelector('.tooltip');
-            if (tooltip) {
-                tooltip.style.opacity = '1';
-                
-                // Position adjustments
-                if (position === 'top' || position === 'bottom') {
-                    tooltip.style.transform = 'translateX(-50%) translateY(0)';
-                } else {
-                    tooltip.style.transform = 'translateY(-50%) translateX(0)';
-                }
+        // Fallback to simple notification if system is not available
+        console.warn('Using fallback notification - notification system not loaded');
+        
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        
+        // Add to body
+        document.body.appendChild(notification);
+        
+        // Show notification
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        // Hide and remove after duration
+        if (duration > 0) {
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300); // Same as transition duration
+            }, duration);
+        }
+        
+        // Return controller for consistency with the unified system
+        return {
+            element: notification,
+            update: (newMessage) => {
+                notification.textContent = newMessage;
+            },
+            setType: (newType) => {
+                notification.className = `notification notification-${newType}`;
+                notification.classList.add('show');
+            },
+            hide: () => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
             }
         };
-        
-        const mouseLeaveHandler = () => {
-            const tooltip = element.querySelector('.tooltip');
-            if (tooltip) {
-                tooltip.style.opacity = '0';
-            }
-        };
-        
-        // Add event listeners
-        element.addEventListener('mouseenter', mouseEnterHandler);
-        element.addEventListener('mouseleave', mouseLeaveHandler);
-        
-        // Store for cleanup
-        this.tooltips.push({ 
-            element, 
-            mouseEnterHandler, 
-            mouseLeaveHandler 
-        });
     }
     
-    createKeyboardShortcutsPanel() {
-        // Check if panel already exists
-        if (document.getElementById('keyboardShortcutsPanel')) return;
+    /**
+     * Create a loading indicator
+     * @param {string} message - Initial message
+     * @returns {Object} - Loading indicator controller
+     */
+    createLoadingIndicator(message) {
+        // Use the standardized notification system
+        if (window.createConversationLoadingIndicator) {
+            return window.createConversationLoadingIndicator(message);
+        }
         
-        // Create panel
-        const panel = document.createElement('div');
-        panel.id = 'keyboardShortcutsPanel';
-        panel.className = 'keyboard-shortcuts-panel';
+        // If notification system is not available, use a fallback
+        return this.createFallbackLoadingIndicator(message);
+    }
+    
+    /**
+     * Create a fallback loading indicator (only used if notification_system.js is not loaded)
+     * @param {string} message - Initial message
+     * @returns {Object} - Loading indicator controller
+     */
+    createFallbackLoadingIndicator(message) {
+        console.warn('Using fallback loading indicator - notification system not loaded');
         
-        panel.innerHTML = `
-            <div class="keyboard-shortcuts-header">
-                <h3>Keyboard Shortcuts</h3>
-                <button id="closeKeyboardShortcuts" class="close-modal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="shortcut-section">
-                <h4>General Shortcuts</h4>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Create new conversation</div>
-                    <div class="shortcut-combo">
-                        <span class="key">Ctrl</span>
-                        <span class="key-combo-separator">+</span>
-                        <span class="key">N</span>
-                    </div>
-                </div>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Toggle conversation manager</div>
-                    <div class="shortcut-combo">
-                        <span class="key">Ctrl</span>
-                        <span class="key-combo-separator">+</span>
-                        <span class="key">,</span>
-                    </div>
-                </div>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Focus search</div>
-                    <div class="shortcut-combo">
-                        <span class="key">Ctrl</span>
-                        <span class="key-combo-separator">+</span>
-                        <span class="key">/</span>
-                    </div>
-                </div>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Show keyboard shortcuts</div>
-                    <div class="shortcut-combo">
-                        <span class="key">Ctrl</span>
-                        <span class="key-combo-separator">+</span>
-                        <span class="key">?</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="shortcut-section">
-                <h4>Conversation Navigation</h4>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Navigate to previous conversation</div>
-                    <div class="shortcut-combo">
-                        <span class="key">↑</span>
-                    </div>
-                </div>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Navigate to next conversation</div>
-                    <div class="shortcut-combo">
-                        <span class="key">↓</span>
-                    </div>
-                </div>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Delete current conversation</div>
-                    <div class="shortcut-combo">
-                        <span class="key">Delete</span>
-                    </div>
-                </div>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Edit conversation title</div>
-                    <div class="shortcut-combo">
-                        <span class="key">Enter</span>
-                    </div>
-                </div>
-                <div class="shortcut-item">
-                    <div class="shortcut-description">Close sidebar</div>
-                    <div class="shortcut-combo">
-                        <span class="key">Esc</span>
-                    </div>
-                </div>
-            </div>
+        // Create a simple corner notification
+        const notification = document.createElement('div');
+        notification.className = 'conversation-loading-indicator';
+        notification.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div class="loading-message">${message}</div>
         `;
         
-        document.body.appendChild(panel);
+        // Add simple styles if not present
+        if (!document.getElementById('fallback-indicator-styles')) {
+            const style = document.createElement('style');
+            style.id = 'fallback-indicator-styles';
+            style.textContent = `
+                .conversation-loading-indicator {
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    background: rgba(255, 255, 255, 0.9);
+                    color: #333;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    z-index: 2000;
+                    transition: opacity 0.3s, transform 0.3s;
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                .conversation-loading-indicator.show {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                .loading-spinner {
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(0, 0, 0, 0.1);
+                    border-top-color: #007bff;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+                body.dark-mode .conversation-loading-indicator {
+                    background: rgba(33, 37, 41, 0.9);
+                    color: #f8f9fa;
+                }
+                body.dark-mode .loading-spinner {
+                    border-color: rgba(255, 255, 255, 0.1);
+                    border-top-color: #007bff;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Add to DOM
+        document.body.appendChild(notification);
+        
+        // Show with animation
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        // Return controller object
+        return {
+            updateText: (newMessage) => {
+                const messageEl = notification.querySelector('.loading-message');
+                if (messageEl) {
+                    messageEl.textContent = newMessage;
+                }
+            },
+            complete: (successMessage) => {
+                const spinnerEl = notification.querySelector('.loading-spinner');
+                if (spinnerEl) {
+                    spinnerEl.style.borderTopColor = '#28a745';
+                    spinnerEl.style.animationPlayState = 'paused';
+                }
+                
+                const messageEl = notification.querySelector('.loading-message');
+                if (messageEl) {
+                    messageEl.textContent = successMessage;
+                    messageEl.style.color = '#28a745';
+                }
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 2000);
+            },
+            error: (errorMessage) => {
+                const spinnerEl = notification.querySelector('.loading-spinner');
+                if (spinnerEl) {
+                    spinnerEl.style.borderTopColor = '#dc3545';
+                    spinnerEl.style.animationPlayState = 'paused';
+                }
+                
+                const messageEl = notification.querySelector('.loading-message');
+                if (messageEl) {
+                    messageEl.textContent = errorMessage;
+                    messageEl.style.color = '#dc3545';
+                }
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000);
+            },
+            dismiss: () => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }
+        };
     }
     
-    toggleKeyboardShortcutsPanel(show) {
-        const panel = document.getElementById('keyboardShortcutsPanel');
-        if (!panel) return;
+    /**
+     * Render messages in the chat UI
+     */
+    renderMessages() {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
         
-        if (show) {
-            panel.classList.add('active');
-        } else {
-            panel.classList.remove('active');
+        // Check if we have a current thread
+        if (!window.currentThread || !Array.isArray(window.currentThread)) {
+            console.warn('No current thread available to render');
+            return;
+        }
+        
+        // Render messages
+        chatMessages.innerHTML = window.currentThread.map(msg => `
+            <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
+                ${msg.content}
+            </div>
+        `).join('');
+        
+        // Scroll to bottom
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
     }
     
-    getSafeCategoryId(category) {
-        return category.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    }
-}
-
-// Initialize the conversation UI when the page is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.conversationManager) {
-        window.conversationUI = new ConversationUI();
-    } else {
-        console.error('Conversation manager not initialized');
-    }
-});
-
-// Make functions globally available
-window.toggleKeyboardShortcutsPanel = function(show) {
-    if (window.conversationUI) {
-        window.conversationUI.toggleKeyboardShortcutsPanel(show);
-    }
-};
-
-/**
- * Create a new loading indicator for conversation operations
- * @param {string} initialText - Initial loading text to display
- * @returns {Object} - Methods to update and complete the loading state
- */
-window.createConversationLoadingIndicator = function(initialText = 'Loading conversation...') {
-  // First, add the CSS if not already present
-  if (!document.getElementById('conversation-loading-styles')) {
-    const style = document.createElement('style');
-    style.id = 'conversation-loading-styles';
-    style.textContent = `
-      .conversation-loading {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background-color: var(--bg-color, white);
-        border-radius: 8px;
-        padding: 12px 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        z-index: 1050;
-        transform: translateY(20px);
-        opacity: 0;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-        border: 1px solid var(--border-color, #f0f0f0);
-        max-width: 300px;
-      }
-      
-      .conversation-loading.show {
-        transform: translateY(0);
-        opacity: 1;
-      }
-      
-      .conversation-loading-spinner {
-        width: 20px;
-        height: 20px;
-        border: 2px solid var(--primary-color, #007bff);
-        border-radius: 50%;
-        border-top-color: transparent;
-        animation: spinner-rotate 0.8s linear infinite;
-        flex-shrink: 0;
-      }
-      
-      .conversation-loading-success {
-        width: 20px;
-        height: 20px;
-        background-color: var(--success-color, #28a745);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        flex-shrink: 0;
-      }
-      
-      .conversation-loading-error {
-        width: 20px;
-        height: 20px;
-        background-color: var(--danger-color, #dc3545);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        flex-shrink: 0;
-      }
-      
-      .conversation-loading-text {
-        font-size: 0.9rem;
-        color: var(--text-color, #333);
-        margin: 0;
-      }
-      
-      @keyframes spinner-rotate {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      body.dark-mode .conversation-loading {
-        background-color: var(--dark-bg-color, #2a2a2a);
-        border-color: var(--dark-border-color, #444);
-      }
-      
-      body.dark-mode .conversation-loading-text {
-        color: var(--dark-text-color, #e0e0e0);
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Create the indicator element
-  const indicator = document.createElement('div');
-  indicator.className = 'conversation-loading';
-  indicator.innerHTML = `
-    <div class="conversation-loading-spinner"></div>
-    <p class="conversation-loading-text">${initialText}</p>
-  `;
-  document.body.appendChild(indicator);
-  
-  // Force reflow before adding the show class for smooth animation
-  indicator.offsetHeight;
-  
-  // Show the indicator
-  setTimeout(() => {
-    indicator.classList.add('show');
-  }, 10);
-  
-  // Return methods to update and complete the loading state
-  return {
-    updateText(text) {
-      const textEl = indicator.querySelector('.conversation-loading-text');
-      if (textEl) textEl.textContent = text;
-    },
-    
-    complete(successMessage = 'Operation completed successfully', type = 'success') {
-      const spinner = indicator.querySelector('.conversation-loading-spinner');
-      if (spinner) {
-        // Replace spinner with success icon
-        const iconContainer = document.createElement('div');
-        iconContainer.className = type === 'success' ? 'conversation-loading-success' : 'conversation-loading-error';
-        iconContainer.innerHTML = type === 'success' ? 
-          '<i class="fas fa-check"></i>' : 
-          '<i class="fas fa-exclamation"></i>';
+    /**
+     * Handle errors from the store
+     * @param {Object} error - Error object
+     */
+    handleError(error) {
+        console.error('Conversation store error:', error);
         
-        spinner.parentNode.replaceChild(iconContainer, spinner);
-      }
-      
-      // Update message
-      this.updateText(successMessage);
-      
-      // Hide after delay
-      setTimeout(() => {
-        indicator.classList.remove('show');
-        setTimeout(() => {
-          indicator.remove();
-        }, 300);
-      }, 1500);
-    },
-    
-    error(errorMessage = 'Operation failed') {
-      this.complete(errorMessage, 'error');
-    },
-    
-    dismiss() {
-      indicator.classList.remove('show');
-      setTimeout(() => {
-        indicator.remove();
-      }, 300);
+        // Create notification with error message
+        let message;
+        if (error.source && error.message) {
+            switch (error.source) {
+                case 'localStorage':
+                    message = 'Error saving conversations locally';
+                    break;
+                case 'server':
+                    message = 'Error synchronizing with server';
+                    break;
+                case 'import':
+                    message = 'Error importing conversation';
+                    break;
+                case 'export':
+                    message = 'Error exporting conversation';
+                    break;
+                default:
+                    message = error.message;
+            }
+        } else {
+            message = 'An error occurred in the conversation manager';
+        }
+        
+        this.createNotification(message, 'error');
     }
-  };
-};
-
-// Override the existing loading state functions if they exist
-if (typeof window.showLoadingState !== 'undefined') {
-  // Store the original function for cases where we want the full-screen overlay
-  window.showFullScreenLoadingState = window.showLoadingState;
-  
-  // Replace with our improved version
-  window.showLoadingState = function(message) {
-    return window.createConversationLoadingIndicator(message);
-  };
 }
+
+// Initialize UI when DOM is loaded and store is available
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for the store to be available
+    const checkStore = setInterval(() => {
+        if (window.conversationStore) {
+            clearInterval(checkStore);
+            window.conversationUI = new ConversationUI();
+        }
+    }, 100);
+    
+    // Timeout after 5 seconds
+    setTimeout(() => {
+        clearInterval(checkStore);
+        if (!window.conversationStore) {
+            console.error('Conversation store not available after timeout');
+        }
+    }, 5000);
+});
