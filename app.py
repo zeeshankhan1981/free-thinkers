@@ -31,6 +31,31 @@ try:
 except Exception as e:
     print(f"Warning: Could not set permissions on history directory: {e}")
 
+# Default model parameters
+DEFAULT_MODEL_PARAMS = {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "top_k": 40,
+    "num_gpu": 1,
+    "num_thread": 6,
+    "f16_kv": True,
+    "speed_settings": {
+        "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
+        "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
+        "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30}
+    },
+    "prompt_guide": {
+        "use_case_title": "General-purpose tasks",
+        "use_case": "This model is suitable for general-purpose tasks.",
+        "example_prompt": "Explain the concept of machine learning in simple terms.",
+        "tip": "Use clear, concise language for best results."
+    },
+    "limits": {
+        "max_tokens": 2048,
+        "max_input_chars": 320
+    }
+}
+
 # Model-specific parameters
 MODEL_PARAMS = {
     "mistral-7b": {
@@ -99,6 +124,110 @@ MODEL_PARAMS = {
         }
     }
 }
+
+# Add specific model configs for models detected in the Ollama installation
+def initialize_model_params():
+    """Initialize model parameters for all available models."""
+    try:
+        # Get all available models from Ollama
+        response = requests.get('http://localhost:11434/api/tags')
+        if response.status_code == 200:
+            models = response.json().get('models', [])
+            
+            for model in models:
+                model_name = model['name']
+                # If the model doesn't have parameters yet, set default ones
+                if model_name not in MODEL_PARAMS:
+                    # Create a deep copy of default params to avoid reference issues
+                    params = json.loads(json.dumps(DEFAULT_MODEL_PARAMS))
+                    
+                    # Customize based on model family if possible
+                    family = model.get('details', {}).get('family', '').lower()
+                    parameter_size = model.get('details', {}).get('parameter_size', '').lower()
+                    
+                    # Set model-specific prompt guides
+                    if model_name == "gemma3:4b":
+                        params['prompt_guide'] = {
+                            "use_case_title": "Reasoning and creative content generation",
+                            "use_case": "This 4B Gemma3 model excels at medium-complexity reasoning tasks, creative content generation, and factual responses.",
+                            "example_prompt": "Explain what causes the Northern Lights and why they appear in different colors.",
+                            "tip": "Works well with prompts that ask for step-by-step explanations or creative content creation."
+                        }
+                    elif model_name == "llama3.1:8b":
+                        params['prompt_guide'] = {
+                            "use_case_title": "Advanced reasoning and coding assistance",
+                            "use_case": "This 8B Llama3.1 model has strong reasoning and coding capabilities, with good general knowledge.",
+                            "example_prompt": "Write a Python function to implement binary search and explain the algorithm.",
+                            "tip": "Particularly effective for coding tasks and technical explanations that need precise reasoning."
+                        }
+                    elif model_name == "llama2-uncensored:7b":
+                        params['prompt_guide'] = {
+                            "use_case_title": "Unrestricted creative content",
+                            "use_case": "This uncensored Llama2 model has fewer content restrictions and works well for creative and speculative explorations.",
+                            "example_prompt": "Write a grimdark fantasy story opening with morally gray characters.",
+                            "tip": "Best for creative writing with mature themes where standard models might be more restrictive."
+                        }
+                    elif model_name == "phi3:3.8b":
+                        params['prompt_guide'] = {
+                            "use_case_title": "Concise explanations and code snippets",
+                            "use_case": "This 3.8B Phi3 model is excellent for shorter, precise responses and performs well on coding despite its compact size.",
+                            "example_prompt": "Explain the difference between mutexes and semaphores in concurrent programming.",
+                            "tip": "Keep prompts focused and specific for best results with this compact but efficient model."
+                        }
+                    elif model_name == "zephyr:latest":
+                        params['prompt_guide'] = {
+                            "use_case_title": "Well-rounded assistant with good instruction following",
+                            "use_case": "This Zephyr model excels at following instructions precisely and providing helpful, balanced responses.",
+                            "example_prompt": "Create a meal plan for a vegetarian athlete, including macronutrient breakdown.",
+                            "tip": "Best when given clear, specific instructions with any constraints clearly stated."
+                        }
+                    elif model_name == "gemma3:1b":
+                        params['prompt_guide'] = {
+                            "use_case_title": "Fast responses for simple queries",
+                            "use_case": "This 1B Gemma3 model is very efficient for simple questions and basic tasks, with fast inference times.",
+                            "example_prompt": "What are three ways to reduce daily water usage at home?",
+                            "tip": "Keep questions straightforward and expectations modest - this is a very compact model."
+                        }
+                    # For models that aren't specifically handled, use family-based defaults
+                    elif 'llama' in family:
+                        params['prompt_guide'] = {
+                            "use_case_title": "Versatile language tasks and reasoning",
+                            "use_case": "This LLaMA-based model handles a variety of language tasks with good reasoning capabilities.",
+                            "example_prompt": "Compare and contrast renewable energy sources, focusing on efficiency and environmental impact.",
+                            "tip": "Performs well with a wide range of tasks from creative writing to reasoning and analysis."
+                        }
+                    elif 'gemma' in family:
+                        params['prompt_guide'] = {
+                            "use_case_title": "Efficient and balanced responses",
+                            "use_case": "This Gemma model provides balanced performance with good efficiency for everyday tasks.",
+                            "example_prompt": "Summarize the key events of World War II in chronological order.",
+                            "tip": "Great for factual content and summaries with a good balance of detail and brevity."
+                        }
+                    elif 'mistral' in family:
+                        params['prompt_guide'] = {
+                            "use_case_title": "Strong reasoning with efficient processing",
+                            "use_case": "This Mistral model offers excellent reasoning capabilities with efficient processing.",
+                            "example_prompt": "Explain how GPUs accelerate machine learning workloads compared to CPUs.",
+                            "tip": "Excels at explanations that require logical reasoning and connecting concepts."
+                        }
+                    elif 'phi' in family:
+                        params['prompt_guide'] = {
+                            "use_case_title": "Compact but capable assistant",
+                            "use_case": "This Phi model delivers impressive performance for its compact size, especially on coding and logic tasks.",
+                            "example_prompt": "Write a function to check if a string is a palindrome, with examples.",
+                            "tip": "Despite its smaller parameter count, works well for coding and logical reasoning tasks."
+                        }
+                    
+                    # Set the model parameters
+                    MODEL_PARAMS[model_name] = params
+                    print(f"Added parameters and prompt guide for model: {model_name}")
+            
+            print(f"Initialized parameters for {len(MODEL_PARAMS)} models")
+    except Exception as e:
+        print(f"Error initializing model parameters: {str(e)}")
+
+# Initialize model parameters on startup
+initialize_model_params()
 
 TOKEN_COUNTS = {
     "mistral-7b": {
