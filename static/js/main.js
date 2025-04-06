@@ -6,6 +6,68 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Global thread initialized');
     }
     
+    // Initialize global variables
+    window.currentModel = 'mistral-7b';
+    window.currentParameters = {
+        temperature: 0.7,
+        top_p: 0.9,
+        top_k: 40,
+        max_tokens: 2048
+    };
+
+    // DOM Elements
+    const chatContainer = document.querySelector('.chat-container');
+    const messagesList = document.querySelector('.messages-list');
+    const messageInput = document.getElementById('messageInput');
+    const sendMessage = document.getElementById('sendMessage');
+    const modelSelect = document.getElementById('modelSelect');
+    const conversationManagerBtn = document.getElementById('conversationManagerBtn');
+
+    // Add fade transition class to chat container for smooth transitions
+    if (chatContainer) {
+        chatContainer.classList.add('fade-transition');
+    }
+
+    // Initialize message input focus
+    if (messageInput) {
+        setTimeout(() => messageInput.focus(), 100);
+    }
+    
+    // Add chat container class for styling
+    if (chatContainer) {
+        chatContainer.classList.add('chat-container-ready');
+    }
+
+    // Listen for conversation changes and load messages
+    document.addEventListener('currentConversationChanged', (e) => {
+        if (e.detail && Array.isArray(e.detail.messages)) {
+            loadConversationMessages(e.detail.messages);
+        }
+    });
+    
+    // Listen for message sending to update conversation
+    if (sendMessage) {
+        const originalClickHandler = sendMessage.onclick;
+        sendMessage.onclick = function(e) {
+            // Call the original handler
+            if (typeof originalClickHandler === 'function') {
+                originalClickHandler.call(this, e);
+            }
+            
+            // Dispatch event that message was sent
+            document.dispatchEvent(new CustomEvent('messageSent'));
+        };
+    }
+    
+    // Sync with current thread when model changes
+    if (modelSelect) {
+        modelSelect.addEventListener('change', () => {
+            if (window.conversationManager) {
+                window.conversationManager.syncWithCurrentThread();
+            }
+        });
+    }
+
     // Initialize conversation manager
     initConversationManager();
     
@@ -177,7 +239,7 @@ function setupChatIntegration() {
 // Load categories
 function loadCategories() {
     const categoriesList = document.getElementById('categoriesList');
-    if (!categoriesList) return;
+    if (!categoriesList || !window.conversationManager) return;
 
     // Clear existing categories
     categoriesList.innerHTML = '';
@@ -189,10 +251,9 @@ function loadCategories() {
     allCategoryItem.addEventListener('click', () => showConversationsByCategory('all'));
     categoriesList.appendChild(allCategoryItem);
 
-    // Get unique categories and sort them
-    const categories = window.conversationManager.getAllCategories()
-        .sort((a, b) => a.localeCompare(b));
-
+    // Get unique categories from the conversation manager
+    const categories = window.conversationManager.categories || [];
+    
     // Add each category to the list
     categories.forEach(category => {
         const categoryItem = document.createElement('div');
@@ -217,8 +278,8 @@ function loadConversations() {
     // Clear existing conversations
     conversationsList.innerHTML = '';
 
-    // Get all conversations
-    const conversations = window.conversationManager.getAllConversations();
+    // Get all conversations - direct access instead of using a non-existent method
+    const conversations = window.conversationManager.conversations || [];
     
     if (conversations.length === 0) {
         // Show empty state
@@ -329,7 +390,7 @@ function showConversationsByCategory(category) {
     const conversations = window.conversationManager.getConversationsByCategory(category)
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
-    // Add each conversation to the list
+    // Add conversations to the list
     conversations.forEach(conversation => {
         const conversationItem = document.createElement('div');
         conversationItem.className = 'conversation-item';
@@ -973,4 +1034,79 @@ function setupModalCloseButtons() {
             }
         }
     });
+}
+
+// Load conversation messages into the chat UI
+function loadConversationMessages(messages) {
+    if (!Array.isArray(messages)) {
+        console.error('Invalid messages format:', messages);
+        return;
+    }
+    
+    // Update global thread
+    window.currentThread = [...messages];
+    
+    // Render messages in the UI - use our own function if the global one isn't available
+    if (typeof window.renderMessages === 'function') {
+        window.renderMessages();
+    } else {
+        // Fallback to our own rendering logic
+        renderMessagesInternal();
+    }
+}
+
+// Internal function to render messages in the chat UI
+function renderMessagesInternal() {
+    console.log('Rendering messages internally');
+    const messagesContainer = document.getElementById('chatMessages');
+    if (!messagesContainer) {
+        console.error('Messages container not found');
+        return;
+    }
+    
+    // Clear existing messages
+    messagesContainer.innerHTML = '';
+    
+    // Render each message
+    window.currentThread.forEach(message => {
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${message.role}-message`;
+        
+        // Format message content
+        const contentEl = document.createElement('div');
+        contentEl.className = 'message-content';
+        contentEl.innerHTML = message.content.replace(/\n/g, '<br>');
+        
+        // Add role label
+        const roleEl = document.createElement('div');
+        roleEl.className = 'message-role';
+        roleEl.textContent = message.role === 'user' ? 'You' : 'AI';
+        
+        // Assemble message
+        messageEl.appendChild(roleEl);
+        messageEl.appendChild(contentEl);
+        messagesContainer.appendChild(messageEl);
+    });
+    
+    // Scroll to bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Make renderMessages available globally
+window.renderMessages = function() {
+    // Check if the original function exists in window scope
+    if (typeof renderMessages === 'function' && renderMessages !== window.renderMessages) {
+        renderMessages();
+    } else {
+        // Use our internal function
+        renderMessagesInternal();
+    }
+};
+
+// Handle when a new message is added to the chat
+function handleNewMessage(message) {
+    // If conversationManager is available, add message to current conversation
+    if (window.conversationManager) {
+        window.conversationManager.addMessage(message);
+    }
 }

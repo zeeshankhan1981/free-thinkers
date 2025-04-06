@@ -2,35 +2,94 @@ class ConversationManager {
     constructor() {
         this.conversations = [];
         this.currentConversation = null;
+        this.pinnedConversations = [];
+        this.categories = [];
+        this.isUnsavedChanges = false;
         this.loadConversations();
+        this.setupKeyboardShortcuts();
     }
 
     // Load conversations from localStorage and server if available
     async loadConversations() {
         // First load from localStorage for immediate access
         const savedConversations = localStorage.getItem('conversations');
+        const savedPinned = localStorage.getItem('pinnedConversations');
+        
         if (savedConversations) {
             try {
                 this.conversations = JSON.parse(savedConversations);
+                
+                // Load pinned conversations
+                if (savedPinned) {
+                    this.pinnedConversations = JSON.parse(savedPinned);
+                }
+                
+                // Extract categories from conversations
+                this.refreshCategories();
+                
                 if (this.conversations.length > 0) {
-                    this.currentConversation = this.conversations[0];
+                    // Check if there was a previously active conversation
+                    const lastActiveId = localStorage.getItem('lastActiveConversation');
+                    if (lastActiveId) {
+                        const lastActive = this.getConversationById(lastActiveId);
+                        if (lastActive) {
+                            this.currentConversation = lastActive;
+                        } else {
+                            this.currentConversation = this.conversations[0];
+                        }
+                    } else {
+                        this.currentConversation = this.conversations[0];
+                    }
                 }
             } catch (error) {
                 console.error('Error parsing saved conversations:', error);
                 this.conversations = [];
+                this.pinnedConversations = [];
             }
+        } else {
+            // If no conversations exist, create an untitled one
+            this.createConversation('Untitled Conversation', 'Uncategorized');
         }
 
         // Then try to fetch from server and merge
         try {
+            // Show syncing notification
+            const syncNotif = window.showSyncingNotification ? 
+                window.showSyncingNotification() : null;
+            
             const response = await fetch('/api/history');
             if (response.ok) {
                 const serverConversations = await response.json();
                 this.mergeServerConversations(serverConversations);
+                
+                // Complete the syncing notification
+                if (syncNotif) {
+                    syncNotif.complete();
+                } else if (window.showNotification) {
+                    window.showNotification('Conversations synced successfully', 'success');
+                }
             }
         } catch (error) {
             console.error('Error fetching conversations from server:', error);
-            // Continue with local conversations
+            if (window.showNotification) {
+                window.showNotification('Could not sync with server, using local conversations', 'warning');
+            }
+        }
+    }
+
+    // Refresh the list of categories from conversations
+    refreshCategories() {
+        const categorySet = new Set();
+        this.conversations.forEach(conv => {
+            if (conv.category && conv.category.trim() !== '') {
+                categorySet.add(conv.category.trim());
+            }
+        });
+        this.categories = Array.from(categorySet).sort();
+        
+        // Ensure 'Uncategorized' is always available
+        if (!this.categories.includes('Uncategorized')) {
+            this.categories.push('Uncategorized');
         }
     }
 
@@ -40,6 +99,7 @@ class ConversationManager {
         
         // Create a map of existing conversation IDs
         const existingIds = new Map(this.conversations.map(conv => [conv.id, conv]));
+        let hasNewConversation = false;
         
         serverConversations.forEach(serverConv => {
             if (!serverConv.id) return;
@@ -56,17 +116,30 @@ class ConversationManager {
                 }
             } else {
                 // Add new conversation from server
-                this.conversations.push(this.formatServerConversation(serverConv));
+                const newConv = this.formatServerConversation(serverConv);
+                this.conversations.push(newConv);
+                hasNewConversation = true;
+                
+                // Add "What's New" badge
+                newConv.isNew = true;
             }
         });
         
-        // Sort conversations by updated date
-        this.conversations.sort((a, b) => 
-            new Date(b.updatedAt) - new Date(a.updatedAt)
-        );
+        // Refresh categories
+        this.refreshCategories();
+        
+        // Sort conversations - pinned first, then by updated date
+        this.sortConversations();
         
         // Save merged conversations to localStorage
         this.saveConversations();
+        
+        // Show notification if new conversations were found
+        if (hasNewConversation) {
+            if (window.showNotification) {
+                window.showNotification('New conversations added from server', 'info');
+            }
+        }
     }
 
     // Format server conversation to match local format
@@ -77,7 +150,8 @@ class ConversationManager {
             category: serverConv.category || 'Uncategorized',
             messages: Array.isArray(serverConv.messages) ? serverConv.messages : [],
             createdAt: serverConv.created_at || new Date().toISOString(),
-            updatedAt: serverConv.updated_at || new Date().toISOString()
+            updatedAt: serverConv.updated_at || new Date().toISOString(),
+            isPinned: this.pinnedConversations.includes(serverConv.id)
         };
     }
 
@@ -90,18 +164,29 @@ class ConversationManager {
                 return content.length > 30 ? content.substring(0, 30) + '...' : content;
             }
         }
-        return 'Conversation ' + new Date().toLocaleString();
+        return 'Untitled Conversation';
     }
 
     // Save conversations to localStorage
     saveConversations() {
         try {
             localStorage.setItem('conversations', JSON.stringify(this.conversations));
+            localStorage.setItem('pinnedConversations', JSON.stringify(this.pinnedConversations));
+            
+            // Save last active conversation ID
+            if (this.currentConversation) {
+                localStorage.setItem('lastActiveConversation', this.currentConversation.id);
+            }
+            
+            this.isUnsavedChanges = false;
+            
+            // Trigger an event that conversations were saved
+            document.dispatchEvent(new CustomEvent('conversationsSaved'));
         } catch (error) {
             console.error('Error saving conversations to localStorage:', error);
             // Show notification to user
-            if (typeof showNotification === 'function') {
-                showNotification('Failed to save conversations locally. Storage may be full.', 'error');
+            if (window.showNotification) {
+                window.showNotification('Failed to save conversations locally. Storage may be full.', 'error');
             }
         }
     }
@@ -112,6 +197,10 @@ class ConversationManager {
         if (!conversation) return false;
 
         try {
+            // Show loading modal
+            const loading = window.showLoadingState ? 
+                window.showLoadingState('Saving conversation to server...') : null;
+            
             const response = await fetch('/api/history/save', {
                 method: 'POST',
                 headers: {
@@ -126,47 +215,134 @@ class ConversationManager {
                 })
             });
 
+            // Hide loading state
+            if (loading) {
+                loading.complete('Conversation saved successfully', 'success');
+            } else if (window.hideLoadingState) {
+                window.hideLoadingState();
+                if (window.showNotification) {
+                    window.showNotification('Conversation saved to server', 'success');
+                }
+            }
+            
             if (response.ok) {
                 return true;
             } else {
                 const errorData = await response.json();
                 console.error('Server error saving conversation:', errorData);
+                if (window.showNotification) {
+                    window.showNotification('Failed to save to server: ' + (errorData.message || 'Unknown error'), 'error');
+                }
                 return false;
             }
         } catch (error) {
             console.error('Error saving conversation to server:', error);
+            if (window.hideLoadingState) {
+                window.hideLoadingState();
+            }
+            if (window.showNotification) {
+                window.showNotification('Failed to save to server: Network error', 'error');
+            }
             return false;
         }
     }
 
+    // Sort conversations - pinned first, then by updated date
+    sortConversations() {
+        this.conversations.sort((a, b) => {
+            // First sort by pinned status
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            
+            // Then sort by updated date
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
+        });
+    }
+
     // Create a new conversation
-    createConversation(title = 'New Conversation', category = 'Uncategorized') {
+    createConversation(title = 'Untitled Conversation', category = 'Uncategorized') {
         const newConversation = {
             id: Date.now().toString(),
             title,
             category,
             messages: [],
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            isPinned: false,
+            isNew: true // Add 'What's New' badge
         };
         
         this.conversations.unshift(newConversation); // Add to beginning of array
         this.currentConversation = newConversation;
+        this.isUnsavedChanges = true;
         this.saveConversations();
+        
+        // Update categories if needed
+        if (!this.categories.includes(category)) {
+            this.categories.push(category);
+            this.categories.sort();
+        }
         
         // Try to save to server
         this.saveToServer(newConversation.id).catch(error => {
             console.error('Failed to save new conversation to server:', error);
         });
         
+        // Show notification
+        if (window.showNotification) {
+            window.showNotification('New conversation created', 'success');
+        }
+        
         return newConversation;
     }
 
-    // Set current conversation
+    // Set current conversation with transition effect
     setCurrentConversation(conversationId) {
         const conversation = this.getConversationById(conversationId);
         if (conversation) {
-            this.currentConversation = conversation;
+            // Apply fade transition
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+                chatContainer.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    this.currentConversation = conversation;
+                    
+                    // If conversation was marked as new, remove that flag
+                    if (conversation.isNew) {
+                        conversation.isNew = false;
+                        this.saveConversations();
+                    }
+                    
+                    // Dispatch event that current conversation changed
+                    document.dispatchEvent(new CustomEvent('currentConversationChanged', { 
+                        detail: conversation 
+                    }));
+                    
+                    // Fade back in
+                    chatContainer.classList.remove('fade-out');
+                    chatContainer.classList.add('fade-in');
+                    
+                    setTimeout(() => {
+                        chatContainer.classList.remove('fade-in');
+                    }, 300);
+                    
+                }, 300);
+            } else {
+                this.currentConversation = conversation;
+                
+                // If conversation was marked as new, remove that flag
+                if (conversation.isNew) {
+                    conversation.isNew = false;
+                    this.saveConversations();
+                }
+                
+                // Dispatch event that current conversation changed
+                document.dispatchEvent(new CustomEvent('currentConversationChanged', { 
+                    detail: conversation 
+                }));
+            }
+            
             return true;
         }
         return false;
@@ -174,13 +350,42 @@ class ConversationManager {
 
     // Get current conversation
     getCurrentConversation() {
+        // If we don't have a current conversation but have conversations available,
+        // set the first one as current
+        if (!this.currentConversation && this.conversations.length > 0) {
+            this.currentConversation = this.conversations[0];
+        }
+        
+        // If we still don't have a current conversation, create a new one
+        if (!this.currentConversation) {
+            this.createConversation();
+        }
+        
         return this.currentConversation;
     }
 
-    // Update conversation title
+    // Get conversations by category
+    getConversationsByCategory(category) {
+        if (!category || category === 'all') {
+            // Return all conversations including both pinned and non-pinned
+            return [...this.conversations];
+        }
+        
+        // Return conversations that match the specified category
+        return this.conversations.filter(conv => conv.category === category);
+    }
+
+    // Get conversation by ID
+    getConversationById(id) {
+        return this.conversations.find(conv => conv.id === id);
+    }
+
+    // Update conversation title with inline editing
     updateConversationTitle(conversationId, newTitle) {
         if (!newTitle || newTitle.trim() === '') {
-            console.error('Invalid title: Title cannot be empty');
+            if (window.showNotification) {
+                window.showNotification('Title cannot be empty', 'warning');
+            }
             return false;
         }
 
@@ -188,6 +393,7 @@ class ConversationManager {
         if (conversation) {
             conversation.title = newTitle.trim();
             conversation.updatedAt = new Date().toISOString();
+            this.isUnsavedChanges = true;
             this.saveConversations();
             
             // Try to save to server
@@ -210,7 +416,11 @@ class ConversationManager {
         if (conversation) {
             conversation.category = newCategory.trim();
             conversation.updatedAt = new Date().toISOString();
+            this.isUnsavedChanges = true;
             this.saveConversations();
+            
+            // Update categories if needed
+            this.refreshCategories();
             
             // Try to save to server
             this.saveToServer(conversationId).catch(error => {
@@ -222,124 +432,139 @@ class ConversationManager {
         return false;
     }
 
-    // Add message to conversation
-    addMessage(conversationId, role, content) {
+    // Toggle pinned status of a conversation
+    togglePinned(conversationId) {
         const conversation = this.getConversationById(conversationId);
-        if (conversation) {
-            const message = {
-                id: Date.now().toString(),
-                role,
-                content,
-                timestamp: new Date().toISOString()
-            };
-            conversation.messages.push(message);
-            conversation.updatedAt = new Date().toISOString();
-            this.saveConversations();
-            
-            // Try to save to server asynchronously
-            this.saveToServer(conversationId).catch(error => {
-                console.error('Failed to save new message to server:', error);
-            });
-            
-            return message;
-        }
-        return null;
-    }
-
-    // Sync conversation with current chat thread
-    syncWithCurrentThread(conversationId) {
-        // Make sure currentThread exists and initialize it if needed
-        if (typeof window.currentThread === 'undefined') {
-            console.log('Initializing empty currentThread');
-            window.currentThread = [];
+        if (!conversation) return false;
+        
+        conversation.isPinned = !conversation.isPinned;
+        
+        // Update pinned conversations list
+        if (conversation.isPinned) {
+            if (!this.pinnedConversations.includes(conversationId)) {
+                this.pinnedConversations.push(conversationId);
+            }
+        } else {
+            this.pinnedConversations = this.pinnedConversations.filter(id => id !== conversationId);
         }
         
-        if (!Array.isArray(window.currentThread)) {
-            console.error('Invalid currentThread format - expected array');
-            return false;
-        }
-
-        const conversation = this.getConversationById(conversationId);
-        if (!conversation) {
-            console.error(`Conversation with ID ${conversationId} not found`);
-            return false;
-        }
-
-        // Update conversation messages with current thread
-        conversation.messages = window.currentThread.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            timestamp: new Date().toISOString()
-        }));
-        conversation.updatedAt = new Date().toISOString();
-        
+        // Re-sort conversations
+        this.sortConversations();
         this.saveConversations();
         
-        // Try to save to server
-        this.saveToServer(conversationId).catch(error => {
-            console.error('Failed to sync conversation with server:', error);
-        });
+        // Show notification
+        if (window.showNotification) {
+            window.showNotification(
+                conversation.isPinned ? 'Conversation pinned' : 'Conversation unpinned', 
+                'success'
+            );
+        }
         
         return true;
     }
 
-    // Load conversation into current thread
-    loadConversationToThread(conversationId) {
-        try {
-            // Find the conversation
-            const conversation = this.getConversationById(conversationId);
-            if (!conversation || !conversation.messages || !conversation.messages.length) {
-                console.warn('No conversation found with ID:', conversationId, 'or the conversation has no messages');
-                return false;
-            }
-
-            // Set it as the current conversation
-            this.setCurrentConversation(conversationId);
-
-            // Load the messages into the global thread
-            if (window.currentThread !== undefined) {
-                window.currentThread = [...conversation.messages];
-                console.log('Loaded conversation messages into current thread:', conversation.messages.length);
-                
-                // Update the model if needed
-                if (conversation.model && window.currentModel !== undefined) {
-                    window.currentModel = conversation.model;
-                    
-                    // Update model select if it exists
-                    const modelSelect = document.getElementById('modelSelect');
-                    if (modelSelect) {
-                        modelSelect.value = conversation.model;
-                    }
-                }
-                
-                return true;
-            } else {
-                console.error('window.currentThread is not defined, cannot load conversation');
-                return false;
-            }
-        } catch (error) {
-            console.error('Error loading conversation to thread:', error);
-            return false;
+    // Add message to current conversation
+    addMessage(message) {
+        if (!this.currentConversation) {
+            this.createConversation();
+        }
+        
+        this.currentConversation.messages.push(message);
+        this.currentConversation.updatedAt = new Date().toISOString();
+        
+        // If this is the first user message and the title is still default, update the title
+        if (message.role === 'user' && 
+            this.currentConversation.messages.filter(m => m.role === 'user').length === 1 &&
+            (this.currentConversation.title === 'Untitled Conversation' || this.currentConversation.title === '')) {
+            
+            const content = message.content.trim();
+            this.currentConversation.title = content.length > 30 ? content.substring(0, 30) + '...' : content;
+        }
+        
+        this.isUnsavedChanges = true;
+        this.saveConversations();
+        
+        // Re-sort conversations since this one was just updated
+        this.sortConversations();
+        
+        // Save to server periodically (not on every message to avoid rate limits)
+        if (this.currentConversation.messages.length % 5 === 0) {
+            this.saveToServer(this.currentConversation.id).catch(error => {
+                console.error('Failed to save conversation to server:', error);
+            });
         }
     }
 
-    // Search conversations by title or content
-    searchConversations(query) {
-        if (!query || query.trim() === '') {
-            return this.getAllConversations();
+    // Delete a conversation
+    deleteConversation(conversationId) {
+        const conversationIndex = this.conversations.findIndex(conv => conv.id === conversationId);
+        if (conversationIndex === -1) return false;
+        
+        const conversation = this.conversations[conversationIndex];
+        
+        // Remove from conversations array
+        this.conversations.splice(conversationIndex, 1);
+        
+        // Remove from pinned list if present
+        this.pinnedConversations = this.pinnedConversations.filter(id => id !== conversationId);
+        
+        // If this was the current conversation, set a new current conversation
+        if (this.currentConversation && this.currentConversation.id === conversationId) {
+            if (this.conversations.length > 0) {
+                this.currentConversation = this.conversations[0];
+                
+                // Dispatch event that current conversation changed
+                document.dispatchEvent(new CustomEvent('currentConversationChanged', { 
+                    detail: this.currentConversation 
+                }));
+            } else {
+                this.currentConversation = null;
+                this.createConversation();
+            }
         }
         
-        const queryLower = query.toLowerCase().trim();
-        return this.conversations.filter(conversation => {
+        // Refresh categories
+        this.refreshCategories();
+        
+        this.saveConversations();
+        
+        // Try to delete from server
+        try {
+            fetch(`/api/history/delete/${conversationId}`, {
+                method: 'DELETE'
+            }).catch(error => {
+                console.error('Failed to delete conversation from server:', error);
+            });
+        } catch (error) {
+            console.error('Error deleting conversation from server:', error);
+        }
+        
+        // Show notification
+        if (window.showNotification) {
+            window.showNotification(`Deleted "${conversation.title}"`, 'success');
+        }
+        
+        return true;
+    }
+
+    // Search conversations
+    searchConversations(query) {
+        if (!query || query.trim() === '') {
+            return [];
+        }
+        
+        query = query.trim().toLowerCase();
+        
+        return this.conversations.filter(conv => {
             // Search in title
-            if (conversation.title.toLowerCase().includes(queryLower)) {
+            if (conv.title.toLowerCase().includes(query)) {
                 return true;
             }
             
             // Search in messages
-            if (Array.isArray(conversation.messages)) {
-                return conversation.messages.some(msg => 
-                    msg.content && msg.content.toLowerCase().includes(queryLower)
+            if (Array.isArray(conv.messages)) {
+                return conv.messages.some(msg => 
+                    msg.content && msg.content.toLowerCase().includes(query)
                 );
             }
             
@@ -347,243 +572,245 @@ class ConversationManager {
         });
     }
 
-    // Get conversation by ID
-    getConversationById(id) {
-        return this.conversations.find(c => c.id === id);
-    }
-
-    // Export conversation to JSON
-    exportToJSON(conversationId) {
-        const conversation = this.getConversationById(conversationId);
-        if (!conversation) {
-            console.error('Conversation not found');
-            return null;
-        }
-        
-        try {
-            return JSON.stringify({
-                ...conversation,
-                messages: conversation.messages.map(msg => ({
-                    ...msg,
-                    timestamp: new Date(msg.timestamp).toISOString()
-                }))
-            }, null, 2);
-        } catch (error) {
-            console.error('Error exporting conversation to JSON:', error);
-            return null;
-        }
-    }
-
-    // Export conversation to Markdown
-    exportToMarkdown(conversationId) {
-        const conversation = this.getConversationById(conversationId);
-        if (!conversation) {
-            console.error('Conversation not found');
-            return null;
-        }
-        
-        try {
-            let markdown = `# ${conversation.title}\n\n`;
-            markdown += `Category: ${conversation.category}\n\n`;
-            markdown += `Created: ${new Date(conversation.createdAt).toLocaleString()}\n\n`;
-            
-            if (Array.isArray(conversation.messages)) {
-                conversation.messages.forEach(msg => {
-                    const role = msg.role === 'user' ? 'User' : 'Assistant';
-                    markdown += `\n**${role}:**\n\n${msg.content}\n\n`;
-                });
-            }
-            
-            return markdown;
-        } catch (error) {
-            console.error('Error exporting conversation to Markdown:', error);
-            return null;
-        }
-    }
-
-    // Import conversation from JSON
-    importFromJSON(jsonString) {
-        try {
-            const data = JSON.parse(jsonString);
-            
-            // Validate required fields
-            if (!data.title) {
-                console.error('Invalid conversation data: Missing title');
-                return null;
-            }
-            
-            const newConversation = {
-                ...data,
-                id: Date.now().toString(),
-                category: data.category || 'Uncategorized',
-                messages: Array.isArray(data.messages) ? data.messages : [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-            
-            this.conversations.unshift(newConversation);
-            this.currentConversation = newConversation;
-            this.saveConversations();
-            
-            // Try to save to server
-            this.saveToServer(newConversation.id).catch(error => {
-                console.error('Failed to save imported conversation to server:', error);
-            });
-            
-            return newConversation;
-        } catch (error) {
-            console.error('Error importing conversation from JSON:', error);
-            return null;
-        }
-    }
-
-    // Import conversation from Markdown
-    importFromMarkdown(markdownString) {
-        try {
-            const lines = markdownString.split('\n');
-            if (lines.length < 1 || !lines[0].startsWith('#')) {
-                console.error('Invalid Markdown format: Missing title');
-                return null;
-            }
-            
-            const title = lines[0].replace('#', '').trim();
-            let category = 'Uncategorized';
-            
-            // Look for category line
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].startsWith('Category:')) {
-                    category = lines[i].replace('Category:', '').trim();
-                    break;
-                }
-            }
-            
-            const messages = [];
-            let currentRole = '';
-            let currentContent = '';
-            
-            // Parse messages
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].startsWith('**') && (lines[i].includes('User:') || lines[i].includes('Assistant:'))) {
-                    // Save previous message if exists
-                    if (currentRole && currentContent.trim()) {
-                        messages.push({
-                            role: currentRole.toLowerCase(),
-                            content: currentContent.trim(),
-                            timestamp: new Date().toISOString()
-                        });
-                    }
-                    
-                    // Start new message
-                    currentRole = lines[i].includes('User:') ? 'user' : 'assistant';
-                    currentContent = '';
-                } else if (currentRole) {
-                    // Add line to current message
-                    currentContent += lines[i] + '\n';
-                }
-            }
-            
-            // Add final message if exists
-            if (currentRole && currentContent.trim()) {
-                messages.push({
-                    role: currentRole.toLowerCase(),
-                    content: currentContent.trim(),
-                    timestamp: new Date().toISOString()
-                });
-            }
-            
-            const newConversation = {
-                id: Date.now().toString(),
-                title,
-                category,
-                messages,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-            
-            this.conversations.unshift(newConversation);
-            this.currentConversation = newConversation;
-            this.saveConversations();
-            
-            // Try to save to server
-            this.saveToServer(newConversation.id).catch(error => {
-                console.error('Failed to save imported conversation to server:', error);
-            });
-            
-            return newConversation;
-        } catch (error) {
-            console.error('Error importing conversation from Markdown:', error);
-            return null;
-        }
-    }
-
-    // Delete conversation
-    deleteConversation(conversationId) {
-        const index = this.conversations.findIndex(c => c.id === conversationId);
-        if (index === -1) {
-            console.error('Conversation not found');
+    // Reorder conversation (used for drag and drop)
+    reorderConversation(fromIndex, toIndex) {
+        // Don't reorder if indices are invalid
+        if (fromIndex < 0 || toIndex < 0 || 
+            fromIndex >= this.conversations.length || 
+            toIndex >= this.conversations.length) {
             return false;
         }
         
-        // Remove from array
-        this.conversations.splice(index, 1);
+        // Get separate lists of pinned and unpinned conversations
+        const pinned = this.conversations.filter(c => c.isPinned);
+        const unpinned = this.conversations.filter(c => !c.isPinned);
         
-        // Update current conversation if needed
-        if (this.currentConversation && this.currentConversation.id === conversationId) {
-            this.currentConversation = this.conversations.length > 0 ? this.conversations[0] : null;
+        const fromItem = this.conversations[fromIndex];
+        
+        // If the item is pinned, only allow reordering within pinned items
+        if (fromItem.isPinned) {
+            const pinnedFromIndex = pinned.findIndex(c => c.id === fromItem.id);
+            let pinnedToIndex = toIndex;
+            
+            // If trying to move to unpinned section, place at the end of pinned instead
+            if (pinnedToIndex >= pinned.length) {
+                pinnedToIndex = pinned.length - 1;
+            }
+            
+            // Move the item within the pinned array
+            const [removed] = pinned.splice(pinnedFromIndex, 1);
+            pinned.splice(pinnedToIndex, 0, removed);
+            
+            // Reconstruct the main conversations array
+            this.conversations = [...pinned, ...unpinned];
+        } 
+        // If unpinned, only allow reordering within unpinned items
+        else {
+            const unpinnedFromIndex = unpinned.findIndex(c => c.id === fromItem.id);
+            let unpinnedToIndex = toIndex - pinned.length;
+            
+            // If trying to move to pinned section, place at the beginning of unpinned instead
+            if (unpinnedToIndex < 0) {
+                unpinnedToIndex = 0;
+            }
+            
+            // Move the item within the unpinned array
+            const [removed] = unpinned.splice(unpinnedFromIndex, 1);
+            unpinned.splice(unpinnedToIndex, 0, removed);
+            
+            // Reconstruct the main conversations array
+            this.conversations = [...pinned, ...unpinned];
         }
         
+        this.isUnsavedChanges = true;
         this.saveConversations();
-        
-        // Try to delete from server
-        this.deleteFromServer(conversationId).catch(error => {
-            console.error('Failed to delete conversation from server:', error);
-        });
         
         return true;
     }
 
-    // Delete conversation from server
-    async deleteFromServer(conversationId) {
-        try {
-            const response = await fetch(`/api/history/${conversationId}`, {
-                method: 'DELETE'
-            });
-            
-            return response.ok;
-        } catch (error) {
-            console.error('Error deleting conversation from server:', error);
-            return false;
+    // Sync with current thread (add messages from current thread to current conversation)
+    syncWithCurrentThread() {
+        if (typeof window.currentThread === 'undefined') {
+            console.log('Initializing empty currentThread');
+            window.currentThread = [];
+            return;
         }
-    }
-
-    // Get all conversations
-    getAllConversations() {
-        return [...this.conversations];
-    }
-
-    // Get conversations by category
-    getConversationsByCategory(category) {
-        if (!category || category === 'all') {
-            return this.getAllConversations();
-        }
-        return this.conversations.filter(c => c.category === category);
-    }
-
-    // Get all categories
-    getAllCategories() {
-        const categories = new Set(this.conversations.map(c => c.category));
-        return Array.from(categories);
-    }
-
-    // Create category if it doesn't exist
-    createCategoryIfNotExists(category) {
-        if (!category || category === 'Uncategorized') return;
         
-        const categories = this.getAllCategories();
-        if (!categories.includes(category)) {
-            this.createConversation(`${category} Sample`, category);
+        if (!this.currentConversation) {
+            this.createConversation();
+        }
+        
+        // Get current thread and add any new messages to the conversation
+        const currentMessages = this.currentConversation.messages;
+        const threadMessages = window.currentThread;
+        
+        if (!Array.isArray(threadMessages) || threadMessages.length === 0) {
+            return;
+        }
+        
+        const currentMessageIds = new Set(currentMessages.map(msg => msg.id));
+        let hasNewMessages = false;
+        
+        threadMessages.forEach(threadMsg => {
+            // Skip if message already exists in conversation
+            if (!threadMsg.id || currentMessageIds.has(threadMsg.id)) {
+                return;
+            }
+            
+            currentMessages.push(threadMsg);
+            hasNewMessages = true;
+        });
+        
+        if (hasNewMessages) {
+            this.currentConversation.updatedAt = new Date().toISOString();
+            this.isUnsavedChanges = true;
+            this.saveConversations();
+            
+            // Re-sort conversations
+            this.sortConversations();
         }
     }
+
+    getLastMessage() {
+        if (!this.currentConversation || !this.currentConversation.messages || this.currentConversation.messages.length === 0) {
+            return null;
+        }
+        return this.currentConversation.messages[this.currentConversation.messages.length - 1];
+    }
+
+    // Load conversation to the current thread
+    loadConversationToThread(conversationId) {
+        const conversation = this.getConversationById(conversationId);
+        if (!conversation) return false;
+        
+        // Set as current conversation
+        this.currentConversation = conversation;
+        
+        // Save this as the last active conversation
+        localStorage.setItem('lastActiveConversation', conversationId);
+        
+        // Clear the current thread
+        if (window.currentThread) {
+            window.currentThread = [];
+        }
+        
+        // Load messages into the thread
+        if (conversation.messages && conversation.messages.length > 0) {
+            window.currentThread = [...conversation.messages];
+        }
+        
+        // Update the UI if a handler is available
+        if (typeof window.handleConversationLoaded === 'function') {
+            window.handleConversationLoaded(conversation);
+        }
+        
+        this.triggerEvent('conversationLoaded', conversation);
+        return true;
+    }
+
+    // Setup keyboard shortcuts
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (event) => {
+            // Only process if conversation manager is focused/active
+            const sidebar = document.getElementById('conversationManagerSidebar');
+            const isActive = sidebar.classList.contains('active');
+            
+            // Global shortcuts that work everywhere
+            if (event.ctrlKey || event.metaKey) {
+                if (event.key === 'n') {
+                    // Ctrl/Cmd + N: New conversation
+                    event.preventDefault();
+                    this.createConversation();
+                    return;
+                }
+                
+                if (event.key === ',') {
+                    // Ctrl/Cmd + ,: Toggle conversation manager sidebar
+                    event.preventDefault();
+                    const event = document.createEvent('Event');
+                    event.initEvent('click', true, true);
+                    document.getElementById('conversationManagerBtn').dispatchEvent(event);
+                    return;
+                }
+                
+                if (event.key === '/') {
+                    // Ctrl/Cmd + /: Focus search
+                    event.preventDefault();
+                    if (isActive) {
+                        document.getElementById('conversationSearch').focus();
+                    }
+                    return;
+                }
+                
+                if (event.key === '?') {
+                    // Ctrl/Cmd + ?: Show keyboard shortcuts
+                    event.preventDefault();
+                    toggleKeyboardShortcutsPanel();
+                    return;
+                }
+            }
+            
+            // Shortcuts that only work when the sidebar is active
+            if (isActive) {
+                // Arrow navigation in conversation list
+                if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    
+                    const activeItem = sidebar.querySelector('.conversation-item.active');
+                    if (!activeItem) return;
+                    
+                    const allItems = Array.from(sidebar.querySelectorAll('.conversation-item:not(.filtered)'));
+                    const currentIndex = allItems.indexOf(activeItem);
+                    
+                    if (currentIndex === -1) return;
+                    
+                    let newIndex;
+                    if (event.key === 'ArrowUp') {
+                        newIndex = currentIndex - 1;
+                        if (newIndex < 0) newIndex = allItems.length - 1;
+                    } else {
+                        newIndex = currentIndex + 1;
+                        if (newIndex >= allItems.length) newIndex = 0;
+                    }
+                    
+                    const newActiveItem = allItems[newIndex];
+                    if (newActiveItem) {
+                        const conversationId = newActiveItem.getAttribute('data-id');
+                        this.setCurrentConversation(conversationId);
+                    }
+                }
+                
+                // Delete conversation with Delete key
+                if (event.key === 'Delete') {
+                    const activeItem = sidebar.querySelector('.conversation-item.active');
+                    if (!activeItem) return;
+                    
+                    const conversationId = activeItem.getAttribute('data-id');
+                    if (confirm('Are you sure you want to delete this conversation?')) {
+                        this.deleteConversation(conversationId);
+                    }
+                }
+                
+                // Enter to edit title
+                if (event.key === 'Enter') {
+                    const activeItem = sidebar.querySelector('.conversation-item.active');
+                    if (!activeItem) return;
+                    
+                    const titleEl = activeItem.querySelector('.conversation-item-title');
+                    if (titleEl && !titleEl.classList.contains('editing')) {
+                        titleEl.click();
+                    }
+                }
+                
+                // Escape to close sidebar
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    document.getElementById('closeConversationManager').click();
+                }
+            }
+        });
+    }
+
 }
 
 // Create a global instance of ConversationManager

@@ -1,8 +1,66 @@
 # Model Management and Parameter Controls
 
-## Model Management
+## Purpose of Model Management
 
-### Available Models
+The model management system in Free Thinkers serves several important purposes:
+
+1. **Discovery and Selection**: Allows users to browse and select from available AI models based on their needs
+2. **Model Information**: Provides detailed information about each model including size, capabilities, and optimal use cases
+3. **Parameter Control**: Gives users the ability to fine-tune model behavior through adjustable parameters
+4. **Model Organization**: Helps users categorize and organize models by type or purpose
+5. **Usage Tracking**: Tracks model usage patterns to help users optimize their workflow
+
+## Integration with Ollama Models
+
+Free Thinkers integrates with locally installed Ollama models through the Ollama API. This allows you to use any model you've installed in Ollama directly in the application. The integration works as follows:
+
+1. The app communicates with the local Ollama service (typically running on port 11434)
+2. Available models are fetched from Ollama's `/api/tags` endpoint
+3. Model details are retrieved using Ollama's `/api/show` endpoint
+4. Model inference requests are sent to Ollama's `/api/generate` endpoint
+5. New models can be downloaded using Ollama's `/api/pull` endpoint
+
+### Enhancing Model Management
+
+To enhance the model management experience, we can modify the system to better integrate with locally installed Ollama models. The following command will be used for Claude Sonnet to implement these improvements:
+
+```bash
+OLLAMA_HOST=127.0.0.1 ollama run claude-sonnet:latest "Enhance the model management system in the web app to better integrate with locally installed Ollama models by implementing these features:
+
+1. Create a comprehensive model management dashboard that:
+   - Shows all available models from Ollama's API
+   - Displays detailed information about each model (size, parameters, description)
+   - Allows users to sort/filter models by type, size, or capabilities
+   - Provides a way to refresh the model list
+   - Shows which model is currently active
+
+2. Implement model download functionality:
+   - Add a search interface to find models on Ollama's registry
+   - Create a progress indicator for model downloads
+   - Add error handling for failed downloads
+   - Show estimated download time based on model size
+
+3. Develop a model settings system:
+   - Create preset configurations for each model (creative, precise, fast)
+   - Allow users to save custom parameter configurations for models
+   - Implement a visual way to understand what each parameter does
+   - Provide recommended settings for different use cases
+
+4. Add model usage statistics:
+   - Track which models are used most frequently
+   - Show when each model was last used
+   - Display performance metrics (response time, token usage)
+
+5. Improve the model switching experience:
+   - Add smooth transitions when switching between models
+   - Preserve conversation context when changing models
+   - Provide visual feedback during model loading
+   - Add support for model-specific UI adjustments (specialized controls)
+
+Implement these features while ensuring backward compatibility with the existing conversation management system. Use clean, maintainable JavaScript and follow best practices for UI/UX design."
+```
+
+## Available Models
 Free Thinkers supports multiple language models, each with its own strengths and characteristics. The available models are:
 
 1. **Mistral-7B**
