@@ -197,9 +197,51 @@ document.addEventListener('DOMContentLoaded', function() {
     function selectModel(modelName) {
         const modelSelect = document.getElementById('modelSelect');
         if (modelSelect) {
+            // Check if this model is already selected
+            const isAlreadySelected = modelSelect.value === modelName;
+            
+            // Update dropdown value
             modelSelect.value = modelName;
+            
             // Trigger change event
-            modelSelect.dispatchEvent(new Event('change'));
+            modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            // Update visual indication of selected model in sidebar
+            document.querySelectorAll('.model-item').forEach(item => {
+                const itemModelName = item.dataset.model;
+                
+                if (itemModelName === modelName) {
+                    item.classList.add('active');
+                    
+                    // Update the select button text if it's already selected
+                    const selectBtn = item.querySelector('.select-model') || 
+                                       item.querySelector('.select-model-btn');
+                                       
+                    if (selectBtn) {
+                        if (isAlreadySelected) {
+                            selectBtn.innerHTML = '<i class="fas fa-check"></i> Current';
+                            selectBtn.classList.add('btn-success');
+                            selectBtn.classList.remove('btn-primary');
+                        } else {
+                            selectBtn.innerHTML = '<i class="fas fa-check"></i>';
+                            selectBtn.classList.add('btn-primary');
+                            selectBtn.classList.remove('btn-success');
+                        }
+                    }
+                } else {
+                    item.classList.remove('active');
+                    
+                    // Reset other select buttons
+                    const selectBtn = item.querySelector('.select-model') || 
+                                       item.querySelector('.select-model-btn');
+                                       
+                    if (selectBtn) {
+                        selectBtn.innerHTML = '<i class="fas fa-check"></i>';
+                        selectBtn.classList.add('btn-primary');
+                        selectBtn.classList.remove('btn-success');
+                    }
+                }
+            });
             
             // Close sidebar
             modelManagementSidebar.classList.remove('active');

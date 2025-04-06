@@ -112,6 +112,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+}
+
+/* Active model styling */
+.model-item.active {
+    background-color: var(--accent-color, #e7f1ff);
+    border-color: var(--primary-color, #007bff);
+    border-left: 3px solid var(--primary-color, #007bff);
+    transform: translateX(2px);
 }
 
 .model-item .model-info {

@@ -732,13 +732,25 @@
         </div>
 
         <div class="input-container">
-            <div class="model-select mb-3">
+            <div class="model-select mb-3 d-flex">
+                <label for="modelSelect" class="model-select-label me-2">Model:</label>
                 <select class="form-select" id="modelSelect">
                     <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
                     <option value="llama3.2">Llama 3.2</option>
                     <option value="gemma-2b-it">Gemma 2B</option>
                 </select>
+                <!-- Model management button will be added by model_integration.js -->
             </div>
+            <style>
+                .model-select {
+                    align-items: center;
+                }
+                .model-select-label {
+                    font-weight: 500;
+                    color: var(--secondary-color);
+                    white-space: nowrap;
+                }
+            </style>
 
             <div class="prompt-guide mb-3" id="promptGuide">
                 <div class="prompt-guide-title">
@@ -1530,6 +1542,9 @@
     
     <!-- Include original conversation manager for backward compatibility -->
     <script src="{{ url_for('static', filename='js/conversation_manager.js') }}"></script>
+    
+    <!-- Model integration system to sync dropdown and sidebar -->
+    <script src="{{ url_for('static', filename='js/model_integration.js') }}"></script>
     
     <!-- Main script -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
