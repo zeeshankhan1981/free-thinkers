@@ -63,21 +63,34 @@ Implement these features while ensuring backward compatibility with the existing
 ## Available Models
 Free Thinkers supports multiple language models, each with its own strengths and characteristics. The available models are:
 
-1. **Mistral-7B**
-   - General-purpose model optimized for fast responses
-   - Best for concise outputs and general tasks
-   - Parameter settings:
-     - Default temperature: 0.7
-     - Default top_p: 0.95
-     - Default top_k: 40
+### Gemma 3
+- **gemma3:4b**: 4B parameter model optimized for general conversation and text generation
+- **gemma3:1b**: Lightweight 1B parameter variant, ideal for resource-constrained environments
+- **gemma-2b-it:latest**: Italian language specialized model with 2B parameters
 
-2. **LLaMA 3.2**
-   - Balanced model for various tasks
-   - Good for both creative and analytical tasks
-   - Parameter settings:
-     - Default temperature: 0.7
-     - Default top_p: 0.9
-     - Default top_k: 40
+### Llama 3
+- **llama3.1:8b**: 8B parameter model with enhanced reasoning capabilities
+- **llama3.2:latest**: Latest version with improved performance and context understanding
+
+### Specialized Models
+- **llama2-uncensored:7b**: 7B parameter model optimized for uncensored content generation
+- **phi3:3.8b**: 3.8B parameter model with specialized training for various tasks
+- **mistral-7b:latest**: Latest version of the Mistral model with 7B parameters
+- **zephyr:latest**: Latest version of the Zephyr model, optimized for conversation
+
+### Model Comparison
+
+| Model | Parameters | Size | Best Use Case |
+|-------|------------|------|---------------|
+| gemma3:4b | 4B | 3.3GB | General conversation |
+| gemma3:1b | 1B | 815MB | Resource-constrained devices |
+| llama3.1:8b | 8B | ~8GB | Complex reasoning |
+| llama3.2:latest | 8B | ~8GB | Latest performance |
+| llama2-uncensored:7b | 7B | ~7GB | Creative content |
+| phi3:3.8b | 3.8B | ~4GB | Specialized tasks |
+| mistral-7b:latest | 7B | ~7GB | Balanced performance |
+| zephyr:latest | N/A | N/A | Conversational AI |
+| gemma-2b-it:latest | 2B | ~2GB | Italian language tasks |
 
 ### Model Parameters
 
@@ -226,3 +239,18 @@ Free Thinkers supports multiple language models, each with its own strengths and
    - Best for: Balanced performance, general-purpose tasks
    - Use when: Need balanced performance between speed and quality
    - Avoid when: Need extremely fast responses or specialized tasks
+
+3. **Gemma 3**
+   - Best for: General conversation, text generation, and creative writing
+   - Use when: Need a model for everyday conversation and writing tasks
+   - Avoid when: Need highly technical or specialized output
+
+4. **Llama 3**
+   - Best for: Complex reasoning, latest performance, and specialized tasks
+   - Use when: Need a model for tasks that require advanced reasoning and understanding
+   - Avoid when: Need extremely fast responses or general-purpose tasks
+
+5. **Specialized Models**
+   - Best for: Specific tasks such as uncensored content generation, Italian language tasks, and conversational AI
+   - Use when: Need a model for a specific task or language
+   - Avoid when: Need general-purpose or balanced performance
