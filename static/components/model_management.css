@@ -1,7 +1,8 @@
 /**
- * Model Management Component Styles
+ * Enhanced Model Management Component Styles
  */
 
+/* Main floating button */
 .model-management-btn {
     position: fixed;
     bottom: 1.5rem;
@@ -19,6 +20,89 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Badge styles for model types and sizes */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.5em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    margin-right: 0.25rem;
+}
+
+.bg-primary { background-color: #0d6efd; color: white; }
+.bg-secondary { background-color: #6c757d; color: white; }
+.bg-success { background-color: #198754; color: white; }
+.bg-danger { background-color: #dc3545; color: white; }
+.bg-warning { background-color: #ffc107; color: black; }
+.bg-info { background-color: #0dcaf0; color: black; }
+
+/* Model badges container */
+.model-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.3rem;
+}
+
+/* Model transition indicator */
+.model-transition-indicator,
+.param-transition-indicator {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-color, white);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: var(--border-radius, 0.375rem);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    padding: 0.75rem 1.25rem;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.model-transition-indicator i,
+.param-transition-indicator i {
+    color: var(--primary-color, #0d6efd);
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, 1rem); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to { opacity: 0; transform: translate(-50%, 1rem); }
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--secondary-color, #6c757d);
+    font-style: italic;
+    background-color: var(--bg-light, #f8f9fa);
+    border-radius: var(--border-radius, 0.375rem);
+    border: 1px dashed var(--border-color, #dee2e6);
 }
 
 .model-management-btn:hover {

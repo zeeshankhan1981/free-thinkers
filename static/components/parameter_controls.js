@@ -210,6 +210,57 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function loadCurrentParameters() {
         try {
+            // Try to load model-specific parameters first
+            let modelSpecificParams = null;
+            
+            // Get current model
+            const modelSelect = document.getElementById('modelSelect');
+            const currentModel = modelSelect ? modelSelect.value : '';
+            
+            if (currentModel) {
+                const modelSettings = localStorage.getItem('freethinkers_model_settings');
+                if (modelSettings) {
+                    const settings = JSON.parse(modelSettings);
+                    if (settings[currentModel]) {
+                        modelSpecificParams = settings[currentModel];
+                    }
+                }
+            }
+            
+            // If we have model-specific parameters, use those
+            if (modelSpecificParams) {
+                // Update sliders
+                if (temperatureSlider && modelSpecificParams.temperature !== undefined) {
+                    temperatureSlider.value = modelSpecificParams.temperature;
+                    updateSliderValue(temperatureSlider);
+                }
+                
+                if (topPSlider && modelSpecificParams.top_p !== undefined) {
+                    topPSlider.value = modelSpecificParams.top_p;
+                    updateSliderValue(topPSlider);
+                }
+                
+                if (topKSlider && modelSpecificParams.top_k !== undefined) {
+                    topKSlider.value = modelSpecificParams.top_k;
+                    updateSliderValue(topKSlider);
+                }
+                
+                if (repetitionPenaltySlider && modelSpecificParams.repetition_penalty !== undefined) {
+                    repetitionPenaltySlider.value = modelSpecificParams.repetition_penalty;
+                    updateSliderValue(repetitionPenaltySlider);
+                }
+                
+                if (contextWindowSlider && modelSpecificParams.context_window !== undefined) {
+                    contextWindowSlider.value = modelSpecificParams.context_window;
+                    updateSliderValue(contextWindowSlider);
+                }
+                
+                // Update current parameters
+                currentParameters = { ...modelSpecificParams };
+                return;
+            }
+            
+            // Fall back to global parameters
             const savedParams = localStorage.getItem('freethinkers_parameters');
             if (savedParams) {
                 const params = JSON.parse(savedParams);
