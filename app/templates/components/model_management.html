@@ -1,4 +1,4 @@
-<!-- Model Management Sidebar -->
+<!-- Enhanced Model Management System -->
 <div class="model-management-sidebar" id="modelManagementSidebar">
     <div class="model-management-header">
         <h3>Model Management</h3>
@@ -8,9 +8,42 @@
     </div>
 
     <div class="model-management-content">
-        <!-- Available Models Section -->
-        <div class="models-section">
-            <h4>Available Models</h4>
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-section">
+            <div class="search-bar">
+                <input type="text" class="form-control" id="modelSearchInput" placeholder="Search models...">
+                <button class="btn btn-sm btn-outline-primary" id="refreshModelList">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="filter-options">
+                <select class="form-select form-select-sm" id="modelTypeFilter">
+                    <option value="all">All Types</option>
+                    <option value="llama">LLaMA</option>
+                    <option value="mistral">Mistral</option>
+                    <option value="gemma">Gemma</option>
+                    <option value="other">Other</option>
+                </select>
+                <select class="form-select form-select-sm" id="modelSizeFilter">
+                    <option value="all">All Sizes</option>
+                    <option value="small">Small (< 7B)</option>
+                    <option value="medium">Medium (7-13B)</option>
+                    <option value="large">Large (> 13B)</option>
+                </select>
+                <select class="form-select form-select-sm" id="modelSortBy">
+                    <option value="name">Sort by Name</option>
+                    <option value="size">Sort by Size</option>
+                    <option value="date">Sort by Last Used</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Models Overview Section -->
+        <div class="models-overview-section">
+            <div class="section-header">
+                <h4>Available Models</h4>
+                <span class="models-count" id="modelsCount">0 models</span>
+            </div>
             <div class="models-list" id="modelsList">
                 <!-- Models will be populated by JavaScript -->
                 <div class="loading">
@@ -19,68 +52,214 @@
             </div>
         </div>
 
-        <!-- Download New Model Section -->
+        <!-- Model Download Section -->
         <div class="download-section">
-            <h4>Download New Model</h4>
+            <div class="section-header">
+                <h4>Download New Model</h4>
+                <button class="btn btn-sm btn-outline-primary" id="browseOllamaModels">
+                    <i class="fas fa-search"></i> Browse Registry
+                </button>
+            </div>
             <div class="download-form">
                 <div class="form-group">
-                    <label for="modelName">Model Name</label>
-                    <input type="text" class="form-control" id="modelName" placeholder="Enter model name">
+                    <label for="modelNameInput">Model Name</label>
+                    <input type="text" class="form-control" id="modelNameInput" placeholder="e.g., llama3:latest">
+                    <small class="form-text text-muted">Enter model name from Ollama library</small>
                 </div>
-                <div class="form-group">
-                    <label for="modelUrl">Model URL</label>
-                    <input type="url" class="form-control" id="modelUrl" placeholder="Enter model download URL">
-                </div>
-                <button class="btn btn-primary" id="downloadModelBtn">
+                <button class="btn btn-primary w-100" id="downloadModelBtn">
                     <i class="fas fa-download"></i> Download Model
                 </button>
             </div>
 
             <!-- Download Progress -->
             <div class="download-progress" id="downloadProgress" style="display: none;">
+                <div class="download-status">
+                    <span id="downloadStatusText">Starting download...</span>
+                    <span id="downloadEstimate"></span>
+                </div>
                 <div class="progress">
                     <div class="progress-bar" role="progressbar" style="width: 0%"></div>
                 </div>
-                <div class="progress-text" id="progressText">0%</div>
+                <div class="progress-details">
+                    <span id="progressText">0%</span>
+                    <span id="downloadSpeed"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Usage Statistics -->
+        <div class="model-stats-section">
+            <div class="section-header">
+                <h4>Usage Statistics</h4>
+                <button class="btn btn-sm btn-outline-secondary" id="resetModelStats">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+            </div>
+            <div id="modelUsageStats" class="model-usage-stats">
+                <!-- Will be populated by JavaScript -->
+                <div class="stats-placeholder">No usage data available yet</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Registry Browse Modal -->
+<div class="modal fade" id="modelRegistryModal" tabindex="-1" aria-labelledby="modelRegistryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modelRegistryModalLabel">Ollama Model Registry</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="registry-search mb-3">
+                    <input type="text" class="form-control" id="registrySearchInput" placeholder="Search for models...">
+                </div>
+                <div class="registry-models" id="registryModelsList">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Loading registry...
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Settings Modal -->
+<div class="modal fade" id="modelSettingsModal" tabindex="-1" aria-labelledby="modelSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modelSettingsModalLabel">Model Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="model-settings-container">
+                    <div class="settings-presets mb-4">
+                        <h6>Preset Configurations</h6>
+                        <div class="preset-buttons">
+                            <button class="btn btn-outline-primary preset-btn" data-preset="balanced">
+                                <i class="fas fa-balance-scale"></i> Balanced
+                            </button>
+                            <button class="btn btn-outline-success preset-btn" data-preset="creative">
+                                <i class="fas fa-paint-brush"></i> Creative
+                            </button>
+                            <button class="btn btn-outline-info preset-btn" data-preset="precise">
+                                <i class="fas fa-bullseye"></i> Precise
+                            </button>
+                            <button class="btn btn-outline-secondary preset-btn" data-preset="fast">
+                                <i class="fas fa-bolt"></i> Fast
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-parameters">
+                        <div id="parameterControls" class="parameter-controls">
+                            <!-- Parameter controls will be added dynamically by JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="settings-recommended mt-4">
+                        <h6>Recommended for:</h6>
+                        <div class="recommended-uses" id="recommendedUses">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveModelSettings">Save Settings</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Model Details Modal -->
-<div class="model-details-modal" id="modelDetailsModal" style="display: none;">
-    <div class="model-details-content">
-        <div class="model-details-header">
-            <h4 id="modelDetailsTitle">Model Details</h4>
-            <button class="close-modal" id="closeModelDetails">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="model-details-body" id="modelDetailsBody">
-            <!-- Model details will be populated by JavaScript -->
-        </div>
-        <div class="model-details-footer">
-            <button class="btn btn-outline-secondary" id="closeModelDetailsBtn">Close</button>
-            <button class="btn btn-primary" id="selectModelBtn">Use This Model</button>
+<div class="modal fade" id="modelDetailsModal" tabindex="-1" aria-labelledby="modelDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modelDetailsModalLabel">Model Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="model-detail-container">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="model-meta-card">
+                                <h6>Model Information</h6>
+                                <div class="model-meta-content" id="modelMetaContent">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="model-detail-tabs">
+                                <ul class="nav nav-tabs" id="modelDetailTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description-tab-pane" type="button" role="tab" aria-controls="description-tab-pane" aria-selected="true">Description</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters-tab-pane" type="button" role="tab" aria-controls="parameters-tab-pane" aria-selected="false">Parameters</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="usage-tab" data-bs-toggle="tab" data-bs-target="#usage-tab-pane" type="button" role="tab" aria-controls="usage-tab-pane" aria-selected="false">Usage</button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="modelDetailTabsContent">
+                                    <div class="tab-pane fade show active" id="description-tab-pane" role="tabpanel" aria-labelledby="description-tab" tabindex="0">
+                                        <div id="modelDescription">
+                                            <!-- Will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="parameters-tab-pane" role="tabpanel" aria-labelledby="parameters-tab" tabindex="0">
+                                        <div id="modelParameters">
+                                            <!-- Will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="usage-tab-pane" role="tabpanel" aria-labelledby="usage-tab" tabindex="0">
+                                        <div id="modelUsage">
+                                            <!-- Will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="configureModelBtn">Configure</button>
+                <button type="button" class="btn btn-primary" id="selectModelBtn">Use This Model</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Notification -->
-<div class="notification" id="modelNotification"></div>
+<!-- Notification Toast Container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
-<!-- Model Management Styles -->
+<!-- Styles for Enhanced Model Management -->
 <style>
+/* Core Sidebar Styles */
 .model-management-sidebar {
     position: fixed;
     top: 0;
-    right: -300px;
-    width: 300px;
+    right: -400px;
+    width: 400px;
     height: 100%;
-    background-color: var(--bg-color);
-    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    background-color: var(--bg-color, #ffffff);
+    box-shadow: -2px 0 10px rgba(0,0,0,0.15);
     transition: right 0.3s ease;
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .model-management-sidebar.active {
@@ -89,442 +268,454 @@
 
 .model-management-header {
     padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color, #dee2e6);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: var(--bg-color, #ffffff);
+    flex-shrink: 0;
 }
 
-.models-section, .download-section {
+.model-management-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Search and Filter Section */
+.search-filter-section {
     padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    background-color: var(--bg-light, #f8f9fa);
+}
+
+.search-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.search-bar .form-control {
+    flex: 1;
+}
+
+.filter-options {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-options .form-select {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Models Section */
+.models-overview-section {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    flex: 1;
+    overflow-y: auto;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.models-count {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6c757d);
+    background-color: var(--bg-light, #f8f9fa);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius, 0.375rem);
 }
 
 .models-list {
-    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
+/* Model Item Card */
 .model-item {
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    margin-bottom: 0.5rem;
-    border-radius: var(--border-radius);
+    background-color: var(--bg-color, #ffffff);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: var(--border-radius, 0.375rem);
+    padding: 0.75rem;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
-/* Active model styling */
+.model-item:hover {
+    border-color: var(--primary-color, #0d6efd);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
 .model-item.active {
-    background-color: var(--accent-color, #e7f1ff);
-    border-color: var(--primary-color, #007bff);
-    border-left: 3px solid var(--primary-color, #007bff);
-    transform: translateX(2px);
+    border-left: 3px solid var(--primary-color, #0d6efd);
+    background-color: var(--bg-light, #f8f9fa);
 }
 
 .model-item .model-info {
     flex: 1;
-    margin-right: 1rem;
+    min-width: 0;
 }
 
-.model-item .model-actions {
+.model-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.model-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    background-color: var(--primary-color, #0d6efd);
+    color: white;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--border-radius, 0.375rem);
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+.model-badge.model-active {
+    background-color: var(--success, #28a745);
+}
+
+.model-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6c757d);
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
 }
 
-.download-form {
-    margin-top: 1rem;
+.model-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
-.form-group {
+.model-actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: flex-start;
+}
+
+/* Download Section */
+.download-section {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+}
+
+.download-form {
+    margin-bottom: 1rem;
+}
+
+.download-form .form-group {
     margin-bottom: 1rem;
 }
 
 .download-progress {
     margin-top: 1rem;
-    text-align: center;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: var(--border-radius, 0.375rem);
+    background-color: var(--bg-light, #f8f9fa);
+}
+
+.download-status {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
 }
 
 .progress {
     height: 10px;
-    background-color: var(--bg-light);
     border-radius: 5px;
-    overflow: hidden;
+    margin-bottom: 0.5rem;
 }
 
-.progress-bar {
-    height: 100%;
-    background-color: var(--primary-color);
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-}
-
-.dark-mode .model-management-sidebar {
-    background-color: var(--dark-bg);
-}
-
-.dark-mode .model-item {
-    border-color: var(--dark-border);
-}
-
-.dark-mode .progress {
-    background-color: var(--dark-bg-light);
-}
-
-.dark-mode .progress-bar {
-    background-color: var(--primary-color);
-}
-
-.model-details-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
+.progress-details {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    display: none;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted, #6c757d);
 }
 
-.model-details-content {
-    background-color: var(--bg-color);
+/* Model Stats Section */
+.model-stats-section {
     padding: 1rem;
-    border-radius: var(--border-radius);
-    width: 500px;
-    max-width: 90%;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
 }
 
-.model-details-header {
+.model-usage-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.usage-stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background-color: var(--bg-light, #f8f9fa);
+    border-radius: var(--border-radius, 0.375rem);
+}
+
+.stat-model-name {
+    font-weight: 500;
+    margin-right: 0.5rem;
+}
+
+.stat-details {
+    color: var(--text-muted, #6c757d);
+    font-size: 0.8rem;
+}
+
+/* Modals */
+.registry-models {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.registry-model-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    display: flex;
+    justify-content: space-between;
+}
+
+.registry-model-name {
+    font-weight: 500;
+}
+
+.registry-model-description {
+    font-size: 0.9rem;
+    color: var(--text-muted, #6c757d);
+    margin-top: 0.25rem;
+}
+
+/* Model Meta Card */
+.model-meta-card {
+    background-color: var(--bg-light, #f8f9fa);
+    border-radius: var(--border-radius, 0.375rem);
+    padding: 1rem;
+    height: 100%;
+}
+
+.model-meta-card h6 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.model-meta-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.meta-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6c757d);
+}
+
+.meta-value {
+    font-weight: 500;
+}
+
+/* Parameter visualization */
+.parameter-visual {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: var(--border-radius, 0.375rem);
+    background-color: var(--bg-light, #f8f9fa);
+}
+
+.parameter-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
-.model-details-body {
-    padding: 1rem;
+.parameter-name {
+    font-weight: 500;
 }
 
-.model-details-footer {
+.parameter-value {
+    font-weight: 600;
+    color: var(--primary-color, #0d6efd);
+}
+
+.parameter-slider-container {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
     gap: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--border-color);
 }
 
-.close-modal {
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
+.parameter-min, .parameter-max {
+    font-size: 0.75rem;
+    color: var(--text-muted, #6c757d);
+    width: 20px;
 }
 
-.close-modal i {
-    font-size: 1.25rem;
+.parameter-slider {
+    flex: 1;
 }
 
-.notification {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    background-color: var(--primary-color);
-    color: var(--text-color);
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius);
-    display: none;
+.parameter-description {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6c757d);
+    margin-top: 0.5rem;
 }
 
-.notification.show {
-    display: block;
+.parameter-visual-guide {
+    margin-top: 0.5rem;
+    display: flex;
+    position: relative;
+    height: 20px;
+    background: linear-gradient(to right, #3498db, #2ecc71);
+    border-radius: var(--border-radius, 0.375rem);
+    overflow: hidden;
+}
+
+.parameter-marker {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background-color: var(--dark, #343a40);
+}
+
+/* Recommended section */
+.recommended-uses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.recommended-item {
+    background-color: var(--bg-light, #f8f9fa);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: var(--border-radius, 0.375rem);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+/* Loading and empty states */
+.loading, .empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted, #6c757d);
+    width: 100%;
+}
+
+.loading i {
+    margin-right: 0.5rem;
+}
+
+/* Model details tab pane height */
+.tab-content {
+    min-height: 300px;
+}
+
+/* Dark mode styles */
+body.dark-mode .model-management-sidebar,
+body.dark-mode .model-management-header {
+    background-color: var(--dark-bg, #212529);
+    border-color: var(--dark-border, #444);
+}
+
+body.dark-mode .search-filter-section,
+body.dark-mode .model-meta-card,
+body.dark-mode .parameter-visual,
+body.dark-mode .download-progress,
+body.dark-mode .usage-stat-item,
+body.dark-mode .recommended-item {
+    background-color: var(--dark-bg-light, #2c3034);
+}
+
+body.dark-mode .model-item {
+    background-color: var(--dark-bg, #212529);
+    border-color: var(--dark-border, #444);
+}
+
+body.dark-mode .model-item:hover {
+    border-color: var(--primary-color, #0d6efd);
+}
+
+body.dark-mode .section-header,
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: var(--dark-border, #444);
+}
+
+body.dark-mode .modal-content {
+    background-color: var(--dark-bg, #212529);
+    color: var(--dark-text, #f8f9fa);
+}
+
+/* Preset button styles */
+.preset-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    flex: 1;
+    min-width: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem;
+}
+
+.preset-btn i {
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+/* Active preset */
+.preset-btn.active {
+    box-shadow: 0 0 0 2px var(--primary-color, #0d6efd);
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .model-management-sidebar {
+        width: 100%;
+        right: -100%;
+    }
+    
+    .model-actions {
+        flex-direction: column;
+    }
 }
 </style>
-
-<script>
-function initModelManagement() {
-    const modelManagementBtn = document.getElementById('modelManagementBtn');
-    const sidebar = document.getElementById('modelManagementSidebar');
-    const closeBtn = document.getElementById('closeModelManagement');
-    const downloadBtn = document.getElementById('downloadModelBtn');
-    const modelsList = document.getElementById('modelsList');
-    const notification = document.getElementById('modelNotification');
-    
-    // Model Details Modal
-    const detailsModal = document.getElementById('modelDetailsModal');
-    const closeDetailsBtn = document.getElementById('closeModelDetails');
-    const closeDetailsBtnFooter = document.getElementById('closeModelDetailsBtn');
-    const selectModelBtn = document.getElementById('selectModelBtn');
-    
-    let currentModelDetails = null;
-    
-    // Toggle sidebar
-    modelManagementBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('active');
-        if (sidebar.classList.contains('active')) {
-            loadModels();
-        }
-    });
-    
-    // Close sidebar
-    closeBtn.addEventListener('click', () => {
-        sidebar.classList.remove('active');
-    });
-    
-    // Download Model
-    downloadBtn.addEventListener('click', async () => {
-        const modelName = document.getElementById('modelName').value.trim();
-        const modelUrl = document.getElementById('modelUrl').value.trim();
-        
-        if (!modelName || !modelUrl) {
-            showNotification('Please enter both model name and URL');
-            return;
-        }
-        
-        // Display progress
-        const progressBar = document.querySelector('.progress-bar');
-        const progressText = document.getElementById('progressText');
-        const downloadProgress = document.getElementById('downloadProgress');
-        
-        downloadBtn.disabled = true;
-        downloadProgress.style.display = 'block';
-        
-        try {
-            const response = await fetch('/api/models/download', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: modelName, url: modelUrl })
-            });
-            
-            if (response.ok) {
-                showNotification(`Model ${modelName} downloaded successfully!`);
-                loadModels();
-                
-                // Clear form
-                document.getElementById('modelName').value = '';
-                document.getElementById('modelUrl').value = '';
-            } else {
-                const error = await response.json();
-                showNotification(`Error: ${error.message}`);
-            }
-        } catch (error) {
-            showNotification(`Error: ${error.message}`);
-        } finally {
-            downloadBtn.disabled = false;
-            downloadProgress.style.display = 'none';
-        }
-    });
-    
-    // Close Model Details Modal
-    closeDetailsBtn.addEventListener('click', () => {
-        detailsModal.style.display = 'none';
-    });
-    
-    closeDetailsBtnFooter.addEventListener('click', () => {
-        detailsModal.style.display = 'none';
-    });
-    
-    // Select Model
-    selectModelBtn.addEventListener('click', () => {
-        if (currentModelDetails) {
-            selectModel(currentModelDetails.name);
-            detailsModal.style.display = 'none';
-        }
-    });
-    
-    // Load models on init
-    loadModels();
-    
-    // Show notification
-    function showNotification(message) {
-        notification.textContent = message;
-        notification.classList.add('show');
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
-    }
-}
-
-async function loadModels() {
-    const modelsList = document.getElementById('modelsList');
-    modelsList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading models...</div>';
-    
-    try {
-        const response = await fetch('/api/models');
-        
-        if (!response.ok) {
-            throw new Error('Failed to load models');
-        }
-        
-        const data = await response.json();
-        
-        if (data.length === 0) {
-            modelsList.innerHTML = '<div class="no-models">No models available</div>';
-            return;
-        }
-        
-        modelsList.innerHTML = '';
-        
-        data.forEach(model => {
-            const modelItem = document.createElement('div');
-            modelItem.className = 'model-item';
-            
-            const modelInfo = document.createElement('div');
-            modelInfo.className = 'model-info';
-            
-            const modelName = document.createElement('div');
-            modelName.className = 'model-info-name';
-            modelName.textContent = model.name;
-            
-            const modelDetails = document.createElement('div');
-            modelDetails.className = 'model-info-details';
-            modelDetails.textContent = model.modified_at ? `Last used: ${new Date(model.modified_at).toLocaleDateString()}` : 'Not used yet';
-            
-            modelInfo.appendChild(modelName);
-            modelInfo.appendChild(modelDetails);
-            
-            const modelActions = document.createElement('div');
-            modelActions.className = 'model-actions';
-            
-            const infoBtn = document.createElement('button');
-            infoBtn.className = 'btn btn-sm btn-outline-primary';
-            infoBtn.innerHTML = '<i class="fas fa-info-circle"></i>';
-            infoBtn.title = 'View model details';
-            infoBtn.addEventListener('click', () => {
-                showModelInfo(model.name);
-            });
-            
-            const selectBtn = document.createElement('button');
-            selectBtn.className = 'btn btn-sm btn-primary';
-            selectBtn.innerHTML = '<i class="fas fa-check"></i>';
-            selectBtn.title = 'Use this model';
-            selectBtn.addEventListener('click', () => {
-                selectModel(model.name);
-            });
-            
-            modelActions.appendChild(infoBtn);
-            modelActions.appendChild(selectBtn);
-            
-            modelItem.appendChild(modelInfo);
-            modelItem.appendChild(modelActions);
-            
-            modelsList.appendChild(modelItem);
-        });
-    } catch (error) {
-        modelsList.innerHTML = `<div class="error">Error loading models: ${error.message}</div>`;
-    }
-}
-
-async function showModelInfo(modelName) {
-    const detailsModal = document.getElementById('modelDetailsModal');
-    const detailsTitle = document.getElementById('modelDetailsTitle');
-    const detailsBody = document.getElementById('modelDetailsBody');
-    
-    detailsTitle.textContent = `Model: ${modelName}`;
-    detailsBody.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading model details...</div>';
-    
-    detailsModal.style.display = 'flex';
-    
-    try {
-        const response = await fetch(`/api/models/${modelName}`);
-        
-        if (!response.ok) {
-            throw new Error('Failed to load model details');
-        }
-        
-        const model = await response.json();
-        currentModelDetails = model;
-        
-        let detailsHTML = '';
-        
-        // Format model details
-        Object.entries(model).forEach(([key, value]) => {
-            if (key !== 'name' && key !== 'parameters') {
-                const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                
-                let formattedValue = value;
-                if (typeof value === 'object') {
-                    formattedValue = JSON.stringify(value, null, 2);
-                } else if (key.includes('time') || key.includes('date')) {
-                    formattedValue = new Date(value).toLocaleString();
-                } else if (typeof value === 'number' && key.includes('size')) {
-                    formattedValue = formatFileSize(value);
-                }
-                
-                detailsHTML += `
-                    <div class="detail-item">
-                        <div class="detail-label">${formattedKey}:</div>
-                        <div class="detail-value">${formattedValue}</div>
-                    </div>
-                `;
-            }
-        });
-        
-        detailsBody.innerHTML = detailsHTML;
-    } catch (error) {
-        detailsBody.innerHTML = `<div class="error">Error loading model details: ${error.message}</div>`;
-    }
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-async function selectModel(modelName) {
-    const notification = document.getElementById('modelNotification');
-    
-    try {
-        const response = await fetch('/api/models/select', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: modelName })
-        });
-        
-        if (response.ok) {
-            // Update UI to show selected model
-            document.getElementById('currentModel').textContent = modelName;
-            
-            // Show notification
-            notification.textContent = `Model ${modelName} selected successfully!`;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-            
-            // Close sidebar
-            document.getElementById('modelManagementSidebar').classList.remove('active');
-        } else {
-            const error = await response.json();
-            notification.textContent = `Error: ${error.message}`;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-    } catch (error) {
-        notification.textContent = `Error: ${error.message}`;
-        notification.classList.add('show');
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
-    }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initModelManagement);
-</script>
