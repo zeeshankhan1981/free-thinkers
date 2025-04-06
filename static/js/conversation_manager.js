@@ -11,6 +11,10 @@ class ConversationManager {
 
     // Load conversations from localStorage and server if available
     async loadConversations() {
+        // Show loading indicator
+        const loading = window.createConversationLoadingIndicator ? 
+            window.createConversationLoadingIndicator('Loading conversations...') : null;
+        
         // First load from localStorage for immediate access
         const savedConversations = localStorage.getItem('conversations');
         const savedPinned = localStorage.getItem('pinnedConversations');
@@ -41,6 +45,11 @@ class ConversationManager {
                         this.currentConversation = this.conversations[0];
                     }
                 }
+                
+                // Update loading status
+                if (loading) {
+                    loading.updateText('Loaded local conversations');
+                }
             } catch (error) {
                 console.error('Error parsing saved conversations:', error);
                 this.conversations = [];
@@ -53,25 +62,48 @@ class ConversationManager {
 
         // Then try to fetch from server and merge
         try {
-            // Show syncing notification
-            const syncNotif = window.showSyncingNotification ? 
-                window.showSyncingNotification() : null;
+            // Update loading text if available, or show syncing notification
+            let syncNotif = null;
+            if (loading) {
+                loading.updateText('Syncing with server...');
+            } else if (window.showSyncingNotification) {
+                // Fallback to old method if loading indicator not available
+                syncNotif = window.showSyncingNotification();
+            }
             
             const response = await fetch('/api/history');
             if (response.ok) {
                 const serverConversations = await response.json();
                 this.mergeServerConversations(serverConversations);
                 
-                // Complete the syncing notification
-                if (syncNotif) {
-                    syncNotif.complete();
+                // Complete loading with success
+                if (loading) {
+                    loading.complete('Conversations loaded', 'success');
+                } else {
+                    // Fallback to old completion methods
+                    if (syncNotif) {
+                        syncNotif.complete();
+                    } else if (window.showNotification) {
+                        window.showNotification('Conversations synced successfully', 'success');
+                    }
+                }
+            } else {
+                // Show error but don't fail completely
+                if (loading) {
+                    loading.updateText('Could not connect to server');
+                    setTimeout(() => loading.complete('Using local conversations', 'error'), 1000);
                 } else if (window.showNotification) {
-                    window.showNotification('Conversations synced successfully', 'success');
+                    window.showNotification('Could not sync with server, using local conversations', 'warning');
                 }
             }
         } catch (error) {
             console.error('Error fetching conversations from server:', error);
-            if (window.showNotification) {
+            
+            // Handle error with appropriate UI feedback
+            if (loading) {
+                loading.updateText('Could not connect to server');
+                setTimeout(() => loading.complete('Using local conversations', 'error'), 1000);
+            } else if (window.showNotification) {
                 window.showNotification('Could not sync with server, using local conversations', 'warning');
             }
         }
@@ -197,9 +229,10 @@ class ConversationManager {
         if (!conversation) return false;
 
         try {
-            // Show loading modal
-            const loading = window.showLoadingState ? 
-                window.showLoadingState('Saving conversation to server...') : null;
+            // Show elegant loading indicator
+            const loading = window.createConversationLoadingIndicator ?
+                window.createConversationLoadingIndicator('Saving conversation...') :
+                (window.showLoadingState ? window.showLoadingState('Saving conversation to server...') : null);
             
             const response = await fetch('/api/history/save', {
                 method: 'POST',
@@ -215,9 +248,9 @@ class ConversationManager {
                 })
             });
 
-            // Hide loading state
+            // Handle completion with pleasant UI feedback
             if (loading) {
-                loading.complete('Conversation saved successfully', 'success');
+                loading.complete('Conversation saved', 'success');
             } else if (window.hideLoadingState) {
                 window.hideLoadingState();
                 if (window.showNotification) {

@@ -724,3 +724,168 @@ window.toggleKeyboardShortcutsPanel = function(show) {
         window.conversationUI.toggleKeyboardShortcutsPanel(show);
     }
 };
+
+/**
+ * Create a new loading indicator for conversation operations
+ * @param {string} initialText - Initial loading text to display
+ * @returns {Object} - Methods to update and complete the loading state
+ */
+window.createConversationLoadingIndicator = function(initialText = 'Loading conversation...') {
+  // First, add the CSS if not already present
+  if (!document.getElementById('conversation-loading-styles')) {
+    const style = document.createElement('style');
+    style.id = 'conversation-loading-styles';
+    style.textContent = `
+      .conversation-loading {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background-color: var(--bg-color, white);
+        border-radius: 8px;
+        padding: 12px 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 1050;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        border: 1px solid var(--border-color, #f0f0f0);
+        max-width: 300px;
+      }
+      
+      .conversation-loading.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      
+      .conversation-loading-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--primary-color, #007bff);
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spinner-rotate 0.8s linear infinite;
+        flex-shrink: 0;
+      }
+      
+      .conversation-loading-success {
+        width: 20px;
+        height: 20px;
+        background-color: var(--success-color, #28a745);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+      }
+      
+      .conversation-loading-error {
+        width: 20px;
+        height: 20px;
+        background-color: var(--danger-color, #dc3545);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+      }
+      
+      .conversation-loading-text {
+        font-size: 0.9rem;
+        color: var(--text-color, #333);
+        margin: 0;
+      }
+      
+      @keyframes spinner-rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      body.dark-mode .conversation-loading {
+        background-color: var(--dark-bg-color, #2a2a2a);
+        border-color: var(--dark-border-color, #444);
+      }
+      
+      body.dark-mode .conversation-loading-text {
+        color: var(--dark-text-color, #e0e0e0);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Create the indicator element
+  const indicator = document.createElement('div');
+  indicator.className = 'conversation-loading';
+  indicator.innerHTML = `
+    <div class="conversation-loading-spinner"></div>
+    <p class="conversation-loading-text">${initialText}</p>
+  `;
+  document.body.appendChild(indicator);
+  
+  // Force reflow before adding the show class for smooth animation
+  indicator.offsetHeight;
+  
+  // Show the indicator
+  setTimeout(() => {
+    indicator.classList.add('show');
+  }, 10);
+  
+  // Return methods to update and complete the loading state
+  return {
+    updateText(text) {
+      const textEl = indicator.querySelector('.conversation-loading-text');
+      if (textEl) textEl.textContent = text;
+    },
+    
+    complete(successMessage = 'Operation completed successfully', type = 'success') {
+      const spinner = indicator.querySelector('.conversation-loading-spinner');
+      if (spinner) {
+        // Replace spinner with success icon
+        const iconContainer = document.createElement('div');
+        iconContainer.className = type === 'success' ? 'conversation-loading-success' : 'conversation-loading-error';
+        iconContainer.innerHTML = type === 'success' ? 
+          '<i class="fas fa-check"></i>' : 
+          '<i class="fas fa-exclamation"></i>';
+        
+        spinner.parentNode.replaceChild(iconContainer, spinner);
+      }
+      
+      // Update message
+      this.updateText(successMessage);
+      
+      // Hide after delay
+      setTimeout(() => {
+        indicator.classList.remove('show');
+        setTimeout(() => {
+          indicator.remove();
+        }, 300);
+      }, 1500);
+    },
+    
+    error(errorMessage = 'Operation failed') {
+      this.complete(errorMessage, 'error');
+    },
+    
+    dismiss() {
+      indicator.classList.remove('show');
+      setTimeout(() => {
+        indicator.remove();
+      }, 300);
+    }
+  };
+};
+
+// Override the existing loading state functions if they exist
+if (typeof window.showLoadingState !== 'undefined') {
+  // Store the original function for cases where we want the full-screen overlay
+  window.showFullScreenLoadingState = window.showLoadingState;
+  
+  // Replace with our improved version
+  window.showLoadingState = function(message) {
+    return window.createConversationLoadingIndicator(message);
+  };
+}
