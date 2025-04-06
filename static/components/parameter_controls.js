@@ -72,7 +72,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event Listeners
     if (parameterControlsBtn) {
         parameterControlsBtn.addEventListener('click', function() {
-            parameterControlsSidebar.classList.add('active');
+            // Use the global toggleSidebar if available, otherwise fall back to original behavior
+            if (window.toggleSidebar && typeof window.toggleSidebar === 'function') {
+                window.toggleSidebar(parameterControlsSidebar, parameterControlsBtn);
+            } else {
+                parameterControlsSidebar.classList.add('active');
+            }
             loadCurrentParameters();
         });
     }
@@ -80,6 +85,45 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeParameterControls) {
         closeParameterControls.addEventListener('click', function() {
             parameterControlsSidebar.classList.remove('active');
+            
+            // Also remove active class from the button if using the new UI
+            if (parameterControlsBtn) {
+                parameterControlsBtn.classList.remove('active');
+            }
+            
+            // Update activeSidebar if it's a global variable
+            if (window.activeSidebar !== undefined) {
+                window.activeSidebar = null;
+            }
+        });
+    }
+    
+    // Make sure the parameter controls button has event listeners
+    if (parameterControlsBtn) {
+        parameterControlsBtn.addEventListener('click', function() {
+            // Use the global toggleSidebar if available, otherwise fall back to original behavior
+            if (window.toggleSidebar && typeof window.toggleSidebar === 'function') {
+                window.toggleSidebar(parameterControlsSidebar, parameterControlsBtn);
+            } else {
+                parameterControlsSidebar.classList.add('active');
+            }
+            loadCurrentParameters();
+        });
+    }
+    
+    if (closeParameterControls) {
+        closeParameterControls.addEventListener('click', function() {
+            parameterControlsSidebar.classList.remove('active');
+            
+            // Also remove active class from the button if using the new UI
+            if (parameterControlsBtn) {
+                parameterControlsBtn.classList.remove('active');
+            }
+            
+            // Update activeSidebar if it's a global variable
+            if (window.activeSidebar !== undefined) {
+                window.activeSidebar = null;
+            }
         });
     }
     

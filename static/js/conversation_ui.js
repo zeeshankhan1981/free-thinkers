@@ -99,32 +99,48 @@ class ConversationUI {
         
         if (toggleBtn && sidebar) {
             toggleBtn.addEventListener('click', () => {
-                // Close any other sidebars that might be open
-                const otherSidebars = document.querySelectorAll('.parameter-controls-sidebar.active, .model-management-sidebar.active');
-                otherSidebars.forEach(s => s.classList.remove('active'));
-                
-                // Toggle this sidebar
-                sidebar.classList.toggle('active');
-                toggleBtn.setAttribute('aria-expanded', sidebar.classList.contains('active'));
-                
-                // If opening, ensure UI is rendered with latest data
-                if (sidebar.classList.contains('active')) {
-                    this.renderUI();
+                // Use the global toggleSidebar if available
+                if (window.toggleSidebar && typeof window.toggleSidebar === 'function') {
+                    window.toggleSidebar(sidebar, toggleBtn);
                     
-                    // Show subtle loading indicator when sidebar is opened
-                    const loader = this.createLoadingIndicator('Refreshing conversations...');
+                    // If opening, ensure UI is rendered with latest data
+                    if (sidebar.classList.contains('active')) {
+                        this.refreshConversations();
+                    }
+                } else {
+                    // Legacy behavior
+                    // Close any other sidebars that might be open
+                    const otherSidebars = document.querySelectorAll('.parameter-controls-sidebar.active, .model-management-sidebar.active');
+                    otherSidebars.forEach(s => s.classList.remove('active'));
                     
-                    // Check for server updates
-                    if (this.store && typeof this.store.syncWithServer === 'function') {
-                        this.store.syncWithServer()
-                            .then(() => loader.complete('Conversations updated'))
-                            .catch(() => loader.dismiss());
-                    } else {
-                        // Hide loader if no sync method
-                        setTimeout(() => loader.dismiss(), 500);
+                    // Toggle this sidebar
+                    sidebar.classList.toggle('active');
+                    toggleBtn.setAttribute('aria-expanded', sidebar.classList.contains('active'));
+                    
+                    // If opening, ensure UI is rendered with latest data
+                    if (sidebar.classList.contains('active')) {
+                        this.refreshConversations();
                     }
                 }
             });
+            
+            // Add a method to refresh conversations with loading indicator
+            this.refreshConversations = () => {
+                this.renderUI();
+                
+                // Show subtle loading indicator when sidebar is opened
+                const loader = this.createLoadingIndicator('Refreshing conversations...');
+                
+                // Check for server updates
+                if (this.store && typeof this.store.syncWithServer === 'function') {
+                    this.store.syncWithServer()
+                        .then(() => loader.complete('Conversations updated'))
+                        .catch(() => loader.dismiss());
+                } else {
+                    // Hide loader if no sync method
+                    setTimeout(() => loader.dismiss(), 500);
+                }
+            };
         }
         
         if (closeBtn && sidebar) {
@@ -132,6 +148,12 @@ class ConversationUI {
                 sidebar.classList.remove('active');
                 if (toggleBtn) {
                     toggleBtn.setAttribute('aria-expanded', 'false');
+                    toggleBtn.classList.remove('active');
+                }
+                
+                // Update activeSidebar if it's a global variable
+                if (window.activeSidebar !== undefined) {
+                    window.activeSidebar = null;
                 }
             });
         }

@@ -17,6 +17,14 @@
             --border-radius: 8px;
             --spacing: 1rem;
             --transition: all 0.2s ease;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e9ecef;
+        }
+        
+        /* Mode transition animation */
+        body {
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         body {
@@ -34,22 +42,93 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
+            padding: 0.75rem 1.5rem;
             background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
             z-index: 100;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .header-title {
             font-size: 1.25rem;
             font-weight: 600;
             margin: 0;
+            color: var(--primary-color);
+            letter-spacing: -0.5px;
         }
-
-        .header-controls {
+        
+        .brand-container {
             display: flex;
-            gap: 0.75rem;
             align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 1.1rem;
+        }
+        
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.85rem;
+            border: none;
+            border-radius: 6px;
+            background-color: transparent;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-btn:hover {
+            background-color: rgba(var(--primary-color-rgb), 0.08);
+            color: var(--primary-color);
+        }
+        
+        .nav-btn.active {
+            background-color: rgba(var(--primary-color-rgb), 0.12);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .nav-btn i {
+            font-size: 1rem;
+        }
+        
+        .nav-btn-text {
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-btn-text {
+                display: none;
+            }
+            
+            .nav-btn {
+                padding: 0.5rem;
+            }
+            
+            .nav-btn i {
+                font-size: 1.1rem;
+            }
         }
 
         .app-container {
@@ -596,8 +675,27 @@
         }
 
         .dark-mode .header {
-            background-color: #2d2d2d;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .dark-mode .header-title {
+            color: #fff;
+        }
+        
+        .dark-mode .logo {
+            background-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.3);
+        }
+        
+        .dark-mode .nav-btn {
+            color: #e0e0e0;
+        }
+        
+        .dark-mode .nav-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: #fff;
         }
 
         .dark-mode .chat-container,
@@ -801,21 +899,30 @@
 </head>
 <body>
     <header class="header">
-        <h1 class="header-title">Free Thinkers</h1>
-        <div class="d-flex align-items-center">
-            <button class="btn btn-sm btn-outline-secondary" id="darkModeToggle">Dark Mode</button>
-            <button class="btn btn-sm btn-outline-secondary" id="modelManagementBtn">
-                <i class="fas fa-cog"></i> Model Management
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" id="parameterControlsBtn">
-                <i class="fas fa-sliders-h"></i> Parameters
-            </button>
-            <div class="sidebar-toggle">
-                <button class="btn btn-sm btn-outline-secondary" id="conversationManagerBtn">
-                    <i class="fas fa-comments"></i> Conversations
-                </button>
+        <div class="brand-container">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
             </div>
+            <h1 class="header-title">Free Thinkers</h1>
         </div>
+        <nav class="nav-controls">
+            <button class="nav-btn" id="darkModeToggle">
+                <i class="fas fa-moon"></i>
+                <span class="nav-btn-text">Dark Mode</span>
+            </button>
+            <button class="nav-btn" id="modelManagementBtn">
+                <i class="fas fa-cog"></i>
+                <span class="nav-btn-text">Models</span>
+            </button>
+            <button class="nav-btn" id="parameterControlsBtn">
+                <i class="fas fa-sliders-h"></i>
+                <span class="nav-btn-text">Parameters</span>
+            </button>
+            <button class="nav-btn" id="conversationManagerBtn">
+                <i class="fas fa-comments"></i>
+                <span class="nav-btn-text">Conversations</span>
+            </button>
+        </nav>
     </header>
 
     <div class="app-container">
@@ -922,6 +1029,7 @@
             let responseController = null;
             let promptGuides = {};
             let showPromptGuide = true;
+            window.activeSidebar = null;
             
             // Initialize default parameters
             window.currentParameters = {
@@ -1389,11 +1497,54 @@
                 historySidebar.classList.remove('active');
             });
 
+            /**
+             * Handle sidebar toggling and active states - make it globally available
+             */
+            window.toggleSidebar = function(sidebar, button) {
+                const allButtons = document.querySelectorAll('.nav-btn');
+                const allSidebars = document.querySelectorAll('.model-management-sidebar, .parameter-controls-sidebar, .conversation-manager-sidebar');
+                
+                // If this sidebar is already active, close it
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    button.classList.remove('active');
+                    window.activeSidebar = null;
+                    return;
+                }
+                
+                // Close any other open sidebars
+                allSidebars.forEach(s => s.classList.remove('active'));
+                allButtons.forEach(b => {
+                    if (b !== darkModeToggle) {  // Don't remove active class from dark mode toggle
+                        b.classList.remove('active');
+                    }
+                });
+                
+                // Open this sidebar
+                sidebar.classList.add('active');
+                button.classList.add('active');
+                window.activeSidebar = sidebar;
+            };
+            
             // Toggle dark mode
             darkModeToggle.addEventListener('click', function() {
                 isDarkMode = !isDarkMode;
                 document.body.classList.toggle('dark-mode');
-                darkModeToggle.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
+                
+                // Update icon and text
+                const icon = darkModeToggle.querySelector('i');
+                const text = darkModeToggle.querySelector('.nav-btn-text');
+                
+                if (isDarkMode) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                    text.textContent = 'Light Mode';
+                } else {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                    text.textContent = 'Dark Mode';
+                }
+                
                 toggleDarkMode();
             });
 

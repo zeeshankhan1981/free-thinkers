@@ -52,7 +52,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event Listeners
     if (modelManagementBtn) {
         modelManagementBtn.addEventListener('click', function() {
-            modelManagementSidebar.classList.add('active');
+            // Use the global toggleSidebar if available, otherwise fall back to original behavior
+            if (window.toggleSidebar && typeof window.toggleSidebar === 'function') {
+                window.toggleSidebar(modelManagementSidebar, modelManagementBtn);
+            } else {
+                modelManagementSidebar.classList.add('active');
+            }
             loadModels();
         });
     }
@@ -60,6 +65,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeModelManagement) {
         closeModelManagement.addEventListener('click', function() {
             modelManagementSidebar.classList.remove('active');
+            
+            // Also remove active class from the button if using the new UI
+            if (modelManagementBtn) {
+                modelManagementBtn.classList.remove('active');
+            }
+            
+            // Update activeSidebar if it's a global variable
+            if (window.activeSidebar !== undefined) {
+                window.activeSidebar = null;
+            }
         });
     }
     

@@ -1,31 +1,31 @@
 #!/bin/bash
 
-# Function to stop servers
-stop_servers() {
-    echo "Stopping existing servers..."
+# Set text colors for better readability
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
 
-    # Stop Flask server
-    echo "Stopping Flask server..."
-    pkill -f "python app.py"
-    sleep 1
+echo -e "${BLUE}${BOLD}Free Thinkers Server Management${NC}"
+echo -e "${YELLOW}Starting server initialization...${NC}"
 
-    # Stop Ollama server
-    echo "Stopping Ollama server..."
-    pkill -f "ollama serve"
-    sleep 1
+# Stop existing servers using the dedicated script
+echo -e "\n${YELLOW}Ensuring no servers are already running...${NC}"
+./stop_servers.sh
+echo -e "${YELLOW}Continuing with server startup...${NC}\n"
 
-    # Verify servers are stopped
-    if ! curl -s http://127.0.0.1:5000 &> /dev/null && ! curl -s http://127.0.0.1:11434 &> /dev/null; then
-        echo "✓ All servers stopped successfully"
-    else
-        echo "✗ Failed to stop some servers"
-    fi
+# Function to check if a port is in use
+is_port_in_use() {
+    lsof -i:"$1" &> /dev/null
+    return $?
 }
 
 # Function to start servers
 start_servers() {
     # Start Ollama in background with GPU acceleration enabled
-    echo "Starting Ollama server with GPU acceleration..."
+    echo -e "${YELLOW}Starting Ollama server with GPU acceleration...${NC}"
     
     # Enable Metal GPU acceleration for Apple Silicon
     export OLLAMA_USE_METAL=true
@@ -34,46 +34,96 @@ start_servers() {
     # Allocate more RAM to improve performance 
     export OLLAMA_RAM=8G
     
+    # Check if port is already in use
+    if is_port_in_use 11434; then
+        echo -e "${RED}Error: Port 11434 is already in use. Cannot start Ollama server.${NC}"
+        echo -e "${YELLOW}Please run ./stop_servers.sh first to free up the port.${NC}"
+        return 1
+    fi
+    
     # Start Ollama with optimized settings
     ollama serve &
+    OLLAMA_PID=$!
     
     # Wait for Ollama to start
-    sleep 2
+    echo -e "${YELLOW}Waiting for Ollama server to initialize...${NC}"
+    for i in {1..10}; do
+        sleep 1
+        if curl -s http://127.0.0.1:11434/api/tags &> /dev/null; then
+            echo -e "${GREEN}✓ Ollama server started successfully${NC}"
+            break
+        fi
+        if [ $i -eq 10 ]; then
+            echo -e "${RED}✗ Failed to start Ollama server within timeout period${NC}"
+            return 1
+        fi
+        echo -n "."
+    done
+    echo ""
 
     # Start Flask app in background
-    echo "Starting Flask server..."
+    echo -e "${YELLOW}Starting Flask server...${NC}"
+    
+    # Check if port is already in use
+    if is_port_in_use 5000; then
+        echo -e "${RED}Error: Port 5000 is already in use. Cannot start Flask server.${NC}"
+        echo -e "${YELLOW}Please run ./stop_servers.sh first to free up the port.${NC}"
+        return 1
+    fi
+    
+    # Start Flask app with virtual environment
     source .venv/bin/activate && python app.py &
+    FLASK_PID=$!
     
     # Wait for Flask to start
-    sleep 2
+    echo -e "${YELLOW}Waiting for Flask server to initialize...${NC}"
+    for i in {1..10}; do
+        sleep 1
+        if curl -s http://127.0.0.1:5000 &> /dev/null; then
+            echo -e "${GREEN}✓ Flask server started successfully${NC}"
+            break
+        fi
+        if [ $i -eq 10 ]; then
+            echo -e "${RED}✗ Failed to start Flask server within timeout period${NC}"
+            return 1
+        fi
+        echo -n "."
+    done
+    echo ""
 
     # Check if both servers are running
-    echo "Checking server status..."
-
-    # Check Ollama
+    echo -e "${YELLOW}Checking server status...${NC}"
+    
+    # Check Ollama server
     if curl -s http://127.0.0.1:11434/api/tags &> /dev/null; then
-        echo "✓ Ollama server is running"
+        echo -e "${GREEN}✓ Ollama server is running${NC}"
+        OLLAMA_RUNNING=true
     else
-        echo "✗ Ollama server failed to start"
-        exit 1
+        echo -e "${RED}✗ Ollama server is not running${NC}"
+        OLLAMA_RUNNING=false
     fi
-
-    # Check Flask
+    
+    # Check Flask server
     if curl -s http://127.0.0.1:5000 &> /dev/null; then
-        echo "✓ Flask server is running"
+        echo -e "${GREEN}✓ Flask server is running${NC}"
+        FLASK_RUNNING=true
     else
-        echo "✗ Flask server failed to start"
-        exit 1
+        echo -e "${RED}✗ Flask server is not running${NC}"
+        FLASK_RUNNING=false
     fi
-
-    echo "✓ All servers are running successfully"
-    echo "Open your browser and navigate to http://127.0.0.1:5000 to use the application"
+    
+    # Final status
+    if $OLLAMA_RUNNING && $FLASK_RUNNING; then
+        echo -e "\n${GREEN}${BOLD}✓ All servers are running successfully${NC}"
+        echo -e "${BLUE}Open your browser and navigate to ${BOLD}http://127.0.0.1:5000${NC} to use the application"
+        return 0
+    else
+        echo -e "\n${RED}${BOLD}✗ Some servers failed to start${NC}"
+        echo -e "${YELLOW}Please check the logs above for more information${NC}"
+        return 1
+    fi
 }
 
 # Main script execution
-
-# Stop existing servers
-stop_servers
-
-# Start new servers
 start_servers
+exit $?
