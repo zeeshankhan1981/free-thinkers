@@ -54,8 +54,8 @@ DEFAULT_MODEL_PARAMS = {
         "tip": "Use clear, concise language for best results."
     },
     "limits": {
-        "max_tokens": 2048,
-        "max_input_chars": 320
+        "max_tokens": 4096,
+        "max_input_chars": 2048
     }
 }
 
@@ -84,8 +84,8 @@ MODEL_PARAMS = {
             "tip": "Keep the prompt short and straightforward for best results."
         },
         "limits": {
-            "max_tokens": 1024,  # Reduced for better performance
-            "max_input_chars": 320
+            "max_tokens": 4096,  # Increased for better user experience
+            "max_input_chars": 2048
         }
     },
     "llama3.2": {
@@ -111,8 +111,8 @@ MODEL_PARAMS = {
             "tip": "Use clear, concise language for best results."
         },
         "limits": {
-            "max_tokens": 1024,  # Reduced for better performance
-            "max_input_chars": 256  # Reduced for better performance
+            "max_tokens": 4096,  # Increased for better user experience
+            "max_input_chars": 2048
         }
     },
     "gemma-2b-it": {
@@ -136,8 +136,8 @@ MODEL_PARAMS = {
             "tip": "Best for creative and imaginative writing tasks, like storytelling and poetry."
         },
         "limits": {
-            "max_tokens": 1024,
-            "max_input_chars": 256
+            "max_tokens": 4096,
+            "max_input_chars": 2048
         }
     },
     "llava-phi3:latest": {
@@ -164,8 +164,8 @@ MODEL_PARAMS = {
             "tip": "For best results, upload clear images and ask specific questions about the content."
         },
         "limits": {
-            "max_tokens": 1024,  # Reduced from 2048 for better performance
-            "max_input_chars": 256  # Reduced from 320 for better performance
+            "max_tokens": 4096,  # Increased for better user experience
+            "max_input_chars": 2048
         }
     }
 }
@@ -276,19 +276,19 @@ initialize_model_params()
 
 TOKEN_COUNTS = {
     "mistral-7b": {
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "tokenizer": "default"
     },
     "llama3.2": {
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "tokenizer": "default"
     },
     "gemma-2b-it": {
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "tokenizer": "default"
     },
     "llava-phi3:latest": {
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "tokenizer": "default"
     }
 }

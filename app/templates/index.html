@@ -814,6 +814,96 @@
             color: #dc3545;
         }
 
+        /* Enhanced UI Elements */
+        .response-speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 4px 8px;
+        }
+        
+        .dark-mode .response-speed-control {
+            background-color: #343a40;
+        }
+        
+        .response-speed-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0;
+            white-space: nowrap;
+            color: #495057;
+        }
+        
+        .dark-mode .response-speed-label {
+            color: #adb5bd;
+        }
+        
+        .response-speed-control .form-select {
+            border: none;
+            background-color: transparent;
+            font-size: 0.9rem;
+            min-width: 100px;
+            padding: 4px 8px;
+        }
+        
+        .token-stats-bar {
+            margin-top: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        .dark-mode .token-stats-bar {
+            background-color: #343a40;
+            color: #adb5bd;
+        }
+        
+        .token-stats-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        
+        .token-bar {
+            height: 4px;
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .dark-mode .token-bar {
+            background-color: #495057;
+        }
+        
+        .token-bar-fill {
+            height: 100%;
+            background-color: #0d6efd;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
+        #charCountDisplay.warning {
+            color: #fd7e14;
+        }
+        
+        #charCountDisplay.danger {
+            color: #dc3545;
+        }
+        
+        .token-bar-fill.warning {
+            background-color: #fd7e14;
+        }
+        
+        .token-bar-fill.danger {
+            background-color: #dc3545;
+        }
+
         /* Token Visualization Styles */
         .token-visualization {
             padding: 1rem;
@@ -1040,7 +1130,7 @@
                 <label for="modelSelect" class="model-select-label me-2">Model:</label>
                 <select class="form-select" id="modelSelect">
                     <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
-                    <option value="llama3.2">Llama 3.2</option>
+                    <option value="llama3.2" selected>Llama 3.2</option>
                     <option value="gemma-2b-it">Gemma 2B</option>
                     <option value="llava-phi3:latest">LLaVA-Phi3 (Multimodal)</option>
                 </select>
@@ -1093,27 +1183,57 @@
             </div>
 
             <div class="input-group mb-3">
-                <textarea class="form-control" id="messageInput" placeholder="Type your message here..." maxlength="320"></textarea>
-                <span class="char-counter" id="charCounter">0/320</span>
+                <textarea class="form-control" id="messageInput" placeholder="Type your message here..." maxlength="2048"></textarea>
+                <span class="char-counter" id="charCounter">0/2048</span>
             </div>
 
             {% include 'components/token_visualization.html' %}
 
+            <!-- Enhanced Controls Group -->
             <div class="control-group">
                 <div class="primary-controls">
-                    <button class="btn btn-primary send-btn" id="sendMessage">Send</button>
-                    <button class="btn btn-outline-secondary" id="cancelResponse">Cancel</button>
+                    <button class="btn btn-primary send-btn" id="sendMessage">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                    <button class="btn btn-outline-secondary" id="cancelResponse">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
                 </div>
+                
                 <div class="secondary-controls">
-                    <button class="btn btn-outline-secondary" id="clearMessages">Clear</button>
+                    <!-- Clear Messages Button -->
+                    <button class="btn btn-outline-secondary" id="clearMessages" title="Clear all messages">
+                        <i class="fas fa-trash-alt"></i> Clear
+                    </button>
+                    
+                    <!-- Image Upload Button (hidden by default) -->
                     <button class="btn btn-outline-secondary" id="toggleImageUpload" title="Toggle image analysis mode" style="display: none;">
                         <i class="fas fa-image"></i>
                     </button>
-                    <select class="form-select" id="responseSpeed">
-                        <option value="slow">Slow</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="fast">Fast</option>
-                    </select>
+                    
+                    <!-- Response Speed Dropdown with Label -->
+                    <div class="response-speed-control" title="Control how the model generates responses">
+                        <label for="responseSpeed" class="response-speed-label">Response:</label>
+                        <select class="form-select" id="responseSpeed">
+                            <option value="slow">Precise</option>
+                            <option value="medium" selected>Balanced</option>
+                            <option value="fast">Creative</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Consolidated Token Stats Bar -->
+            <div class="token-stats-bar" title="Token usage affects model performance and response length">
+                <div class="token-stats-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span id="combinedTokenStats">
+                        <span id="charCountDisplay">0/2048 chars</span> · 
+                        <span id="tokenCountDisplay">0/4096 tokens (0%)</span>
+                    </span>
+                </div>
+                <div class="token-bar">
+                    <div class="token-bar-fill" id="tokenBarFill" style="width: 0.1%"></div>
                 </div>
             </div>
         </div>
@@ -1141,7 +1261,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             let isDarkMode = false;
             let currentThread = [];
-            let currentModel = 'mistral-7b';
+            // Initialize with a default model
+            let currentModel = 'llama3.2';
+            
+            // Define TOKEN_COUNTS for token counting
+            window.TOKEN_COUNTS = {
+                "mistral-7b": { max_tokens: 4096 },
+                "llama3.2": { max_tokens: 4096 },
+                "gemma-2b-it": { max_tokens: 4096 },
+                "llava-phi3:latest": { max_tokens: 4096 }
+            };
             let responseController = null;
             let promptGuides = {};
             let showPromptGuide = true;
@@ -1250,24 +1379,91 @@
                 }
             }
 
-            // Handle character counting for message input
+            // Enhanced character and token counting for message input
             messageInput.addEventListener('input', function() {
                 const maxLength = parseInt(this.getAttribute('maxlength'));
                 const currentLength = this.value.length;
                 const charCounter = document.getElementById('charCounter');
                 
-                // Update counter
-                charCounter.textContent = `${currentLength}/${maxLength}`;
-                
-                // Apply styling based on length
-                charCounter.classList.remove('warning', 'danger');
-                if (currentLength > maxLength * 0.8) {
-                    charCounter.classList.add('warning');
+                // Update original counter
+                if (charCounter) {
+                    charCounter.textContent = `${currentLength}/${maxLength}`;
+                    
+                    // Apply styling based on length
+                    charCounter.classList.remove('warning', 'danger');
+                    if (currentLength > maxLength * 0.8) {
+                        charCounter.classList.add('warning');
+                    }
+                    if (currentLength > maxLength * 0.95) {
+                        charCounter.classList.add('danger');
+                    }
                 }
-                if (currentLength > maxLength * 0.95) {
-                    charCounter.classList.add('danger');
+                
+                // Update combined stats display
+                const charCountDisplay = document.getElementById('charCountDisplay');
+                const tokenCountDisplay = document.getElementById('tokenCountDisplay');
+                const tokenBarFill = document.getElementById('tokenBarFill');
+                
+                if (charCountDisplay) {
+                    charCountDisplay.textContent = `${currentLength}/${maxLength} chars`;
+                    charCountDisplay.classList.remove('warning', 'danger');
+                    
+                    if (currentLength > maxLength * 0.8) {
+                        charCountDisplay.classList.add('warning');
+                    }
+                    if (currentLength > maxLength * 0.95) {
+                        charCountDisplay.classList.add('danger');
+                    }
+                }
+                
+                // Use TOKEN_COUNTS from window object if needed
+                if (typeof TOKEN_COUNTS === 'undefined' && window.TOKEN_COUNTS) {
+                    TOKEN_COUNTS = window.TOKEN_COUNTS;
+                }
+                
+                // Estimate tokens (simple approximation - 4 chars ≈ 1 token)
+                const model = modelSelect.value || 'llama3.2';
+                const modelInfo = TOKEN_COUNTS[model] || { max_tokens: 4096 };
+                const estimatedTokens = Math.max(1, Math.round(currentLength / 4));
+                const tokenPercentage = (estimatedTokens / modelInfo.max_tokens) * 100;
+                
+                if (tokenCountDisplay) {
+                    tokenCountDisplay.textContent = `${estimatedTokens}/${modelInfo.max_tokens} tokens (${tokenPercentage.toFixed(1)}%)`;
+                }
+                
+                if (tokenBarFill) {
+                    tokenBarFill.style.width = `${Math.min(tokenPercentage, 100)}%`;
+                    tokenBarFill.classList.remove('warning', 'danger');
+                    
+                    if (tokenPercentage > 70) {
+                        tokenBarFill.classList.add('warning');
+                    }
+                    if (tokenPercentage > 90) {
+                        tokenBarFill.classList.add('danger');
+                    }
+                }
+                
+                // If we have the token visualization function, also call that
+                if (typeof updateTokenVisualization === 'function') {
+                    updateTokenVisualization(this.value, currentModel);
                 }
             });
+            
+            // Update response speed descriptions to be more meaningful
+            if (responseSpeed) {
+                const tooltips = {
+                    'slow': 'More accurate, thoughtful responses',
+                    'medium': 'Balance between creativity and accuracy',
+                    'fast': 'More creative, diverse responses'
+                };
+                
+                responseSpeed.addEventListener('mouseover', function(e) {
+                    const option = e.target.options[e.target.selectedIndex];
+                    if (option && tooltips[option.value]) {
+                        this.title = tooltips[option.value];
+                    }
+                });
+            }
 
             // Handle use example prompt button
             useExamplePromptBtn.addEventListener('click', function() {
@@ -1643,7 +1839,7 @@
                     
                     // Prepare request data
                     const requestData = {
-                        model: currentModel,
+                        model: currentModel || 'llama3.2', // Ensure a default model is set
                         messages: currentThread,
                         stream: true,
                         temperature: params.temperature,
