@@ -22,6 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendMessage = document.getElementById('sendMessage');
     const modelSelect = document.getElementById('modelSelect');
     const conversationManagerBtn = document.getElementById('conversationManagerBtn');
+    
+    // Initialize templates UI if available
+    if (window.templatesUI) {
+        console.log('Initializing templates UI...');
+        if (modelSelect && modelSelect.value) {
+            window.templatesUI.init(modelSelect.value);
+        }
+    } else {
+        console.log('Templates UI not found or not initialized');
+    }
 
     // Add fade transition class to chat container for smooth transitions
     if (chatContainer) {

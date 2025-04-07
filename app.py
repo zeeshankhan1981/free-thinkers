@@ -12,9 +12,12 @@ from datetime import datetime
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.model_management import model_management
+from app.templates_api import templates_api
 
-app = Flask(__name__)
-app.template_folder = 'app/templates'
+# Explicitly setting correct paths for templates and static files
+app = Flask(__name__, 
+           template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app/templates'),
+           static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'))
 app.secret_key = os.urandom(24)  # Generate a secure secret key for sessions
 CORS(app)
 
@@ -360,6 +363,7 @@ def get_thread(thread_id):
 
 # Register blueprints
 app.register_blueprint(model_management, url_prefix='/model_management')
+app.register_blueprint(templates_api, url_prefix='/templates')
 
 @app.route('/')
 def index():
@@ -441,7 +445,7 @@ def chat():
                     'temperature': temperature,
                     'top_p': top_p,
                     'top_k': top_k,
-                    'max_tokens': max_tokens,
+                    'max_tokens': model_params.get('max_tokens', 1024),
                     'num_gpu': model_params.get('num_gpu', 1),
                     'num_thread': model_params.get('num_thread', 8),
                     'num_batch': model_params.get('num_batch', 4),
@@ -583,7 +587,10 @@ def chat_with_image():
             try:
                 # Get model parameters for optimization
                 model_params = MODEL_PARAMS.get(model, {})
-                max_tokens = model_params.get('max_tokens', 1024)
+                max_tokens = model_params.get('limits', {}).get('max_tokens', 2048)
+                
+                print(f"Streaming for model: {model}")
+                print(f"Temperature: {temperature}, Top-P: {top_p}, Top-K: {top_k}")
                 
                 # Prepare optimized Ollama API request
                 ollama_request = {
@@ -599,12 +606,30 @@ def chat_with_image():
                     'num_thread': model_params.get('num_thread', 8),
                     'num_batch': model_params.get('num_batch', 4),
                     'f16_kv': model_params.get('f16_kv', True),
-                    'use_gpu': model_params.get('use_gpu', True),
-                    'gpu_layers': model_params.get('gpu_layers', 42),
+                    'use_gpu': model_params.get('use_gpu', True), # Ensure GPU usage
+                    'gpu_layers': model_params.get('gpu_layers', 42), # Optimize GPU layer split
                     'cache_mode': 'balanced'  # Optimize cache usage
                 }
                 
-                # Send request to Ollama API
+                # Add model-specific parameters for multimodal handling
+                if model.startswith('llava'):
+                    ollama_request.update({
+                        'num_thread': model_params.get('num_thread', 8),
+                        'num_batch': model_params.get('num_batch', 4),
+                        'gpu_layers': model_params.get('gpu_layers', 42),
+                        'use_gpu': True
+                    })
+                elif model == 'gemma-2b-it':
+                    ollama_request.update({
+                        'num_thread': model_params.get('num_thread', 8),
+                        'num_batch': model_params.get('num_batch', 2),
+                        'low_vram': model_params.get('low_vram', True),
+                        'max_tokens': min(model_params.get('limits', {}).get('max_tokens', 1024), max_tokens)
+                    })
+                
+                print(f"Using Ollama parameters: {ollama_request}")
+                
+                # Make request to Ollama
                 response = requests.post(
                     'http://127.0.0.1:11434/api/generate',
                     json=ollama_request,
@@ -642,22 +667,37 @@ def guided_chat():
     data = request.json
     message = data.get('message', '')
     model = data.get('model', 'mistral-7b')
+    template_id = data.get('template_id', None)
+    template_values = data.get('template_values', {})
     
     if model not in MODEL_PARAMS:
         return jsonify({"error": "Invalid model"}), 400
     
-    # Get the guide for this model
-    guide = MODEL_PARAMS[model].get('prompt_guide', {})
+    # If template_id is provided, use it to generate a prompt
+    if template_id:
+        try:
+            from app.prompt_templates import fill_template
+            message = fill_template(template_id, model, **template_values)
+        except Exception as e:
+            return jsonify({"error": f"Template error: {str(e)}"}), 400
+    # Otherwise, fallback to the old guide behavior
+    else:
+        # Get the guide for this model
+        guide = MODEL_PARAMS[model].get('prompt_guide', {})
+        
+        # If no message provided, use the example prompt
+        if not message and 'example_prompt' in guide:
+            message = guide['example_prompt']
     
-    # If no message provided, use the example prompt
-    if not message and 'example_prompt' in guide:
-        message = guide['example_prompt']
+    # Set the message in data
+    data['message'] = message
+    
+    # Save the original message in request so it's available to the chat function
+    request.json = data
     
     # Forward to the regular chat endpoint
     response = chat()
     
-    # Add guide information to the response (only for non-streaming responses)
-    # For streaming, the frontend would need to request the guide separately
     return response
 
 @app.route('/api/history')

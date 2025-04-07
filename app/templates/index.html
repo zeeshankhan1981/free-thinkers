@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='components/model_management.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/conversation_manager.css') }}?v=0.2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/templates.css') }}?v=0.3.0">
+    <!-- Will be loaded after DOM content loaded -->
     <style>
         :root {
             --primary-color: #007bff;
@@ -770,8 +772,8 @@
 
         .history-btn {
             position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
+            bottom: 1rem;
+            right: 1rem;
             padding: 0.75rem 1.5rem;
             border-radius: var(--border-radius);
             background: var(--primary-color);
@@ -1044,17 +1046,7 @@
                 </select>
                 <!-- Model management button will be added by model_integration.js -->
             </div>
-            <style>
-                .model-select {
-                    align-items: center;
-                }
-                .model-select-label {
-                    font-weight: 500;
-                    color: var(--secondary-color);
-                    white-space: nowrap;
-                }
-            </style>
-
+            
             <div class="prompt-guide mb-3" id="promptGuide">
                 <div class="prompt-guide-title">
                     <span id="promptGuideTitle">Best for: General Questions</span>
@@ -1065,6 +1057,11 @@
                 <div class="prompt-guide-actions">
                     <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use This Example</button>
                 </div>
+            </div>
+
+            <!-- Template Selector -->
+            <div id="template-selector" class="template-selector mb-3">
+                <!-- Template UI will be rendered here by templates.js -->
             </div>
 
             <!-- Image Upload Container -->
@@ -1397,29 +1394,19 @@
                     params = window.getCurrentParameters();
                 }
                 
-                // Convert image to base64
-                let base64Image = '';
-                try {
-                    base64Image = await fileToBase64(imageFile);
-                } catch (error) {
-                    console.error('Error converting image to base64:', error);
-                    alert('Error processing image. Please try again.');
-                    return;
-                }
+                // Get speed setting
+                const speed = responseSpeed.value;
                 
-                // Create user message with both text and image
-                const userMessage = {
+                // Add user message to thread
+                currentThread.push({
                     role: 'user',
                     content: userInput,
                     image: {
                         name: imageFile.name,
                         type: imageFile.type,
-                        data: base64Image
+                        data: await fileToBase64(imageFile)
                     }
-                };
-                
-                // Add user message to thread
-                currentThread.push(userMessage);
+                });
                 
                 // Sync with conversation manager
                 if (activeConversation && typeof window.conversationManager !== 'undefined') {
@@ -1430,7 +1417,7 @@
                 messageInput.value = '';
                 window.resetImageUpload();
                 
-                // Render messages (with special handling for images)
+                // Render messages
                 renderMessages();
                 
                 // Show loading indicator
@@ -2297,7 +2284,51 @@
     <!-- Model integration system to sync dropdown and sidebar -->
     <script src="{{ url_for('static', filename='js/model_integration.js') }}"></script>
     
+    <!-- Templates system -->
+    <script src="{{ url_for('static', filename='js/templates.js') }}?v=0.3.0"></script>
+    
     <!-- Main script -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=0.3.0"></script>
+    
+    <!-- Initialize templates after page load -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize template UI with more robust error handling
+        function initializeTemplatesUI() {
+            try {
+                // Get the currently selected model
+                const modelSelector = document.getElementById('modelSelect');
+                const currentModel = modelSelector && modelSelector.value ? 
+                    modelSelector.value : 'llama3.2'; // Fallback
+                
+                if (window.templatesUI) {
+                    console.log('Reinitializing existing templatesUI with model:', currentModel);
+                    window.templatesUI.init(currentModel);
+                } else {
+                    console.log('Creating new TemplatesUI instance with model:', currentModel);
+                    window.templatesUI = new TemplatesUI();
+                    window.templatesUI.init(currentModel);
+                }
+            } catch (err) {
+                console.error('Error initializing templates UI:', err);
+            }
+        }
+        
+        // Initial setup
+        initializeTemplatesUI();
+        
+        // Also update templates when model changes
+        const modelSelector = document.getElementById('modelSelect');
+        if (modelSelector) {
+            modelSelector.addEventListener('change', function() {
+                const newModel = this.value;
+                if (window.templatesUI && newModel) {
+                    console.log('Model changed, updating templatesUI with:', newModel);
+                    window.templatesUI.init(newModel);
+                }
+            });
+        }
+    });
+    </script>
 </body>
 </html>
