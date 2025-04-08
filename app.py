@@ -123,14 +123,16 @@ MODEL_PARAMS = {
         "top_p": 0.95,
         "top_k": 40,
         "num_gpu": 1,
-        "num_thread": 8,
-        "num_batch": 2,
+        "num_thread": 4,         # Reduced from 8 to lower CPU usage
+        "num_batch": 1,          # Reduced from 2 to lower memory usage
+        "max_tokens": 512,       # Limit output length to improve performance
         "f16_kv": True,
-        "low_vram": True,
+        "low_vram": True,        # Enable low VRAM mode
+        "use_gpu": False,        # Use CPU only to avoid GPU contention
         "speed_settings": {
-            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50},
-            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40},
-            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 30, "max_tokens": 512}
+            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50, "max_tokens": 768},
+            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40, "max_tokens": 512},
+            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 20, "max_tokens": 256}
         },
         "prompt_guide": {
             "use_case_title": "Creative writing, artistic responses, nuanced storytelling",
@@ -149,16 +151,19 @@ MODEL_PARAMS = {
         "top_k": 30,
         "num_gpu": 1,
         "f16_kv": True,
-        "num_thread": 8,
-        "num_batch": 4,
-        "max_tokens": 1024,     # Limit output tokens for faster responses
-        "use_gpu": True,        # Force GPU usage for better performance
-        "gpu_layers": 42,       # Optimize GPU utilization
-        "low_vram": False,      # Assuming sufficient GPU memory
+        "num_thread": 4,        # Reduced from 8 to lower CPU usage
+        "num_batch": 1,         # Reduced from 4 to lower memory requirements
+        "max_tokens": 512,      # Further reduced to improve performance
+        "use_gpu": True,        # Keep GPU usage for vision tasks
+        "gpu_layers": 32,       # Reduced from 42 to use less VRAM
+        "low_vram": True,       # Enable low VRAM mode for better performance
+        "mirostat": 1,          # Use mirostat sampling for more efficient token generation
+        "mirostat_eta": 0.1,    # Conservative eta value for stability
+        "mirostat_tau": 5.0,    # Higher tau value uses fewer resources
         "speed_settings": {
-            "slow": {"temperature": 0.75, "top_p": 0.9, "top_k": 40, "max_tokens": 2048},
-            "medium": {"temperature": 0.65, "top_p": 0.85, "top_k": 30, "max_tokens": 1024},
-            "fast": {"temperature": 0.5, "top_p": 0.75, "top_k": 20, "max_tokens": 512}
+            "slow": {"temperature": 0.7, "top_p": 0.9, "top_k": 30, "max_tokens": 768},
+            "medium": {"temperature": 0.6, "top_p": 0.85, "top_k": 20, "max_tokens": 512},
+            "fast": {"temperature": 0.5, "top_p": 0.75, "top_k": 10, "max_tokens": 256}
         },
         "prompt_guide": {
             "use_case_title": "Multimodal image analysis and description",

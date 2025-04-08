@@ -444,6 +444,7 @@
             display: flex;
             gap: 0.5rem;
             margin-bottom: 1rem;
+            width: 100%;
         }
 
         .loading-indicator .thinking-dot {
@@ -476,6 +477,39 @@
             100% {
                 transform: scale(1);
             }
+        }
+        
+        /* Chain processing styles */
+        .chain-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        
+        .chain-progress-bar {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .chain-progress .current-step {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .chain-progress .steps-indicator {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .dark-mode .chain-progress-bar {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        .dark-mode .chain-progress .steps-indicator {
+            color: rgba(200, 200, 200, 0.8);
         }
     </style>
     <style>
@@ -1859,17 +1893,65 @@
                 
                 if (window.modelChain && window.modelChain.isChainEnabled()) {
                     try {
-                        // Show chain processing indicator
+                        // Get chain information for better user feedback
+                        const chainId = window.modelChain.currentChain;
+                        const chain = window.modelChain.chains[chainId];
+                        
+                        if (!chain) {
+                            throw new Error("No chain selected. Please select a chain from the dropdown.");
+                        }
+                        
+                        const chainName = chain.name || chainId;
+                        const stepCount = chain.steps ? chain.steps.length : 0;
+                        
+                        // Show chain processing indicator with enhanced information
                         const loadingModelInfo = document.getElementById('loadingModelInfo');
+                        const loadingText = document.querySelector('.loading-text');
+                        
                         if (loadingModelInfo) {
-                            const chainName = window.modelChain.chains[window.modelChain.currentChain]?.name || 'Model Chain';
-                            loadingModelInfo.textContent = `Processing with ${chainName}...`;
+                            loadingModelInfo.textContent = `Processing with ${chainName} (${stepCount} steps)...`;
                             loadingIndicator.style.display = 'block';
                         }
                         
+                        if (loadingText) {
+                            loadingText.innerHTML = `<div class="chain-progress">
+                                <div class="current-step">Starting chain processing...</div>
+                                <div class="steps-indicator">Step 0/${stepCount}</div>
+                            </div>`;
+                        }
+                        
+                        // Show progress meter for chain processing
+                        const loadingAnimation = document.querySelector('.thinking-animation');
+                        if (loadingAnimation) {
+                            loadingAnimation.innerHTML = `
+                                <div class="progress chain-progress-bar" style="height: 8px; width: 100%;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%"></div>
+                                </div>`;
+                        }
+                        
+                        // Disable send button and scroll to loading indicator
+                        sendMessage.disabled = true;
+                        loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        
                         // Process with chain
                         useModelChain = true;
+                        
+                        // Start a progress updater every 2 seconds to show chain is still processing
+                        let elapsedTime = 0;
+                        const progressUpdater = setInterval(() => {
+                            elapsedTime += 2;
+                            const loadingText = document.querySelector('.loading-text .current-step');
+                            if (loadingText) {
+                                loadingText.textContent = `Chain processing in progress... (${elapsedTime}s)`;
+                            }
+                        }, 2000);
+                        
+                        // Process with chain
                         chainProcessing = await window.modelChain.processWithChain(userInput);
+                        
+                        // Clear progress updater
+                        clearInterval(progressUpdater);
                         
                         console.log('Chain processing result:', chainProcessing);
                         

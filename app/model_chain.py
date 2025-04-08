@@ -7,6 +7,7 @@ import json
 import os
 import requests
 import re
+import asyncio
 from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 
@@ -123,14 +124,35 @@ class ModelChain:
                             "model": "llava-phi3:latest",
                             "capability": "image",
                             "description": "Analyze the image content",
-                            "prompt_template": "Analyze this image in detail and describe what you see: {input}"
+                            "prompt_template": "Describe this image briefly (100 words or less). Focus only on the main subjects and important details: {input}",
+                            "parameters": {
+                                "temperature": 0.5,
+                                "top_p": 0.85,
+                                "top_k": 20,
+                                "max_tokens": 256,
+                                "num_thread": 4,
+                                "num_batch": 1,
+                                "low_vram": True,
+                                "gpu_layers": 32,
+                                "mirostat": 1,
+                                "mirostat_eta": 0.1,
+                                "mirostat_tau": 5.0
+                            }
                         },
                         {
                             "name": "reasoning",
                             "model": "mistral-7b",
                             "capability": "reasoning",
                             "description": "Perform reasoning based on the image analysis",
-                            "prompt_template": "Based on this image description:\n\n{input}\n\nAnswer the user's original question: {user_query}"
+                            "prompt_template": "Based on this image description:\n\n{input}\n\nAnswer the user's original question concisely: {user_query}",
+                            "parameters": {
+                                "temperature": 0.5,
+                                "top_p": 0.85,
+                                "top_k": 20,
+                                "max_tokens": 256,
+                                "num_thread": 4,
+                                "num_batch": 1
+                            }
                         }
                     ]
                 },
@@ -143,14 +165,30 @@ class ModelChain:
                             "model": "phi3:3.8b",
                             "capability": "code",
                             "description": "Generate code based on the requirements",
-                            "prompt_template": "Write code to solve this problem:\n\n{input}\n\nProvide only the code without explanation."
+                            "prompt_template": "Write code to solve this problem concisely:\n\n{input}\n\nProvide only the code without explanation. Keep it under 100 lines if possible.",
+                            "parameters": {
+                                "temperature": 0.5,
+                                "top_p": 0.9,
+                                "top_k": 30,
+                                "max_tokens": 512,
+                                "num_thread": 4,
+                                "num_batch": 1
+                            }
                         },
                         {
                             "name": "explain_code",
                             "model": "mistral-7b",
                             "capability": "reasoning",
                             "description": "Explain the generated code",
-                            "prompt_template": "Explain this code in detail, highlighting key concepts and how it works:\n\n```\n{input}\n```"
+                            "prompt_template": "Explain this code concisely, highlighting key concepts and how it works:\n\n```\n{input}\n```\nKeep your explanation brief but thorough.",
+                            "parameters": {
+                                "temperature": 0.5,
+                                "top_p": 0.9,
+                                "top_k": 30,
+                                "max_tokens": 512,
+                                "num_thread": 4,
+                                "num_batch": 1
+                            }
                         }
                     ]
                 },
@@ -160,17 +198,34 @@ class ModelChain:
                     "steps": [
                         {
                             "name": "summarize",
-                            "model": "gemma-2b-it",
+                            "model": "llama3.2",  # Changed from gemma-2b-it to llama3.2 for better performance
                             "capability": "efficient",
                             "description": "Create a concise summary of the text",
-                            "prompt_template": "Summarize this text concisely:\n\n{input}"
+                            "prompt_template": "Summarize this text very concisely in under 200 words:\n\n{input}",
+                            "parameters": {
+                                "temperature": 0.4,
+                                "top_p": 0.85,
+                                "top_k": 20,
+                                "max_tokens": 256,
+                                "num_thread": 4,
+                                "num_batch": 1,
+                                "f16_kv": True
+                            }
                         },
                         {
                             "name": "extract_key_info",
                             "model": "mistral-7b",
                             "capability": "reasoning",
                             "description": "Extract key points, entities, and facts",
-                            "prompt_template": "From this summary:\n\n{input}\n\nExtract and list the most important:\n1. Key points\n2. Entities mentioned\n3. Factual statements\n4. Questions raised"
+                            "prompt_template": "From this summary, extract and list only the 3-5 most important points, entities, and facts:\n\n{input}\n\nKeep your response brief and focused on the most essential information.",
+                            "parameters": {
+                                "temperature": 0.4,
+                                "top_p": 0.85,
+                                "top_k": 20,
+                                "max_tokens": 256,
+                                "num_thread": 4,
+                                "num_batch": 1
+                            }
                         }
                     ]
                 }
@@ -392,44 +447,97 @@ class ModelChain:
         """Run a single model with the given prompt."""
         parameters = parameters or {}
         
-        # Get default parameters for model
+        # Get default parameters for model with optimized defaults for performance
         default_params = {
-            'temperature': 0.7,
-            'top_p': 0.95,
-            'top_k': 40,
-            'max_tokens': 1024,
-            'stream': False
+            'temperature': 0.5,       # Lower temperature for faster, more consistent responses
+            'top_p': 0.85,            # Slightly reduced for better performance
+            'top_k': 20,              # Reduced from 40 to use less computation
+            'max_tokens': 512,        # Shorter responses to improve speed
+            'num_thread': 4,          # Limit threads to reduce CPU usage
+            'num_batch': 1,           # Minimum batch size to reduce memory usage
+            'f16_kv': True,           # Use half-precision for key/value cache
+            'stream': False,
+            'repeat_penalty': 1.1,    # Standard value to avoid repetitive outputs
+            'stop': ["</s>", "User:", "Assistant:"]  # Stop tokens to avoid generating beyond needed content
         }
         
+        # Apply specific model optimizations
+        if "gemma" in model_name:
+            default_params.update({
+                'use_gpu': False,      # Use CPU only for Gemma to reduce resource usage
+                'max_tokens': 256,     # Further reduce output size for Gemma
+                'low_vram': True       # Enable low VRAM mode
+            })
+        elif "llava" in model_name:
+            default_params.update({
+                'gpu_layers': 32,      # Limit GPU layers for vision models
+                'max_tokens': 256,     # Shorter responses for vision tasks
+                'low_vram': True,      # Enable low VRAM mode
+                'mirostat': 1,         # Enable mirostat sampling for resource efficiency
+                'mirostat_eta': 0.1,   # Conservative mirostat parameters
+                'mirostat_tau': 5.0    # Higher tau for fewer tokens
+            })
+            
         # Merge default and user parameters
         for key, value in parameters.items():
             default_params[key] = value
             
-        # Set the model
+        # Set the model and prompt
         default_params['model'] = model_name
         default_params['prompt'] = prompt
         
+        print(f"Running model {model_name} with parameters: {default_params}")
+        
         try:
-            # Make request to Ollama
-            response = requests.post(
-                'http://localhost:11434/api/generate',
-                json=default_params,
-                timeout=120  # Increased timeout for larger responses
-            )
+            # Add timeout handler with exponential backoff
+            max_retries = 2
+            retry_count = 0
+            timeout = 60  # Initial timeout in seconds
             
-            if response.status_code == 200:
-                result = response.json()
-                return result.get('response', '')
-            else:
-                error_message = f"Model API error: {response.status_code}"
+            while retry_count <= max_retries:
                 try:
-                    error_data = response.json()
-                    if 'error' in error_data:
-                        error_message = error_data['error']
-                except:
-                    pass
+                    # Make request to Ollama with current timeout
+                    response = requests.post(
+                        'http://localhost:11434/api/generate',
+                        json=default_params,
+                        timeout=timeout
+                    )
                     
-                raise Exception(error_message)
+                    if response.status_code == 200:
+                        result = response.json()
+                        return result.get('response', '')
+                    elif response.status_code == 429 or response.status_code >= 500:
+                        # Server busy or error - retry with backoff
+                        retry_count += 1
+                        timeout *= 2  # Double timeout for next attempt
+                        print(f"Server busy, retrying in {timeout} seconds (attempt {retry_count}/{max_retries})")
+                        await asyncio.sleep(1)  # Small delay before retry
+                    else:
+                        # Other error - don't retry
+                        error_message = f"Model API error: {response.status_code}"
+                        try:
+                            error_data = response.json()
+                            if 'error' in error_data:
+                                error_message = error_data['error']
+                        except:
+                            pass
+                            
+                        raise Exception(error_message)
+                        
+                except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                    # Handle timeout - retry with backoff if we haven't hit max retries
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        raise Exception(f"Timed out after {max_retries} retries")
+                    
+                    timeout *= 2  # Double timeout for next attempt
+                    print(f"Request timed out, retrying with timeout {timeout}s (attempt {retry_count}/{max_retries})")
+                    await asyncio.sleep(1)  # Small delay before retry
+                    continue
+            
+            # If we get here, we've exhausted retries
+            raise Exception(f"Failed after {max_retries} retries")
+            
         except Exception as e:
             raise Exception(f"Error running model {model_name}: {str(e)}")
     

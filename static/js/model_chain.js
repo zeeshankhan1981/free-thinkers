@@ -449,8 +449,14 @@ class ModelChain {
                 throw new Error(`Chain '${this.currentChain}' not found`);
             }
             
-            const chainName = this.chains[this.currentChain].name || this.currentChain;
-            console.log(`Chain name: ${chainName}`);
+            const chain = this.chains[this.currentChain];
+            const chainName = chain.name || this.currentChain;
+            const stepCount = chain.steps ? chain.steps.length : 0;
+            
+            console.log(`Chain name: ${chainName}, Steps: ${stepCount}`);
+            
+            // Update progress UI before starting
+            this.updateChainProgressUI('Starting chain processing...', 0, stepCount);
             
             const response = await fetch('/api/chains/run', {
                 method: 'POST',
@@ -463,9 +469,26 @@ class ModelChain {
                 })
             });
             
+            // As the request is processing, update the progress bar periodically
+            const progressInterval = setInterval(() => {
+                const progressBar = document.querySelector('.chain-progress-bar .progress-bar');
+                if (progressBar) {
+                    const currentWidth = parseFloat(progressBar.style.width) || 5;
+                    // Gradually increase progress, but never reach 100% until completed
+                    const newWidth = Math.min(currentWidth + 5, 90);
+                    progressBar.style.width = `${newWidth}%`;
+                }
+            }, 2000);
+            
             if (response.ok) {
                 const result = await response.json();
                 console.log('Chain processing result:', result);
+                
+                // Clear progress interval
+                clearInterval(progressInterval);
+                
+                // Show 100% completion
+                this.updateChainProgressUI('Chain processing complete!', stepCount, stepCount, 100);
                 
                 // Check for errors
                 if (result.status === 'error') {
@@ -481,12 +504,47 @@ class ModelChain {
                     details: detailedResult
                 };
             } else {
+                // Clear progress interval on error
+                clearInterval(progressInterval);
+                
+                // Show error in UI
+                this.updateChainProgressUI('Error processing chain!', 0, stepCount, 0);
+                
                 const errorData = await response.json();
                 throw new Error(errorData.message || `HTTP error: ${response.status}`);
             }
         } catch (error) {
             console.error('Error processing with chain:', error);
             throw error;
+        }
+    }
+    
+    /**
+     * Update the chain progress UI elements
+     * @param {string} statusText - Current status text to display
+     * @param {number} currentStep - Current step number
+     * @param {number} totalSteps - Total number of steps
+     * @param {number} progressPercent - Progress percentage (optional)
+     */
+    updateChainProgressUI(statusText, currentStep, totalSteps, progressPercent = null) {
+        // Update step information
+        const currentStepEl = document.querySelector('.loading-text .current-step');
+        const stepsIndicatorEl = document.querySelector('.loading-text .steps-indicator');
+        
+        if (currentStepEl) {
+            currentStepEl.textContent = statusText;
+        }
+        
+        if (stepsIndicatorEl) {
+            stepsIndicatorEl.textContent = `Step ${currentStep}/${totalSteps}`;
+        }
+        
+        // Update progress bar if percentage provided
+        if (progressPercent !== null) {
+            const progressBar = document.querySelector('.chain-progress-bar .progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${progressPercent}%`;
+            }
         }
     }
     
