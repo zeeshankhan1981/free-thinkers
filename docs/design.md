@@ -58,6 +58,32 @@ Make these changes to the CSS variables and styles in the HTML template."
 
 Run the above command to have Claude Sonnet generate the necessary CSS modifications to achieve the Todoist-inspired look.
 
+## Authentication UI Design
+
+### Login/Registration Flow
+- Modal-based authentication interface
+- Clean, minimal design with clear call-to-actions
+- Responsive layout for all screen sizes
+- Progress indicators for OAuth flows
+
+### Profile Management
+- Accessible profile settings panel
+- Clear visual hierarchy for user information
+- Intuitive preference management
+- Secure password change interface
+
+### Session Management
+- Clear session status indicators
+- Easy logout functionality
+- "Remember me" option with clear explanation
+- Session timeout notifications
+
+### Security Indicators
+- Visual indicators for secure connections
+- Clear OAuth provider branding
+- Security status badges
+- Session activity indicators
+
 ## Conversation Management Integration
 
 ### Functionality Integration Command
@@ -99,50 +125,15 @@ Use proper JavaScript modules, maintain clean separation of concerns, and ensure
 To enhance the UI/UX seamlessness of your conversation management system, use this command:
 
 ```bash
-OLLAMA_HOST=127.0.0.1 ollama run claude-sonnet:latest "Improve the UI/UX seamlessness of the conversation management system by implementing these specific enhancements:
-
-1. Create a more integrated conversation experience:
-   - Add visual transitions when switching between conversations (subtle fade or slide)
-   - Implement an 'untitled conversation' state for new chats before the first message
-   - Add visual indicators for unsaved changes in the current conversation
-   - Create a visual connection between the sidebar and main chat when a conversation is active
-
-2. Improve conversation management UX:
-   - Add inline editing of conversation titles (click to edit without modal)
-   - Implement conversation pinning to keep important chats at the top
-   - Add drag-and-drop reordering of conversations in the list
-   - Create a more intuitive organization system for conversations with collapsible categories
-   - Implement a more seamless search experience with instant results and highlighting
-
-3. Add helpful empty states and user guidance:
-   - Design informative empty states for the conversation list
-   - Add tooltips for key actions to guide new users
-   - Create subtle animations for state changes (loading, saving, etc.)
-   - Implement a 'What's New' indicator for newly added conversations
-   - Add contextual help for conversation management features
-
-4. Enhance keyboard navigation and shortcuts:
-   - Add keyboard shortcuts for common actions (new conversation, switching, etc.)
-   - Implement arrow key navigation for the conversation list
-   - Add Tab key support for moving between UI sections
-   - Create a keyboard shortcut reference/help panel
-   - Ensure all interactive elements are properly focusable
-
-5. Implement smooth transitions and feedback:
-   - Add loading states with skeleton screens instead of spinners
-   - Implement optimistic UI updates (show changes before server confirms)
-   - Add subtle animations for actions (saving, deleting, creating)
-   - Create micro-interactions for common tasks (favoriting, etc.)
-   - Implement a system-wide notification framework for actions
-
-6. Ensure the experience feels native and integrated:
-   - Make sure the sidebar behavior matches platform conventions
-   - Implement proper scrolling behavior that feels natural
-   - Add natural touch gestures for mobile users (swipe to delete, etc.)
-   - Ensure consistent styling between conversation management and chat UI
-   - Create smooth transitions between all states of the application
-
-Implement these changes with clean, maintainable code using modern JavaScript practices. Focus on making the experience feel cohesive, intuitive, and polished."
+OLLAMA_HOST=127.0.0.1 ollama run claude-sonnet:latest "Uncaught TypeError: window.conversationManager.getAllConversations is not a function
+    loadConversations http://127.0.0.1:58659/static/js/main.js:282
+    initConversationManager http://127.0.0.1:58659/static/js/main.js:90
+    <anonymous> http://127.0.0.1:58659/static/js/main.js:72
+main.js:282:54
+    loadConversations http://127.0.0.1:58659/static/js/main.js:282
+    initConversationManager http://127.0.0.1:58659/static/js/main.js:90
+    <anonymous> http://127.0.0.1:58659/static/js/main.js:72
+    "
 ```
 
 This command focuses on enhancing the UI/UX seamlessness of your conversation management system, making it feel more integrated, intuitive, and polished for users.

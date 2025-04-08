@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profile-container">
+  <div class="profile-sidebar">
+    <div class="profile-avatar">
+      <img src="/static/images/default-avatar.png" alt="User Avatar" id="user-avatar">
+      <button class="btn btn-secondary" id="change-avatar-btn">Change Avatar</button>
+      <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+    </div>
+    <div class="profile-menu">
+      <a href="#account" class="profile-menu-item active" data-tab="account-section">Account Settings</a>
+      <a href="#preferences" class="profile-menu-item" data-tab="preferences-section">Preferences</a>
+      <a href="#security" class="profile-menu-item" data-tab="security-section">Security</a>
+      <a href="#data" class="profile-menu-item" data-tab="data-section">Data & Privacy</a>
+    </div>
+  </div>
+  
+  <div class="profile-content">
+    <!-- Account Settings Section -->
+    <section id="account-section" class="profile-section active">
+      <h2>Account Settings</h2>
+      
+      <form id="profile-form">
+        <div class="form-group">
+          <label for="profile-username">Username</label>
+          <input type="text" id="profile-username" name="username" required>
+        </div>
+        <div class="form-group">
+          <label for="profile-email">Email</label>
+          <input type="email" id="profile-email" name="email" required>
+          <span class="verification-status" id="email-verification-status"></span>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+      
+      <div class="account-info">
+        <h3>Account Information</h3>
+        <div class="info-item">
+          <span class="info-label">Account Type:</span>
+          <span class="info-value" id="account-type">Standard</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Member Since:</span>
+          <span class="info-value" id="member-since">January 1, 2023</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Last Login:</span>
+          <span class="info-value" id="last-login">January 1, 2023</span>
+        </div>
+      </div>
+      
+      <div class="danger-zone">
+        <h3>Danger Zone</h3>
+        <button class="btn btn-danger" id="delete-account-btn">Delete Account</button>
+      </div>
+    </section>
+    
+    <!-- Preferences Section -->
+    <section id="preferences-section" class="profile-section">
+      <h2>Preferences</h2>
+      
+      <form id="preferences-form">
+        <div class="form-group">
+          <label for="theme-select">Theme</label>
+          <select id="theme-select" name="theme">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="system">System Default</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="default-model">Default Model</label>
+          <select id="default-model" name="default_model">
+            <!-- This will be populated dynamically -->
+          </select>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="notifications-enabled" name="notifications_enabled">
+          <label for="notifications-enabled">Enable Notifications</label>
+        </div>
+        
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Save Preferences</button>
+        </div>
+      </form>
+    </section>
+    
+    <!-- Security Section -->
+    <section id="security-section" class="profile-section">
+      <h2>Security</h2>
+      
+      <form id="password-form">
+        <h3>Change Password</h3>
+        <div class="form-group">
+          <label for="current-password">Current Password</label>
+          <input type="password" id="current-password" name="current_password" required>
+        </div>
+        <div class="form-group">
+          <label for="new-password">New Password</label>
+          <input type="password" id="new-password" name="new_password" required>
+          <div class="password-strength-meter">
+            <div class="strength-bar"></div>
+          </div>
+          <small class="password-requirements">Password must be at least 8 characters long.</small>
+        </div>
+        <div class="form-group">
+          <label for="confirm-new-password">Confirm New Password</label>
+          <input type="password" id="confirm-new-password" name="confirm_new_password" required>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Change Password</button>
+        </div>
+      </form>
+      
+      <div class="security-info">
+        <h3>Session Information</h3>
+        <div class="info-item">
+          <span class="info-label">Current Session Since:</span>
+          <span class="info-value" id="session-start">January 1, 2023</span>
+        </div>
+        <button class="btn btn-secondary" id="logout-all-btn">Logout All Sessions</button>
+      </div>
+    </section>
+    
+    <!-- Data & Privacy Section -->
+    <section id="data-section" class="profile-section">
+      <h2>Data & Privacy</h2>
+      
+      <div class="data-management">
+        <h3>Data Management</h3>
+        <div class="data-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="conversation-count">0</span>
+            <span class="stat-label">Conversations</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="folder-count">0</span>
+            <span class="stat-label">Folders</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="shared-count">0</span>
+            <span class="stat-label">Shared Items</span>
+          </div>
+        </div>
+        
+        <div class="data-export">
+          <h4>Export Your Data</h4>
+          <p>Download all your conversations and preferences as a JSON file.</p>
+          <button class="btn btn-secondary" id="export-data-btn">Export Data</button>
+        </div>
+        
+        <div class="data-delete">
+          <h4>Delete Your Data</h4>
+          <p>Delete all your conversations, folders, and shared items. This action cannot be undone.</p>
+          <button class="btn btn-danger" id="delete-data-btn">Delete All Data</button>
+        </div>
+      </div>
+      
+      <div class="privacy-options">
+        <h3>Privacy Options</h3>
+        <form id="privacy-form">
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="analytics-consent" name="analytics_consent">
+            <label for="analytics-consent">Allow anonymous usage analytics to improve the service</label>
+          </div>
+          <div class="form-group">
+            <button type="submit" class="btn btn-primary">Save Privacy Settings</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+<div id="delete-account-modal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Confirm Account Deletion</h2>
+    <p>Are you sure you want to delete your account? This action cannot be undone and will permanently delete:</p>
+    <ul>
+      <li>Your account information</li>
+      <li>All your conversations</li>
+      <li>All your folders and organization</li>
+      <li>All your preferences and settings</li>
+    </ul>
+    <form id="delete-account-confirm-form">
+      <div class="form-group">
+        <label for="delete-password">Enter your password to confirm</label>
+        <input type="password" id="delete-password" name="password" required>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">Permanently Delete Account</button>
+        <button type="button" class="btn btn-secondary cancel-delete">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/profile.js"></script>
+{% endblock %}

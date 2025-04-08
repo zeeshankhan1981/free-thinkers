@@ -1,0 +1,162 @@
+<!-- Authentication Modal Component -->
+<div id="auth-modal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    
+    <!-- Tabs for different authentication modes -->
+    <div class="auth-tabs">
+      <button class="auth-tab-btn active" data-tab="login-tab">Login</button>
+      <button class="auth-tab-btn" data-tab="register-tab">Register</button>
+      <button class="auth-tab-btn" data-tab="reset-tab">Reset Password</button>
+    </div>
+    
+    <!-- Login Tab -->
+    <div id="login-tab" class="auth-tab-content active">
+      <h2>Login</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" name="username" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" required>
+        </div>
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="remember-me" name="remember_me">
+          <label for="remember-me">Remember me</label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Login</button>
+          <button type="button" class="btn btn-secondary continue-as-guest">Continue as Guest</button>
+        </div>
+        <div class="form-message" id="login-message"></div>
+      </form>
+    </div>
+    
+    <!-- Register Tab -->
+    <div id="register-tab" class="auth-tab-content">
+      <h2>Register</h2>
+      <form id="register-form">
+        <div class="form-group">
+          <label for="register-username">Username</label>
+          <input type="text" id="register-username" name="username" required>
+        </div>
+        <div class="form-group">
+          <label for="register-email">Email</label>
+          <input type="email" id="register-email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="register-password">Password</label>
+          <input type="password" id="register-password" name="password" required>
+          <div class="password-strength-meter">
+            <div class="strength-bar"></div>
+          </div>
+          <small class="password-requirements">Password must be at least 8 characters long.</small>
+        </div>
+        <div class="form-group">
+          <label for="register-confirm-password">Confirm Password</label>
+          <input type="password" id="register-confirm-password" name="confirm_password" required>
+        </div>
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="terms-agree" name="terms_agree" required>
+          <label for="terms-agree">I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="privacy-link">Privacy Policy</a></label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Register</button>
+          <button type="button" class="btn btn-secondary continue-as-guest">Continue as Guest</button>
+        </div>
+        <div class="form-message" id="register-message"></div>
+      </form>
+    </div>
+    
+    <!-- Reset Password Tab -->
+    <div id="reset-tab" class="auth-tab-content">
+      <h2>Reset Password</h2>
+      <form id="reset-form">
+        <div class="form-group">
+          <label for="reset-email">Email</label>
+          <input type="email" id="reset-email" name="email" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Send Reset Link</button>
+          <button type="button" class="btn btn-link" id="back-to-login">Back to Login</button>
+        </div>
+        <div class="form-message" id="reset-message"></div>
+      </form>
+    </div>
+    
+    <!-- Reset Password Confirmation -->
+    <div id="reset-confirm" class="auth-tab-content">
+      <h2>Set New Password</h2>
+      <form id="reset-confirm-form">
+        <input type="hidden" id="reset-token" name="token">
+        <div class="form-group">
+          <label for="new-password">New Password</label>
+          <input type="password" id="new-password" name="new_password" required>
+          <div class="password-strength-meter">
+            <div class="strength-bar"></div>
+          </div>
+          <small class="password-requirements">Password must be at least 8 characters long.</small>
+        </div>
+        <div class="form-group">
+          <label for="confirm-new-password">Confirm New Password</label>
+          <input type="password" id="confirm-new-password" name="confirm_new_password" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Set New Password</button>
+        </div>
+        <div class="form-message" id="reset-confirm-message"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Guest Session Modal -->
+<div id="guest-modal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Using as Guest</h2>
+    <p>You're currently using Free Thinkers as a guest. Your conversations will be stored locally and will expire after 24 hours.</p>
+    <p>Register for an account to unlock these benefits:</p>
+    <ul>
+      <li>Permanent storage of conversations</li>
+      <li>Sync across multiple devices</li>
+      <li>Organize conversations into folders</li>
+      <li>Share conversations with others</li>
+      <li>Customized preferences and settings</li>
+    </ul>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" id="register-from-guest">Register Now</button>
+      <button type="button" class="btn btn-secondary" id="continue-as-guest">Continue as Guest</button>
+    </div>
+    <div class="form-group checkbox-group">
+      <input type="checkbox" id="dont-show-again" name="dont_show_again">
+      <label for="dont-show-again">Don't show this message again</label>
+    </div>
+  </div>
+</div>
+
+<!-- User Profile Menu -->
+<div id="user-profile-menu" class="dropdown-menu">
+  <div class="user-info">
+    <div class="user-avatar">
+      <img src="/static/images/default-avatar.png" alt="User Avatar" id="menu-user-avatar">
+    </div>
+    <div class="user-details">
+      <span id="menu-username">Username</span>
+      <span id="menu-email">email@example.com</span>
+    </div>
+  </div>
+  <div class="menu-items">
+    <a href="/profile" class="menu-item" id="profile-link">
+      <i class="icon-user"></i> Profile
+    </a>
+    <a href="/preferences" class="menu-item" id="preferences-link">
+      <i class="icon-settings"></i> Preferences
+    </a>
+    <a href="#" class="menu-item" id="logout-link">
+      <i class="icon-logout"></i> Logout
+    </a>
+  </div>
+</div>

@@ -1,0 +1,362 @@
+/**
+ * Unified Dashboard Styles for Free Thinkers
+ * Provides styling for the model chain, parameter profiles, context visualization, and metrics components
+ */
+
+/* Dashboard Base Styles */
+.unified-dashboard {
+    background-color: var(--bg-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem 0 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-toggle {
+    margin-left: 0.5rem;
+}
+
+/* Tab Navigation */
+.unified-dashboard .nav-tabs {
+    border-bottom: none;
+}
+
+.unified-dashboard .nav-tabs .nav-link {
+    color: var(--text-color);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+    margin-right: 0.25rem;
+    border-radius: 0;
+    transition: all 0.2s ease;
+}
+
+.unified-dashboard .nav-tabs .nav-link:hover {
+    color: var(--primary-color);
+    background-color: rgba(var(--primary-color-rgb), 0.05);
+    border-bottom: 2px solid transparent;
+}
+
+.unified-dashboard .nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background-color: transparent;
+    border-bottom: 2px solid var(--primary-color);
+    font-weight: 500;
+}
+
+.unified-dashboard .nav-tabs .nav-link i {
+    margin-right: 0.5rem;
+}
+
+/* Tab Content Areas */
+.tab-content {
+    padding: 1rem;
+}
+
+.panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Card Components */
+.unified-dashboard .card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+}
+
+.unified-dashboard .card-header {
+    background-color: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+}
+
+/* Model Chain Visualizer */
+.chain-visualizer {
+    min-height: 200px;
+    padding: 1rem;
+}
+
+.chain-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 180px;
+    color: var(--secondary-color);
+}
+
+.chain-step-flow {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    margin: 1rem 0;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+
+.chain-step-item {
+    flex: 0 0 auto;
+    width: 220px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-right: 2rem;
+    position: relative;
+    background-color: var(--bg-color);
+}
+
+.chain-step-item:not(:last-child):after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -2rem;
+    width: 2rem;
+    height: 2px;
+    background-color: var(--border-color);
+}
+
+.chain-step-item:not(:last-child):before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -2rem;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid var(--border-color);
+    border-right: 2px solid var(--border-color);
+    transform: translateY(-50%) rotate(45deg);
+    margin-right: -5px;
+}
+
+.chain-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-right: 0.5rem;
+}
+
+.chain-step-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.chain-step-title {
+    font-weight: 500;
+    flex: 1;
+}
+
+.chain-step-model {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.chain-step-description {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+    margin-bottom: 0.5rem;
+}
+
+/* Parameter Editor Styles */
+.parameter-editor {
+    padding: 0.5rem;
+}
+
+.parameter-group {
+    margin-bottom: 1.5rem;
+}
+
+.parameter-group-title {
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.parameter-item {
+    margin-bottom: 1rem;
+}
+
+.parameter-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.parameter-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.parameter-value {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+}
+
+.parameter-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.parameter-input .form-range {
+    flex: 1;
+}
+
+.parameter-input .form-control {
+    width: 60px;
+    text-align: center;
+}
+
+.parameter-description {
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+    margin-top: 0.25rem;
+}
+
+/* Context Visualization Styles */
+.context-visualization {
+    padding: 0.5rem;
+}
+
+.context-meter-container {
+    margin-bottom: 1.5rem;
+}
+
+.context-meter-label {
+    font-size: 0.9rem;
+}
+
+.context-breakdown {
+    padding: 0.5rem;
+    background-color: rgba(0,0,0,0.02);
+    border-radius: var(--border-radius);
+}
+
+.context-breakdown h6 {
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.context-breakdown-item {
+    font-size: 0.85rem;
+}
+
+/* Performance Metrics Styles */
+.resource-metric {
+    margin-bottom: 1rem;
+}
+
+.benchmark-results {
+    min-height: 200px;
+}
+
+.benchmark-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--secondary-color);
+}
+
+/* Dark Mode Adjustments */
+.dark-mode .unified-dashboard {
+    background-color: var(--dark-bg);
+}
+
+.dark-mode .unified-dashboard .card {
+    background-color: var(--dark-bg);
+    border-color: var(--dark-border);
+}
+
+.dark-mode .unified-dashboard .card-header {
+    background-color: var(--dark-bg);
+    border-color: var(--dark-border);
+    color: var(--dark-text);
+}
+
+.dark-mode .unified-dashboard .nav-tabs .nav-link {
+    color: var(--dark-text);
+}
+
+.dark-mode .unified-dashboard .nav-tabs .nav-link:hover {
+    background-color: rgba(255,255,255,0.05);
+}
+
+.dark-mode .unified-dashboard .nav-tabs .nav-link.active {
+    color: var(--primary-color);
+}
+
+.dark-mode .chain-step-item {
+    background-color: var(--dark-bg);
+    border-color: var(--dark-border);
+}
+
+.dark-mode .chain-step-item:not(:last-child):after,
+.dark-mode .chain-step-item:not(:last-child):before {
+    border-color: var(--dark-border);
+    background-color: var(--dark-border);
+}
+
+.dark-mode .context-breakdown {
+    background-color: rgba(255,255,255,0.05);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .chain-step-flow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .chain-step-item {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 2rem;
+    }
+    
+    .chain-step-item:not(:last-child):after,
+    .chain-step-item:not(:last-child):before {
+        top: 100%;
+        right: 50%;
+        width: 2px;
+        height: 2rem;
+        transform: translateX(50%);
+    }
+    
+    .chain-step-item:not(:last-child):before {
+        top: auto;
+        bottom: -2rem;
+        right: 50%;
+        width: 10px;
+        height: 10px;
+        border: none;
+        border-bottom: 2px solid var(--border-color);
+        border-right: 2px solid var(--border-color);
+        transform: translateX(50%) rotate(45deg);
+    }
+}

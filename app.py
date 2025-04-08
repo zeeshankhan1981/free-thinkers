@@ -16,6 +16,10 @@ from app.templates_api import templates_api
 from app.parameter_profiles_api import parameter_profiles_api
 from app.context_manager_api import context_manager_api
 from app.model_chain_api import model_chain_api
+from app.system_monitor_api import system_monitor_api
+from app.auth import auth
+from app.user_management_api import user_management_api
+from app.conversation_api import conversation_api
 
 # Explicitly setting correct paths for templates and static files
 app = Flask(__name__, 
@@ -375,10 +379,18 @@ app.register_blueprint(templates_api, url_prefix='/templates')
 app.register_blueprint(parameter_profiles_api)
 app.register_blueprint(context_manager_api)
 app.register_blueprint(model_chain_api)
+app.register_blueprint(system_monitor_api)
+app.register_blueprint(auth)
+app.register_blueprint(user_management_api)
+app.register_blueprint(conversation_api)
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/profile')
+def profile():
+    return render_template('profile.html')
 
 @app.route('/api/models')
 def get_models():

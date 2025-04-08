@@ -64,6 +64,30 @@ Models are automatically categorized by family:
 - Usage statistics
 - Performance optimization settings
 
+### Authentication & User Management
+
+#### Account Types
+- **Guest Mode**: Immediate access with local storage
+- **Registered User**: Full access with account features
+
+#### Authentication Methods
+- Email/password login
+- OAuth2 social login
+- "Remember me" option for persistent sessions
+
+#### Account Management
+- Profile settings
+- Password management
+- Email verification
+- Session management
+- Usage statistics
+
+#### Security Features
+- Secure password hashing
+- JWT-based session management
+- Role-based access control
+- Audit logging
+
 ## Troubleshooting
 
 ### Common Issues

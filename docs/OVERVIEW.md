@@ -4,25 +4,34 @@ Free Thinkers is a powerful, local-first AI chat interface designed to provide a
 
 ## Core Features
 
-### Local First Architecture
+#### Authentication & User Management
+- Multi-user support with secure authentication
+- Guest mode with local storage
+- Registered user accounts with email verification
+- OAuth2 integration for social login
+- Role-based access control
+- Secure session management with JWT
+- Profile management and settings
+
+#### Local First Architecture
 - Runs entirely on your machine without relying on cloud services
 - All data processing and model inference happens locally
 - No internet connection required for core functionality
 - Maintains user privacy by keeping data local
 
-### High Performance
+#### High Performance
 - Optimized for Apple Silicon M4 chips with GPU acceleration
 - Utilizes Metal framework for enhanced processing speed
 - Configured for optimal memory usage and response times
 - Supports multiple concurrent model interactions
 
-### User Experience
+#### User Experience
 - Clean, minimalist interface with dark mode support
 - Real-time loading animations with model context information
 - Smooth transitions and auto-scroll functionality
 - Organized conversation history management
 
-### Model Support
+#### Model Support
 - Compatible with multiple LLMs through Ollama integration
 - Supports popular models including:
   - Mistral
@@ -33,7 +42,7 @@ Free Thinkers is a powerful, local-first AI chat interface designed to provide a
 - Customizable model parameters and settings
 - Optimized prompts for better output quality
 
-### Technical Architecture
+#### Technical Architecture
 - Built with Python Flask for the backend
 - Modern web technologies for the frontend
 - Uses Ollama as the model inference engine

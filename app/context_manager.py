@@ -25,6 +25,7 @@ AGGRESSIVE_SUMMARIZATION_THRESHOLD = 0.85  # When to use aggressive summarizatio
 
 # Directory for storing summaries
 SUMMARIES_DIR = Path(os.path.expanduser("~/.freethinkers/summaries/"))
+SETTINGS_FILE = Path(os.path.expanduser("~/.freethinkers/context_settings.json"))
 
 class ContextManager:
     """
@@ -35,7 +36,15 @@ class ContextManager:
         """Initialize the context manager."""
         self.model_name = model_name
         self.context_window = MAX_CONTEXT_WINDOW
+        self.enable_summarization = True
+        self.enable_pruning = True
         self.summaries = {}
+        self.latest_conversation = []
+        
+        # Load settings if available
+        self.load_settings()
+        
+        # Load existing summaries
         self.load_summaries()
         
         # Ensure summaries directory exists
@@ -57,6 +66,44 @@ class ContextManager:
                     print(f"Error loading summary file {file}: {e}")
         except Exception as e:
             print(f"Error loading summaries: {e}")
+    
+    def load_settings(self):
+        """Load context management settings from disk."""
+        try:
+            if SETTINGS_FILE.exists():
+                with open(SETTINGS_FILE, 'r') as f:
+                    settings = json.load(f)
+                    
+                    if 'context_window' in settings:
+                        self.context_window = settings['context_window']
+                        
+                    if 'enable_summarization' in settings:
+                        self.enable_summarization = settings['enable_summarization']
+                        
+                    if 'enable_pruning' in settings:
+                        self.enable_pruning = settings['enable_pruning']
+        except Exception as e:
+            print(f"Error loading context settings: {e}")
+    
+    def save_settings(self):
+        """Save context management settings to disk."""
+        try:
+            # Ensure parent directory exists
+            SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            
+            settings = {
+                'context_window': self.context_window,
+                'enable_summarization': self.enable_summarization,
+                'enable_pruning': self.enable_pruning
+            }
+            
+            with open(SETTINGS_FILE, 'w') as f:
+                json.dump(settings, f, indent=2)
+                
+            return True
+        except Exception as e:
+            print(f"Error saving context settings: {e}")
+            return False
     
     def save_summary(self, thread_id, summary_data):
         """Save a conversation summary to disk."""
@@ -395,3 +442,7 @@ class ContextManager:
             return "medium"
         else:
             return "heavy"
+    
+    def get_latest_conversation(self):
+        """Get the latest conversation."""
+        return self.latest_conversation

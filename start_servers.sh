@@ -72,7 +72,7 @@ start_servers() {
     fi
     
     # Start Flask app with virtual environment
-    source .venv/bin/activate && python app.py &
+    source venv/bin/activate && python app.py &
     FLASK_PID=$!
     
     # Wait for Flask to start

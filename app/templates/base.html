@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Free Thinkers - Local AI Chat{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css?v=0.2.0" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css?v=0.2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components/model_management.css') }}?v=0.2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}?v=0.2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components/conversation_manager.css') }}?v=0.2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/templates.css') }}?v=0.3.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=0.1.0">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="brand-container">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h1 class="header-title">Free Thinkers</h1>
+        </div>
+        
+        <div class="nav-controls">
+            <button class="nav-btn" id="models-btn">
+                <i class="fas fa-microchip"></i>
+                <span class="nav-btn-text">Models</span>
+            </button>
+            <button class="nav-btn" id="parameters-btn">
+                <i class="fas fa-sliders-h"></i>
+                <span class="nav-btn-text">Parameters</span>
+            </button>
+            <button class="nav-btn" id="templates-btn">
+                <i class="fas fa-file-alt"></i>
+                <span class="nav-btn-text">Templates</span>
+            </button>
+            <button class="nav-btn" id="chat-history-btn">
+                <i class="fas fa-history"></i>
+                <span class="nav-btn-text">History</span>
+            </button>
+            <!-- Auth controls will be inserted here by auth.js -->
+            <button class="nav-btn" id="theme-toggle-btn">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
+    
+    <!-- Auth Components -->
+    {% include 'components/auth_modal.html' %}
+    
+    <!-- Base Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=0.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@3.0.7/marked.min.js?v=0.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js?v=0.2.0"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}?v=0.1.0"></script>
+    
+    <!-- Page-specific Scripts -->
+    {% block scripts %}{% endblock %}
+    
+    <!-- Auth UI Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Find the header navigation controls
+        const navControls = document.querySelector('.nav-controls');
+        
+        if (navControls) {
+            // Create auth buttons
+            const authContainer = document.createElement('div');
+            authContainer.className = 'auth-controls';
+            authContainer.style.display = 'flex';
+            authContainer.style.alignItems = 'center';
+            authContainer.style.marginLeft = '1rem';
+            
+            // Login/Register button (shown when not authenticated)
+            const loginBtn = document.createElement('button');
+            loginBtn.className = 'nav-btn login-btn';
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span class="nav-btn-text">Login</span>';
+            loginBtn.onclick = function() {
+                AuthManager.showAuthModal('login-tab');
+            };
+            
+            // User menu button (shown when authenticated)
+            const userBtn = document.createElement('div');
+            userBtn.className = 'user-avatar-container';
+            userBtn.style.display = 'none';
+            
+            const userAvatar = document.createElement('img');
+            userAvatar.className = 'user-avatar';
+            userAvatar.src = '/static/images/default-avatar.png';
+            userAvatar.alt = 'User Avatar';
+            userAvatar.id = 'header-user-avatar';
+            
+            userBtn.appendChild(userAvatar);
+            
+            userBtn.onclick = function() {
+                const profileMenu = document.getElementById('user-profile-menu');
+                profileMenu.classList.toggle('active');
+                
+                // Position the menu
+                profileMenu.style.top = (userBtn.offsetTop + userBtn.offsetHeight + 5) + 'px';
+                profileMenu.style.right = '20px';
+                
+                // Close menu when clicking outside
+                const closeMenu = function(e) {
+                    if (!profileMenu.contains(e.target) && !userBtn.contains(e.target)) {
+                        profileMenu.classList.remove('active');
+                        document.removeEventListener('click', closeMenu);
+                    }
+                };
+                
+                // Add with a slight delay to prevent immediate closing
+                setTimeout(() => {
+                    document.addEventListener('click', closeMenu);
+                }, 100);
+            };
+            
+            // Add buttons to auth container
+            authContainer.appendChild(loginBtn);
+            authContainer.appendChild(userBtn);
+            
+            // Add separator
+            const separator = document.createElement('div');
+            separator.className = 'nav-separator';
+            separator.style.height = '24px';
+            separator.style.width = '1px';
+            separator.style.backgroundColor = 'var(--border-color)';
+            separator.style.margin = '0 0.5rem';
+            
+            // Insert auth buttons before the last button (theme toggle)
+            navControls.insertBefore(separator, navControls.lastChild);
+            navControls.insertBefore(authContainer, navControls.lastChild);
+            
+            // Update UI based on auth state
+            AuthManager.on('onAuthChange', function(state) {
+                if (state.isAuthenticated) {
+                    loginBtn.style.display = 'none';
+                    userBtn.style.display = 'block';
+                    
+                    // Update avatar if available
+                    const user = AuthManager.getCurrentUser();
+                    if (user && user.avatar) {
+                        userAvatar.src = user.avatar;
+                    }
+                } else {
+                    loginBtn.style.display = 'block';
+                    userBtn.style.display = 'none';
+                }
+            });
+        }
+    });
+    </script>
+</body>
+</html>

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/conversation_manager.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/templates.css') }}?v=0.3.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=0.1.0">
     <!-- Will be loaded after DOM content loaded -->
     <style>
         :root {
@@ -2986,5 +2987,126 @@
         }
     });
     </script>
+    
+    <!-- Authentication system -->
+    <script src="{{ url_for('static', filename='js/auth.js') }}?v=0.1.0"></script>
+    
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Login</h2>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" name="username" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" name="password" class="form-control" required>
+          </div>
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="remember-me" name="remember_me">
+            <label for="remember-me">Remember me</label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Login</button>
+            <button type="button" class="btn btn-secondary" id="register-btn">Register</button>
+            <button type="button" class="btn btn-secondary" id="guest-btn">Continue as Guest</button>
+          </div>
+          <div id="login-message" style="margin-top: 10px; color: red;"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Register</h2>
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" name="username" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" name="email" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" name="password" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="register-confirm">Confirm Password</label>
+            <input type="password" id="register-confirm" name="confirm_password" class="form-control" required>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Register</button>
+            <button type="button" class="btn btn-secondary" id="login-btn">Back to Login</button>
+          </div>
+          <div id="register-message" style="margin-top: 10px; color: red;"></div>
+        </form>
+      </div>
+    </div>
+
+    <style>
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .checkbox-group label {
+      margin-bottom: 0;
+    }
+    </style>
 </body>
 </html>

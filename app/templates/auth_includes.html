@@ -1,0 +1,98 @@
+<!-- Authentication Components -->
+{% include 'components/auth_modal.html' %}
+
+<!-- Auth Scripts -->
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=0.1.0"></script>
+
+<!-- This script adds authentication UI elements to the header -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the header navigation controls
+    const navControls = document.querySelector('.nav-controls');
+    
+    if (navControls) {
+        // Create auth buttons
+        const authContainer = document.createElement('div');
+        authContainer.className = 'auth-controls';
+        authContainer.style.display = 'flex';
+        authContainer.style.alignItems = 'center';
+        authContainer.style.marginLeft = '1rem';
+        
+        // Login/Register button (shown when not authenticated)
+        const loginBtn = document.createElement('button');
+        loginBtn.className = 'nav-btn login-btn';
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span class="nav-btn-text">Login</span>';
+        loginBtn.onclick = function() {
+            AuthManager.showAuthModal('login-tab');
+        };
+        
+        // User menu button (shown when authenticated)
+        const userBtn = document.createElement('div');
+        userBtn.className = 'user-avatar-container';
+        userBtn.style.display = 'none';
+        
+        const userAvatar = document.createElement('img');
+        userAvatar.className = 'user-avatar';
+        userAvatar.src = '/static/images/default-avatar.png';
+        userAvatar.alt = 'User Avatar';
+        userAvatar.id = 'header-user-avatar';
+        
+        userBtn.appendChild(userAvatar);
+        
+        userBtn.onclick = function() {
+            const profileMenu = document.getElementById('user-profile-menu');
+            profileMenu.classList.toggle('active');
+            
+            // Position the menu
+            profileMenu.style.top = (userBtn.offsetTop + userBtn.offsetHeight + 5) + 'px';
+            profileMenu.style.right = '20px';
+            
+            // Close menu when clicking outside
+            const closeMenu = function(e) {
+                if (!profileMenu.contains(e.target) && !userBtn.contains(e.target)) {
+                    profileMenu.classList.remove('active');
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            
+            // Add with a slight delay to prevent immediate closing
+            setTimeout(() => {
+                document.addEventListener('click', closeMenu);
+            }, 100);
+        };
+        
+        // Add buttons to auth container
+        authContainer.appendChild(loginBtn);
+        authContainer.appendChild(userBtn);
+        
+        // Add separator
+        const separator = document.createElement('div');
+        separator.className = 'nav-separator';
+        separator.style.height = '24px';
+        separator.style.width = '1px';
+        separator.style.backgroundColor = 'var(--border-color)';
+        separator.style.margin = '0 0.5rem';
+        
+        // Insert auth buttons before the last button (theme toggle)
+        navControls.insertBefore(separator, navControls.lastChild);
+        navControls.insertBefore(authContainer, navControls.lastChild);
+        
+        // Update UI based on auth state
+        AuthManager.on('onAuthChange', function(state) {
+            if (state.isAuthenticated) {
+                loginBtn.style.display = 'none';
+                userBtn.style.display = 'block';
+                
+                // Update avatar if available
+                const user = AuthManager.getCurrentUser();
+                if (user && user.avatar) {
+                    userAvatar.src = user.avatar;
+                }
+            } else {
+                loginBtn.style.display = 'block';
+                userBtn.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
