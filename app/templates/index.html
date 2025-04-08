@@ -1815,22 +1815,129 @@
                 // Clear input
                 messageInput.value = '';
                 
+                // Check if we need context optimization using the context manager
+                if (window.contextManager) {
+                    // Update context visualization
+                    await window.contextManager.updateContextVisualization(currentThread);
+                    
+                    // Check if optimization is needed (over context window)
+                    if (window.contextManager.currentUsage.usage_percentage > 100) {
+                        console.log("Context optimization needed - over limit");
+                        
+                        // Show optimization message
+                        const loadingModelInfo = document.getElementById('loadingModelInfo');
+                        if (loadingModelInfo) {
+                            loadingModelInfo.textContent = `Optimizing conversation context...`;
+                            loadingIndicator.style.display = 'block';
+                        }
+                        
+                        // Optimize the context
+                        const threadId = activeConversation ? activeConversation.id : null;
+                        const optimizedThread = await window.contextManager.optimizeContext(currentThread, threadId);
+                        
+                        // Replace current thread with optimized version if optimization succeeded
+                        if (optimizedThread && Array.isArray(optimizedThread)) {
+                            currentThread = optimizedThread;
+                            
+                            // Sync with conversation manager
+                            if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                                window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                            }
+                            
+                            // Re-render messages with optimized thread
+                            renderMessages();
+                        }
+                    }
+                }
+                
                 // Render messages
                 renderMessages();
                 
-                // Show loading indicator with model info
-                const loadingModelInfo = document.getElementById('loadingModelInfo');
-                loadingModelInfo.textContent = `Using ${currentModel} model...`;
-                loadingIndicator.style.display = 'block';
+                // Check if we should use model chain processing
+                let useModelChain = false;
+                let chainProcessing = null;
                 
-                // Scroll to loading indicator
-                loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                if (window.modelChain && window.modelChain.isChainEnabled()) {
+                    try {
+                        // Show chain processing indicator
+                        const loadingModelInfo = document.getElementById('loadingModelInfo');
+                        if (loadingModelInfo) {
+                            const chainName = window.modelChain.chains[window.modelChain.currentChain]?.name || 'Model Chain';
+                            loadingModelInfo.textContent = `Processing with ${chainName}...`;
+                            loadingIndicator.style.display = 'block';
+                        }
+                        
+                        // Process with chain
+                        useModelChain = true;
+                        chainProcessing = await window.modelChain.processWithChain(userInput);
+                        
+                        console.log('Chain processing result:', chainProcessing);
+                        
+                        // Add assistant message with chain result
+                        currentThread.push({
+                            role: 'assistant',
+                            content: chainProcessing.output,
+                            chainDetails: chainProcessing.details
+                        });
+                        
+                        // Update display
+                        renderMessages();
+                        
+                        // Sync with conversation manager
+                        if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                            window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                        }
+                        
+                        // Save to history
+                        saveToHistory({
+                            model: "chain:" + window.modelChain.currentChain,
+                            messages: currentThread
+                        });
+                        
+                        // Hide loading indicator smoothly
+                        loadingIndicator.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingIndicator.style.display = 'none';
+                            loadingIndicator.style.opacity = '1';
+                        }, 300);
+                        
+                        // Re-enable UI
+                        sendMessage.disabled = false;
+                        cancelResponse.style.display = 'none';
+                        
+                        return;
+                    } catch (error) {
+                        console.error('Error in chain processing:', error);
+                        
+                        // Add error message and continue with normal processing
+                        currentThread.push({
+                            role: 'assistant',
+                            content: `Error in chain processing: ${error.message}. Falling back to standard model.`
+                        });
+                        
+                        renderMessages();
+                        
+                        // Continue with normal processing
+                        useModelChain = false;
+                    }
+                }
                 
-                // Disable send button
-                sendMessage.disabled = true;
-                
-                // Show cancel button
-                cancelResponse.style.display = 'block';
+                // Only continue with standard processing if not using chain or chain failed
+                if (!useModelChain) {
+                    // Show loading indicator with model info
+                    const loadingModelInfo = document.getElementById('loadingModelInfo');
+                    loadingModelInfo.textContent = `Using ${currentModel} model...`;
+                    loadingIndicator.style.display = 'block';
+                    
+                    // Scroll to loading indicator
+                    loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    
+                    // Disable send button
+                    sendMessage.disabled = true;
+                    
+                    // Show cancel button
+                    cancelResponse.style.display = 'block';
+                }
                 
                 try {
                     // Create a new AbortController
@@ -2250,7 +2357,19 @@
                 }
                 
                 chatMessages.innerHTML = currentThread.map(msg => {
-                    if (msg.role === 'user' && msg.image) {
+                    if (msg.role === 'system' && msg.content.includes('summary')) {
+                        // This is a context summary message from optimization
+                        return `
+                            <div class="message system-message context-summary">
+                                <div class="context-summary-header">
+                                    <i class="fas fa-compress-alt"></i> Context Summary
+                                </div>
+                                <div class="context-summary-content">
+                                    ${msg.content}
+                                </div>
+                            </div>
+                        `;
+                    } else if (msg.role === 'user' && msg.image) {
                         // User message with image
                         return `
                             <div class="message user-message message-with-image">
@@ -2260,6 +2379,19 @@
                                 <div>${msg.content || 'Analyze this image'}</div>
                                 <div class="message-image">
                                     <img src="data:${msg.image.type};base64,${msg.image.data}" alt="User uploaded image" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+                                </div>
+                            </div>
+                        `;
+                    } else if (msg.role === 'assistant' && msg.chainDetails) {
+                        // Assistant message with chain processing details
+                        return `
+                            <div class="message assistant-message">
+                                <div class="message-content">${msg.content}</div>
+                                <div class="chain-details-toggle" onclick="toggleChainDetails(this)">
+                                    <i class="fas fa-cogs"></i> Show chain processing details
+                                </div>
+                                <div class="chain-details" style="display: none;">
+                                    ${msg.chainDetails}
                                 </div>
                             </div>
                         `;
@@ -2274,7 +2406,86 @@
                 }).join('');
                 
                 chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // Update context visualization if available
+                if (window.contextManager) {
+                    window.contextManager.updateContextVisualization(currentThread);
+                }
             }
+            
+            // Add style for context summary messages and chain details
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+                .message.system-message.context-summary {
+                    background-color: #f0f7ff;
+                    border-left: 4px solid #0d6efd;
+                    font-size: 0.95rem;
+                }
+                
+                .context-summary-header {
+                    font-weight: 500;
+                    color: #0d6efd;
+                    margin-bottom: 0.25rem;
+                }
+                
+                .dark-mode .message.system-message.context-summary {
+                    background-color: #1a2537;
+                    border-left: 4px solid #3b82f6;
+                }
+                
+                .dark-mode .context-summary-header {
+                    color: #3b82f6;
+                }
+                
+                .chain-details-toggle {
+                    margin-top: 0.75rem;
+                    font-size: 0.85rem;
+                    color: #0d6efd;
+                    cursor: pointer;
+                    display: inline-block;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 4px;
+                    background-color: rgba(13, 110, 253, 0.1);
+                }
+                
+                .chain-details-toggle:hover {
+                    background-color: rgba(13, 110, 253, 0.2);
+                }
+                
+                .chain-details {
+                    margin-top: 0.75rem;
+                    border-top: 1px solid #dee2e6;
+                    padding-top: 0.75rem;
+                }
+                
+                .dark-mode .chain-details-toggle {
+                    color: #60a5fa;
+                    background-color: rgba(96, 165, 250, 0.1);
+                }
+                
+                .dark-mode .chain-details-toggle:hover {
+                    background-color: rgba(96, 165, 250, 0.2);
+                }
+                
+                .dark-mode .chain-details {
+                    border-top-color: #4b5563;
+                }
+            `;
+            document.head.appendChild(styleElement);
+            
+            // Function to toggle chain details visibility
+            window.toggleChainDetails = function(element) {
+                const detailsElement = element.nextElementSibling;
+                if (detailsElement) {
+                    const isCurrentlyHidden = detailsElement.style.display === 'none';
+                    detailsElement.style.display = isCurrentlyHidden ? 'block' : 'none';
+                    
+                    // Update toggle text
+                    element.innerHTML = isCurrentlyHidden ? 
+                        '<i class="fas fa-cogs"></i> Hide chain processing details' : 
+                        '<i class="fas fa-cogs"></i> Show chain processing details';
+                }
+            };
 
             // Save to history
             function saveToHistory(thread) {
@@ -2464,6 +2675,15 @@
     
     <!-- Include parameter controls component -->
     <script src="{{ url_for('static', filename='components/parameter_controls.js') }}"></script>
+    
+    <!-- Include parameter profiles component -->
+    <script src="{{ url_for('static', filename='components/parameter_profiles.js') }}"></script>
+    
+    <!-- Include context manager component -->
+    <script src="{{ url_for('static', filename='js/context_manager.js') }}"></script>
+    
+    <!-- Include model chain component -->
+    <script src="{{ url_for('static', filename='js/model_chain.js') }}"></script>
     
     <!-- Include notification system (must come first) -->
     <script src="{{ url_for('static', filename='js/notification_system.js') }}"></script>

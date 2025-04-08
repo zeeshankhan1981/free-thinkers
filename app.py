@@ -13,6 +13,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.model_management import model_management
 from app.templates_api import templates_api
+from app.parameter_profiles_api import parameter_profiles_api
+from app.context_manager_api import context_manager_api
+from app.model_chain_api import model_chain_api
 
 # Explicitly setting correct paths for templates and static files
 app = Flask(__name__, 
@@ -364,6 +367,9 @@ def get_thread(thread_id):
 # Register blueprints
 app.register_blueprint(model_management, url_prefix='/model_management')
 app.register_blueprint(templates_api, url_prefix='/templates')
+app.register_blueprint(parameter_profiles_api)
+app.register_blueprint(context_manager_api)
+app.register_blueprint(model_chain_api)
 
 @app.route('/')
 def index():
