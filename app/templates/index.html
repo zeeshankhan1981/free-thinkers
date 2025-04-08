@@ -479,6 +479,17 @@
             }
         }
         
+        /* Pulsing animation for thinking indicator */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .thinking-pulse {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
         /* Chain processing styles */
         .chain-progress {
             display: flex;
@@ -492,16 +503,19 @@
             border-radius: 4px;
             overflow: hidden;
             margin-top: 0.5rem;
+            height: 8px;
         }
         
         .chain-progress .current-step {
             font-weight: 500;
             font-size: 0.9rem;
+            color: #f8f9fa;
         }
         
         .chain-progress .steps-indicator {
             font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.8);
+            margin-top: 4px;
         }
         
         .dark-mode .chain-progress-bar {
@@ -510,6 +524,150 @@
         
         .dark-mode .chain-progress .steps-indicator {
             color: rgba(200, 200, 200, 0.8);
+        }
+        
+        /* Chain result formatting styles */
+        .chain-result {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-top: 10px;
+            overflow: hidden;
+            background-color: #f8f9fa;
+        }
+        
+        .dark-mode .chain-result {
+            background-color: #2d2d2d;
+            border-color: #444;
+        }
+        
+        .chain-summary {
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        
+        .dark-mode .chain-summary {
+            background-color: rgba(13, 110, 253, 0.2);
+        }
+        
+        .chain-steps-container {
+            padding: 15px;
+        }
+        
+        .chain-result-step {
+            padding: 10px;
+            border-radius: 6px;
+            background-color: white;
+            margin-bottom: 5px;
+        }
+        
+        .dark-mode .chain-result-step {
+            background-color: #333;
+        }
+        
+        .chain-result-step-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            color: white;
+            font-size: 0.8rem;
+        }
+        
+        .model-badge {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: normal;
+        }
+        
+        .dark-mode .model-badge {
+            background-color: #495057;
+            color: #e9ecef;
+        }
+        
+        .step-output {
+            white-space: pre-wrap;
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        
+        .dark-mode .step-output {
+            background-color: #2d2d2d;
+        }
+        
+        .step-error {
+            color: #dc3545;
+            padding: 8px;
+            background-color: rgba(220, 53, 69, 0.1);
+            border-radius: 4px;
+        }
+        
+        .step-warning {
+            color: #fd7e14;
+            padding: 8px;
+            background-color: rgba(253, 126, 20, 0.1);
+            border-radius: 4px;
+        }
+        
+        .step-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 5px 0;
+            height: 20px;
+        }
+        
+        .connector-line {
+            width: 2px;
+            height: 10px;
+            background-color: #dee2e6;
+        }
+        
+        .connector-arrow {
+            color: #0d6efd;
+            font-size: 16px;
+            line-height: 1;
+        }
+        
+        .dark-mode .connector-line {
+            background-color: #495057;
+        }
+        
+        .code-block {
+            background-color: #f1f3f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .dark-mode .code-block {
+            background-color: #212529;
         }
     </style>
     <style>
@@ -1148,13 +1306,13 @@
             </div>
             <div class="loading-indicator" id="loadingIndicator">
                 <div class="loading-content">
-                    <div class="model-info" id="loadingModelInfo"></div>
+                    <div class="model-info thinking-pulse" id="loadingModelInfo"></div>
                     <div class="thinking-animation">
                         <div class="thinking-dot"></div>
                         <div class="thinking-dot"></div>
                         <div class="thinking-dot"></div>
                     </div>
-                    <div class="loading-text">Model is thinking...</div>
+                    <div class="loading-text thinking-pulse">Model is thinking...</div>
                 </div>
             </div>
         </div>

@@ -558,32 +558,56 @@ class ModelChain {
             return '<div class="text-danger">Invalid chain result</div>';
         }
         
-        let html = '<div class="chain-result">';
-        html += `<div class="chain-result-header mb-2">Chain: ${result.chain_id}</div>`;
+        let html = `<div class="chain-result">
+            <details class="chain-details">
+                <summary class="chain-summary">
+                    <span class="chain-icon"><i class="fas fa-info-circle"></i></span>
+                    <span class="chain-summary-text">Details of the ${result.chain_id} processing pipeline</span>
+                </summary>
+                <div class="chain-steps-container">`;
         
         // Add each step
         result.steps.forEach((step, index) => {
-            html += `<div class="chain-result-step">`;
-            html += `<div class="chain-result-step-title">Step ${index + 1}: ${step.name || 'Processing'} (${step.model})</div>`;
+            html += `<div class="chain-result-step">
+                <div class="chain-result-step-title">
+                    <span class="step-number">${index + 1}</span>
+                    <span class="step-name">${step.name || 'Processing'}</span>
+                    <span class="model-badge">${step.model}</span>
+                </div>`;
             
             if (step.status === 'error') {
-                html += `<div class="text-danger">Error: ${step.error}</div>`;
+                html += `<div class="step-error">Error: ${step.error}</div>`;
             } else if (step.status === 'skipped') {
-                html += `<div class="text-warning">Skipped: ${step.error || 'Step was skipped'}</div>`;
+                html += `<div class="step-warning">Skipped: ${step.error || 'Step was skipped'}</div>`;
             } else {
                 // Truncate very long outputs
                 let outputContent = step.output;
-                if (outputContent && outputContent.length > 500) {
-                    outputContent = outputContent.substring(0, 500) + '... [truncated]';
+                if (outputContent && outputContent.length > 300) {
+                    outputContent = outputContent.substring(0, 300) + '... [truncated]';
                 }
                 
-                html += `<div class="chain-result-step-content">${outputContent || 'No output'}</div>`;
+                // Format code blocks with syntax highlighting if present
+                if (outputContent && outputContent.includes('```')) {
+                    // Simple code block formatting
+                    outputContent = outputContent.replace(/```(\w*)\n([\s\S]*?)```/g, 
+                        '<pre class="code-block"><code>$2</code></pre>');
+                }
+                
+                html += `<div class="step-output">${outputContent || 'No output'}</div>`;
             }
             
             html += `</div>`;
+            
+            // Add connector between steps except for the last one
+            if (index < result.steps.length - 1) {
+                html += `<div class="step-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow">↓</div>
+                </div>`;
+            }
         });
         
-        html += '</div>';
+        html += `</div></details></div>`;
         return html;
     }
     
