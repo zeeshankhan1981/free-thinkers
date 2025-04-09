@@ -59,16 +59,53 @@ These features were implemented with clean, maintainable JavaScript and best pra
 ## Available Models
 Free Thinkers supports multiple language models, each with its own strengths and characteristics. The available models are:
 
-### Model Management
+### Supported Models and Parameters
 
-#### Supported Models
-- **Mistral**: Latest version with advanced reasoning capabilities
-- **Llama 3.x**: Latest iteration of the Llama series
-- **Llama 2 Uncensored**: Community version of Llama 2
-- **Phi**: Latest version with improved performance
-- **Zephyr**: Latest version with enhanced capabilities
-- **Gemma 3.x**: Latest version of the Gemma series
-- **Gemma 1B**: Lightweight version for resource-constrained environments
+1. **Mistral 7B**
+   - Best for: Fast, general-purpose tasks, concise outputs
+   - Default Parameters:
+     - Temperature: 0.7
+     - Top P: 0.95
+     - Top K: 40
+     - GPU Layers: 36
+     - Max Tokens: 4096
+   - Use Case: Ideal for quick responses and general tasks
+
+2. **LLaMA 3.2**
+   - Best for: General-purpose tasks, balanced outputs
+   - Default Parameters:
+     - Temperature: 0.7
+     - Top P: 0.9
+     - Top K: 40
+     - GPU Layers: 40
+     - Max Tokens: 4096
+   - Use Case: Balanced performance between speed and quality
+
+3. **LLaVA Phi 3** (Multimodal)
+   - Best for: Image analysis and description
+   - Default Parameters:
+     - Temperature: 0.65
+     - Top P: 0.85
+     - Top K: 30
+     - GPU Layers: 32
+     - Max Tokens: 4096
+   - Use Case: Analyzing images and providing descriptions
+
+#### Speed Settings
+- **Slow Mode**: Optimized for quality
+  - Mistral: temp=0.8, top_p=0.9, top_k=50, max_tokens=2048
+  - LLaMA: temp=0.8, top_p=0.9, top_k=50, max_tokens=2048
+  - LLava: temp=0.7, top_p=0.9, top_k=30, max_tokens=768
+
+- **Medium Mode**: Balanced performance
+  - Mistral: temp=0.7, top_p=0.95, top_k=40, max_tokens=1024
+  - LLaMA: temp=0.7, top_p=0.9, top_k=40, max_tokens=1024
+  - LLava: temp=0.6, top_p=0.85, top_k=20, max_tokens=512
+
+- **Fast Mode**: Optimized for speed
+  - Mistral: temp=0.6, top_p=0.9, top_k=30, max_tokens=512
+  - LLaMA: temp=0.6, top_p=0.8, top_k=30, max_tokens=512
+  - LLava: temp=0.5, top_p=0.75, top_k=10, max_tokens=256
 
 ### Model Comparison
 
@@ -83,43 +120,6 @@ Free Thinkers supports multiple language models, each with its own strengths and
 | mistral-7b:latest | 7B | ~7GB | Balanced performance | Text-only |
 | zephyr:latest | N/A | N/A | Conversational AI | Text-only |
 | llava-phi3:latest | 3.8B | ~4GB | Image analysis and description | Text + Image |
-
-### Model Parameters
-
-#### Temperature
-- Controls the randomness of the model's output
-- Range: 0.0 to 1.0
-- Lower values (e.g., 0.2) make the output more deterministic and focused
-- Higher values (e.g., 0.9) make the output more creative and varied
-- Default: 0.7
-
-#### Top P (Nucleus Sampling)
-- Controls the diversity of the model's output by sampling from the top P% of the probability distribution
-- Range: 0.0 to 1.0
-- Lower values (e.g., 0.5) make the output more focused and deterministic
-- Higher values (e.g., 0.9) make the output more diverse and creative
-- Default: 0.95
-
-#### Top K
-- Controls the diversity of the model's output by sampling from the top K most likely tokens
-- Range: 1 to 100
-- Lower values (e.g., 10) make the output more focused and deterministic
-- Higher values (e.g., 50) make the output more diverse and creative
-- Default: 40
-
-#### Repetition Penalty
-- Controls how much the model penalizes repeated tokens
-- Range: 1.0 to 2.0
-- Lower values (e.g., 1.0) allow more repetition
-- Higher values (e.g., 1.5) discourage repetition
-- Default: 1.1
-
-#### Context Window
-- Controls the maximum number of tokens the model can remember
-- Range: 1024 to 4096
-- Lower values (e.g., 1024) make the model faster but with less context
-- Higher values (e.g., 4096) make the model slower but with more context
-- Default: 2048
 
 ## Performance Optimizations
 

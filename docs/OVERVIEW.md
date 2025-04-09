@@ -34,13 +34,9 @@ Free Thinkers is a powerful, local-first AI chat interface designed to provide a
 #### Model Support
 - Compatible with multiple LLMs through Ollama integration
 - Supports popular models including:
-  - Mistral
-  - Llama 3.x
-  - Llama 2 Uncensored
-  - Phi
-  - Zephyr
-  - Gemma 3.x
-  - Gemma 1B
+  - Mistral 7B
+  - LLaMA 3.2
+  - LLava Phi 3 (Multimodal)
 - Customizable model parameters and settings
 - Optimized prompts for better output quality
 
@@ -49,6 +45,10 @@ Free Thinkers is a powerful, local-first AI chat interface designed to provide a
 - Modern web technologies for the frontend
 - Uses Ollama as the model inference engine
 - Implements efficient caching and memory management
+- Optimized for Apple Silicon M4 chips with GPU acceleration
+- Utilizes Metal framework for enhanced processing speed
+- Configured for optimal memory usage and response times
+- Supports multiple concurrent model interactions
 
 ## Key Benefits
 
