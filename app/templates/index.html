@@ -6,14 +6,17 @@
     <title>Free Thinkers - Local AI Chat</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css?v=0.2.0" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css?v=0.2.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base-styles.css') }}?v=0.2.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-styles.css') }}?v=0.2.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components-styles.css') }}?v=0.2.0">
+    <!-- Load base styles first -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base-styles.css') }}?v=0.2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-styles.css') }}?v=0.2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components-styles.css') }}?v=0.2.1">
+    <!-- Load component-specific styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='components/model_management.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/conversation_manager.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/templates.css') }}?v=0.3.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=0.1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/streamlined.css') }}?v=0.1.0">
 </head>
 <body>
     <header class="header">
@@ -65,25 +68,57 @@
         </div>
 
         <div class="input-container">
-            <div class="model-select mb-3 d-flex">
-                <label for="modelSelect" class="model-select-label me-2">Model:</label>
-                <select class="form-select" id="modelSelect">
-                    <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
-                    <option value="llama3.2" selected>Llama 3.2</option>
-                    <option value="llava-phi3:latest">LLaVA-Phi3 (Multimodal)</option>
-                </select>
-                <!-- Model management button will be added by model_integration.js -->
+            <div class="model-controls mb-3">
+                <div class="model-row">
+                    <div class="model-select">
+                        <label for="modelSelect" class="model-select-label me-2">Model:</label>
+                        <select class="form-select" id="modelSelect">
+                            <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
+                            <option value="llama3.2" selected>Llama 3.2</option>
+                            <option value="llava-phi3:latest">LLaVA-Phi3 (Multimodal)</option>
+                        </select>
+                        <!-- Model management button will be added by model_integration.js -->
+                    </div>
+                    
+                    <div class="response-speed-control" title="Control how the model generates responses">
+                        <label for="responseSpeed" class="response-speed-label">Response:</label>
+                        <select class="form-select" id="responseSpeed">
+                            <option value="slow">Precise</option>
+                            <option value="medium" selected>Balanced</option>
+                            <option value="fast">Creative</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="model-actions">
+                    <!-- Clear Messages Button -->
+                    <button class="btn btn-outline-secondary" id="clearMessages" title="Clear all messages">
+                        <i class="fas fa-trash-alt"></i> Clear
+                    </button>
+                    
+                    <!-- Image Upload Button (hidden by default) -->
+                    <button class="btn btn-outline-secondary" id="toggleImageUpload" title="Toggle image analysis mode" style="display: none;">
+                        <i class="fas fa-image"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="prompt-guide mb-3" id="promptGuide">
-                <div class="prompt-guide-title">
-                    <span id="promptGuideTitle">Best for: General Questions</span>
+                <div class="prompt-guide-header">
+                    <div class="prompt-guide-title">
+                        <i class="fas fa-lightbulb"></i> <span id="promptGuideTitle">Best for: General Questions</span>
+                    </div>
+                    <button class="btn btn-sm prompt-guide-toggle" id="togglePromptGuide" title="Toggle prompt guide visibility">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
                 </div>
-                <div class="prompt-guide-content" id="promptGuideUseCase"></div>
-                <div class="prompt-guide-content">Example: <span id="promptGuideExample"></span></div>
-                <div class="prompt-guide-tip" id="promptGuideTip"></div>
-                <div class="prompt-guide-actions">
-                    <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use This Example</button>
+                <div class="prompt-guide-body">
+                    <div class="prompt-guide-content" id="promptGuideUseCase"></div>
+                    <div class="prompt-guide-content prompt-example">Example: <span id="promptGuideExample"></span></div>
+                    <div class="prompt-guide-tip" id="promptGuideTip"></div>
+                    <div class="prompt-guide-actions">
+                        <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use This Example</button>
+                    </div>
                 </div>
             </div>
 
@@ -122,58 +157,64 @@
 
             <div class="input-group mb-3">
                 <textarea class="form-control" id="messageInput" placeholder="Type your message here..." maxlength="2048"></textarea>
-                <span class="char-counter" id="charCounter">0/2048</span>
+                <div class="input-group-append">
+                    <button type="button" class="btn btn-primary btn-send" id="sendMessage">
+                        <i class="fas fa-paper-plane" aria-hidden="true"></i> <span>Send</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="cancelResponse" style="display: none;">
+                        <i class="fas fa-times" aria-hidden="true"></i> <span>Cancel</span>
+                    </button>
+                </div>
             </div>
 
-            {% include 'components/token_visualization.html' %}
-
-            <!-- Enhanced Controls Group -->
-            <div class="control-group">
-                <div class="primary-controls">
-                    <button class="btn btn-primary send-btn" id="sendMessage">
-                        <i class="fas fa-paper-plane"></i> Send
-                    </button>
-                    <button class="btn btn-outline-secondary" id="cancelResponse">
-                        <i class="fas fa-times"></i> Cancel
+            <!-- Consolidated Usage Statistics Panel -->
+            <div class="usage-stats-panel" title="Token and context usage information">
+                <div class="usage-stats-header">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="usage-stats-title">Usage Statistics</span>
+                    <button class="toggle-stats-btn" id="toggleStatsBtn" title="Toggle detailed stats">
+                        <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
                 
-                <div class="secondary-controls">
-                    <!-- Clear Messages Button -->
-                    <button class="btn btn-outline-secondary" id="clearMessages" title="Clear all messages">
-                        <i class="fas fa-trash-alt"></i> Clear
-                    </button>
-                    
-                    <!-- Image Upload Button (hidden by default) -->
-                    <button class="btn btn-outline-secondary" id="toggleImageUpload" title="Toggle image analysis mode" style="display: none;">
-                        <i class="fas fa-image"></i>
-                    </button>
-                    
-                    <!-- Response Speed Dropdown with Label -->
-                    <div class="response-speed-control" title="Control how the model generates responses">
-                        <label for="responseSpeed" class="response-speed-label">Response:</label>
-                        <select class="form-select" id="responseSpeed">
-                            <option value="slow">Precise</option>
-                            <option value="medium" selected>Balanced</option>
-                            <option value="fast">Creative</option>
-                        </select>
+                <!-- Compact stats display - always visible -->
+                <div class="usage-stats-compact">
+                    <div class="compact-info">
+                        <span id="combinedTokenStats">
+                            <span id="charCountDisplay">0/2048 chars</span> · 
+                            <span id="tokenCountDisplay">0/4096 tokens (0%)</span>
+                        </span>
+                        <span class="context-stat" id="contextStats">Context: 73/4096 tokens (2%)</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-bar-fill" id="tokenBarFill" style="width: 0.1%"></div>
+                    </div>
+                </div>
+                
+                <!-- Detailed stats - collapsible -->
+                <div class="usage-stats-detailed" id="detailedStats" style="display: none;">
+                    <div class="detailed-info-grid">
+                        <div class="detailed-info-item">
+                            <div class="detailed-info-label">Input Tokens:</div>
+                            <div class="detailed-info-value" id="inputTokens">8</div>
+                        </div>
+                        <div class="detailed-info-item">
+                            <div class="detailed-info-label">Context Tokens:</div>
+                            <div class="detailed-info-value" id="contextTokens">73</div>
+                        </div>
+                        <div class="detailed-info-item">
+                            <div class="detailed-info-label">Max Tokens:</div>
+                            <div class="detailed-info-value" id="maxTokens">4096</div>
+                        </div>
+                        <div class="detailed-info-item">
+                            <div class="detailed-info-label">Total Usage:</div>
+                            <div class="detailed-info-value" id="totalUsage">2%</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Consolidated Token Stats Bar -->
-            <div class="token-stats-bar" title="Token usage affects model performance and response length">
-                <div class="token-stats-item">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span id="combinedTokenStats">
-                        <span id="charCountDisplay">0/2048 chars</span> · 
-                        <span id="tokenCountDisplay">0/4096 tokens (0%)</span>
-                    </span>
-                </div>
-                <div class="token-bar">
-                    <div class="token-bar-fill" id="tokenBarFill" style="width: 0.1%"></div>
-                </div>
-            </div>
+
+            <!-- Controls have been moved to the model controls section above -->
         </div>
     </div>
 
@@ -218,6 +259,9 @@
             let imageUploadEnabled = false;
             let selectedImage = null;
             
+            // Stats toggle state
+            let statsExpanded = false;
+            
             // Make resetImageUpload available globally
             window.resetImageUpload = function() {
                 imageUploadEnabled = false;
@@ -250,6 +294,8 @@
             const historyBtn = document.getElementById('historyBtn');
             const closeHistory = document.getElementById('closeHistory');
             const historySidebar = document.getElementById('historySidebar');
+            const toggleStatsBtn = document.getElementById('toggleStatsBtn');
+            const detailedStats = document.getElementById('detailedStats');
             
             // Image upload elements
             const toggleImageUploadBtn = document.getElementById('toggleImageUpload');
@@ -277,6 +323,16 @@
                 !promptGuideExampleEl || !promptGuideTipEl || !useExamplePromptBtn) {
                 console.error('Missing UI elements');
                 return;
+            }
+            
+            // Add toggle functionality for detailed stats
+            if (toggleStatsBtn && detailedStats) {
+                toggleStatsBtn.addEventListener('click', function() {
+                    statsExpanded = !statsExpanded;
+                    detailedStats.style.display = statsExpanded ? 'block' : 'none';
+                    this.classList.toggle('expanded', statsExpanded);
+                    this.querySelector('i').className = statsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+                });
             }
 
             // Fetch prompt guides for all models
@@ -323,24 +379,13 @@
                 const currentLength = this.value.length;
                 const charCounter = document.getElementById('charCounter');
                 
-                // Update original counter
-                if (charCounter) {
-                    charCounter.textContent = `${currentLength}/${maxLength}`;
-                    
-                    // Apply styling based on length
-                    charCounter.classList.remove('warning', 'danger');
-                    if (currentLength > maxLength * 0.8) {
-                        charCounter.classList.add('warning');
-                    }
-                    if (currentLength > maxLength * 0.95) {
-                        charCounter.classList.add('danger');
-                    }
-                }
+                // Character counter has been removed from input and is shown in usage stats
                 
                 // Update combined stats display
                 const charCountDisplay = document.getElementById('charCountDisplay');
                 const tokenCountDisplay = document.getElementById('tokenCountDisplay');
                 const tokenBarFill = document.getElementById('tokenBarFill');
+                const inputTokens = document.getElementById('inputTokens');
                 
                 if (charCountDisplay) {
                     charCountDisplay.textContent = `${currentLength}/${maxLength} chars`;
@@ -381,6 +426,22 @@
                     }
                 }
                 
+                // Update the detailed stats view if present
+                if (inputTokens) {
+                    inputTokens.textContent = estimatedTokens;
+                }
+                
+                // Update total usage in detailed view
+                const contextTokensEl = document.getElementById('contextTokens');
+                const totalUsageEl = document.getElementById('totalUsage');
+                
+                if (contextTokensEl && totalUsageEl) {
+                    const contextTokens = parseInt(contextTokensEl.textContent) || 0;
+                    const totalTokens = estimatedTokens + contextTokens;
+                    const totalPercentage = (totalTokens / modelInfo.max_tokens) * 100;
+                    totalUsageEl.textContent = `${totalPercentage.toFixed(1)}%`;
+                }
+                
                 // If we have the token visualization function, also call that
                 if (typeof updateTokenVisualization === 'function') {
                     updateTokenVisualization(this.value, currentModel);
@@ -413,6 +474,20 @@
                     messageInput.dispatchEvent(new Event('input'));
                 }
             });
+            
+            // Add toggle functionality for prompt guide
+            const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
+            if (togglePromptGuideBtn) {
+                togglePromptGuideBtn.addEventListener('click', function() {
+                    const promptGuideBody = document.querySelector('.prompt-guide-body');
+                    if (promptGuideBody) {
+                        const isVisible = !(promptGuideBody.style.display === 'none');
+                        promptGuideBody.style.display = isVisible ? 'none' : 'block';
+                        this.classList.toggle('collapsed', isVisible);
+                        this.querySelector('i').className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+                    }
+                });
+            }
 
             // Initialize image upload functionality
             function initImageUpload() {
@@ -757,6 +832,41 @@
                 if (window.contextManager) {
                     // Update context visualization
                     await window.contextManager.updateContextVisualization(currentThread);
+                    
+                    // Update the context stats display
+                    const contextStats = document.getElementById('contextStats');
+                    const contextTokensEl = document.getElementById('contextTokens');
+                    const maxTokensEl = document.getElementById('maxTokens');
+                    const totalUsageEl = document.getElementById('totalUsage');
+                    
+                    if (contextStats) {
+                        const ctxTokens = window.contextManager.currentUsage.tokens_used;
+                        const ctxMaxTokens = window.contextManager.currentUsage.token_limit;
+                        const ctxPercentage = window.contextManager.currentUsage.usage_percentage;
+                        
+                        contextStats.textContent = `Context: ${ctxTokens}/${ctxMaxTokens} tokens (${ctxPercentage.toFixed(1)}%)`;
+                        
+                        // Update warning classes
+                        contextStats.classList.remove('warning', 'danger');
+                        if (ctxPercentage > 70) {
+                            contextStats.classList.add('warning');
+                        }
+                        if (ctxPercentage > 90) {
+                            contextStats.classList.add('danger');
+                        }
+                        
+                        // Update detailed stats if available
+                        if (contextTokensEl) contextTokensEl.textContent = ctxTokens;
+                        if (maxTokensEl) maxTokensEl.textContent = ctxMaxTokens;
+                        
+                        // Update total usage
+                        if (totalUsageEl) {
+                            const inputTokens = parseInt(document.getElementById('inputTokens')?.textContent || '0');
+                            const totalTokens = inputTokens + ctxTokens;
+                            const totalPercentage = (totalTokens / ctxMaxTokens) * 100;
+                            totalUsageEl.textContent = `${totalPercentage.toFixed(1)}%`;
+                        }
+                    }
                     
                     // Check if optimization is needed (over context window)
                     if (window.contextManager.currentUsage.usage_percentage > 100) {

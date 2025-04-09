@@ -1,5 +1,53 @@
 # UI Design Guidelines
 
+## Streamlined Layout
+
+The UI has been streamlined with a modern, clean design that focuses on usability and efficiency:
+
+1. **Header**
+   - Fixed height of 65px
+   - Clean, minimal design with essential controls
+   - Smooth transitions for dark mode toggle
+
+2. **Input Section**
+   - Redesigned model selection and controls
+   - Integrated response speed control
+   - Enhanced prompt guide with toggle functionality
+   - Improved image upload interface
+
+3. **Message Display**
+   - Enhanced message bubbles with better spacing and transitions
+   - Improved context summary display
+   - Better visual hierarchy for user and assistant messages
+
+4. **Token Statistics**
+   - Consolidated usage statistics panel
+   - Detailed token usage breakdown
+   - Context token tracking
+   - Visual warnings for high usage
+
+5. **Color Scheme**
+   - Consistent use of CSS variables
+   - Improved dark mode support
+   - Better contrast for readability
+
+6. **Interactive Elements**
+   - Enhanced button styles with proper hover states
+   - Improved form control styling
+   - Better focus states for accessibility
+
+7. **Layout Improvements**
+   - Better responsive design
+   - Improved spacing and alignment
+   - Enhanced mobile support
+
+8. **Component Organization**
+   - Separated CSS into logical files:
+     - `base-styles.css`: Global variables and base styles
+     - `layout-styles.css`: Container and layout styles
+     - `components-styles.css`: UI component styles
+     - `streamlined.css`: Additional styling enhancements
+
 ## Todoist-Inspired UI
 
 To transform the web app UI to be inspired by Todoist, implement these specific changes:
@@ -57,6 +105,82 @@ Make these changes to the CSS variables and styles in the HTML template."
 ```
 
 Run the above command to have Claude Sonnet generate the necessary CSS modifications to achieve the Todoist-inspired look.
+
+## Implementation Details
+
+### CSS Organization
+```css
+/* Base styles and variables */
+:root {
+    --primary-color: #e44232;
+    --primary-hover: #c2362c;
+    --secondary-color: #6c757d;
+    --border-radius: 8px;
+    --spacing: 1rem;
+    --transition: all 0.2s ease;
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --border-color: #f5f5f5;
+    --bg-light: #f8f9fa;
+    --dark-bg-light: #2d2d2d;
+    --dark-text: #f8f9fa;
+}
+
+/* Dark mode support */
+.dark-mode {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+    --border-color: #333333;
+    --bg-light: #2d2d2d;
+    --dark-bg-light: #2d2d2d;
+    --dark-text: #f8f9fa;
+}
+```
+
+### Component Styles
+```css
+/* Message bubbles */
+.message {
+    max-width: 85%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    position: relative;
+    animation: slideIn 0.3s ease;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Token statistics */
+.usage-stats-panel {
+    margin-bottom: 1rem;
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius);
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Model controls */
+.model-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .control-group {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .primary-controls,
+    .secondary-controls {
+        width: 100%;
+        flex: none;
+    }
+}
+```
 
 ## Authentication UI Design
 

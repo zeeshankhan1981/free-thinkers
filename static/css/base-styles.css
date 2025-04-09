@@ -73,6 +73,13 @@ body {
     letter-spacing: normal;
 }
 
+/* Fix for button hover disappearing issue */
+.btn:hover,
+.btn:focus,
+.btn:active {
+    opacity: 1 !important;
+}
+
 /* Form control styles */
 .form-control,
 .form-select {

@@ -1,54 +1,55 @@
 .template-selector {
-    padding: 15px;
-    background-color: #f0f7ff;
-    border-radius: 8px;
-    border: 1px solid #007bff;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 1rem;
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     position: relative;
+    transition: all 0.3s ease;
 }
 
 .template-header {
-    margin-bottom: 12px;
-    color: #0056b3;
-    font-size: 16px;
+    margin-bottom: 0.75rem;
+    color: var(--primary-color);
+    font-size: 0.95rem;
     font-weight: 600;
     display: flex;
     align-items: center;
+    gap: 0.5rem;
 }
 
-.template-header::before {
-    content: "\f0ea"; /* Font Awesome template icon */
-    font-family: "Font Awesome 5 Free";
-    margin-right: 8px;
-    font-weight: 900;
+.template-header i {
+    color: var(--primary-color);
 }
 
 .template-dropdown {
     width: 100%;
-    margin-bottom: 15px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    padding: 10px 12px;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.65rem 0.85rem;
     cursor: pointer;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: var(--transition);
+    background-color: white;
+    color: var(--text-color);
 }
 
 .template-dropdown:focus, 
 .template-dropdown:hover {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.15);
 }
 
 .template-description {
-    font-size: 14px;
-    color: #6c757d;
-    margin-bottom: 15px;
-    padding: 10px 12px;
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    border-left: 4px solid #007bff;
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: rgba(0,123,255,0.05);
+    border-radius: var(--border-radius);
+    border-left: 3px solid var(--primary-color);
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     line-height: 1.5;
 }
@@ -56,8 +57,8 @@
 .template-placeholders {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 15px;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
     animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -68,32 +69,37 @@
 
 .template-placeholders label {
     font-weight: 500;
-    margin-bottom: 4px;
-    color: #495057;
+    margin-bottom: 0.25rem;
+    color: var(--text-color);
+    font-size: 0.875rem;
 }
 
 .template-placeholders .form-control {
-    padding: 10px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     width: 100%;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: var(--transition);
+    background-color: white;
+    color: var(--text-color);
+    min-height: auto;
+    height: auto;
 }
 
 .template-placeholders .form-control:focus {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.15);
 }
 
 /* Dark mode styles */
 .dark-mode .template-selector {
-    background-color: #1e293b;
-    border-color: #3b82f6;
+    background-color: var(--dark-bg-light);
+    border-color: #444;
 }
 
 .dark-mode .template-description {
-    color: #cbd5e1;
-    background-color: #2d3748;
+    color: #adb5bd;
+    background-color: rgba(59, 130, 246, 0.1);
 }
 
 .dark-mode .template-header {
@@ -104,27 +110,36 @@
     color: #e2e8f0;
 }
 
-.dark-mode .template-placeholders .form-control {
-    background-color: #374151;
+.dark-mode .template-placeholders .form-control,
+.dark-mode .template-dropdown {
+    background-color: #2d3748;
     border-color: #4b5563;
-    color: #f1f5f9;
+    color: #f8f9fa;
 }
 
-.dark-mode .template-placeholders .form-control:focus {
+.dark-mode .template-placeholders .form-control:focus,
+.dark-mode .template-dropdown:focus,
+.dark-mode .template-dropdown:hover {
     border-color: #60a5fa;
     box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
 }
 
 /* Button styles */
 .template-apply-btn {
-    margin-top: 10px;
+    margin-top: 0.75rem;
     width: 100%;
-    padding: 10px 15px;
+    padding: 0.65rem 1rem;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: var(--transition);
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    border-radius: var(--border-radius);
 }
 
 .template-apply-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
 }
