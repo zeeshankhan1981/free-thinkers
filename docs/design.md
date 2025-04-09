@@ -180,7 +180,54 @@ Run the above command to have Claude Sonnet generate the necessary CSS modificat
         flex: none;
     }
 }
+
+/* Compact Prompt Guide */
+.prompt-guide-compact {
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+/* Usage Statistics Panel */
+.usage-stats-panel {
+    margin-bottom: 1rem;
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius);
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Message Input */
+.input-group {
+    margin-bottom: 1rem;
+}
+
+/* Image Preview */
+.image-preview {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+}
 ```
+
+### Dark Mode Enhancements
+
+- Improved contrast ratios for better readability
+- Better handling of hover and active states
+- Enhanced visual hierarchy in dark mode
+- Smooth transitions between light and dark modes
+- Better color harmony across components
+
+### Responsive Design
+
+- Better mobile-first approach
+- Improved breakpoint handling
+- Better touch target sizes
+- Enhanced spacing on smaller screens
+- Improved form control layouts
 
 ## Authentication UI Design
 

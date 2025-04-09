@@ -103,21 +103,27 @@
                 </div>
             </div>
             
-            <div class="prompt-guide mb-3" id="promptGuide">
-                <div class="prompt-guide-header">
-                    <div class="prompt-guide-title">
-                        <i class="fas fa-lightbulb"></i> <span id="promptGuideTitle">Best for: General Questions</span>
+            <div class="model-row align-items-start">
+                <!-- Compact Prompt Guide -->
+                <div class="prompt-guide-compact mb-2" id="promptGuide">
+                    <div class="prompt-guide-header">
+                        <i class="fas fa-lightbulb text-warning"></i>
+                        <span id="promptGuideTitle" class="prompt-guide-title">General Questions</span>
+                        <button class="btn btn-sm btn-link prompt-guide-toggle p-0 ms-2" id="togglePromptGuide" title="Show more information">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
                     </div>
-                    <button class="btn btn-sm prompt-guide-toggle" id="togglePromptGuide" title="Toggle prompt guide visibility">
-                        <i class="fas fa-chevron-up"></i>
-                    </button>
-                </div>
-                <div class="prompt-guide-body">
-                    <div class="prompt-guide-content" id="promptGuideUseCase"></div>
-                    <div class="prompt-guide-content prompt-example">Example: <span id="promptGuideExample"></span></div>
-                    <div class="prompt-guide-tip" id="promptGuideTip"></div>
-                    <div class="prompt-guide-actions">
-                        <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use This Example</button>
+                    
+                    <!-- Collapsible content (hidden by default) -->
+                    <div class="prompt-guide-body collapse" id="promptGuideCollapse">
+                        <div class="prompt-guide-content" id="promptGuideUseCase"></div>
+                        <div class="prompt-guide-content prompt-example">
+                            <span class="text-muted">Example:</span> <span id="promptGuideExample"></span>
+                        </div>
+                        <div class="prompt-guide-tip text-muted" id="promptGuideTip"></div>
+                        <div class="prompt-guide-actions mt-2">
+                            <button class="btn btn-sm btn-outline-primary" id="useExamplePrompt">Use Example</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -334,6 +340,41 @@
                     this.querySelector('i').className = statsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
                 });
             }
+            
+            // Add toggle functionality for compact prompt guide
+            const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
+            const promptGuideCollapse = document.getElementById('promptGuideCollapse');
+            if (togglePromptGuideBtn && promptGuideCollapse) {
+                togglePromptGuideBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const isExpanded = promptGuideCollapse.classList.contains('show');
+                    
+                    if (isExpanded) {
+                        // Hide the guide
+                        promptGuideCollapse.classList.remove('show');
+                        this.classList.remove('expanded');
+                        this.querySelector('i').className = 'fas fa-chevron-down';
+                        this.setAttribute('title', 'Show more information');
+                    } else {
+                        // Show the guide
+                        promptGuideCollapse.classList.add('show');
+                        this.classList.add('expanded');
+                        this.querySelector('i').className = 'fas fa-chevron-up';
+                        this.setAttribute('title', 'Hide information');
+                    }
+                });
+                
+                // Also make the header clickable to toggle
+                const promptGuideHeader = document.querySelector('.prompt-guide-header');
+                if (promptGuideHeader) {
+                    promptGuideHeader.addEventListener('click', function(e) {
+                        // Only trigger if the click wasn't on the button itself
+                        if (!e.target.closest('.prompt-guide-toggle')) {
+                            togglePromptGuideBtn.click();
+                        }
+                    });
+                }
+            }
 
             // Fetch prompt guides for all models
             async function fetchPromptGuides() {
@@ -354,20 +395,34 @@
                     const modelData = promptGuides[modelName];
                     const guide = modelData.guide;
                     
-                    promptGuideTitleEl.textContent = `Best for: ${guide.use_case_title || guide.use_case}`;
+                    // Update with more concise title formatting
+                    promptGuideTitleEl.textContent = guide.use_case_title || guide.use_case || 'General Questions';
                     promptGuideUseCaseEl.textContent = guide.use_case || '';
                     promptGuideExampleEl.textContent = guide.example_prompt || '';
-                    promptGuideTipEl.textContent = `Tip: ${guide.tip || ''}`;
+                    promptGuideTipEl.textContent = guide.tip || '';
                     
                     // Update character limit if available
                     if (modelData.limits && modelData.limits.max_input_chars) {
                         const maxLength = modelData.limits.max_input_chars;
                         messageInput.setAttribute('maxlength', maxLength);
-                        const charCounter = document.getElementById('charCounter');
-                        charCounter.textContent = `${messageInput.value.length}/${maxLength}`;
+                        // Update stats display
+                        const charCountDisplay = document.getElementById('charCountDisplay');
+                        if (charCountDisplay) {
+                            charCountDisplay.textContent = `${messageInput.value.length}/${maxLength} chars`;
+                        }
                     }
                     
+                    // Ensure the guide is visible
                     promptGuideEl.style.display = 'block';
+                    
+                    // Collapse the expanded guide when changing models
+                    const promptGuideCollapse = document.getElementById('promptGuideCollapse');
+                    const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
+                    if (promptGuideCollapse && promptGuideCollapse.classList.contains('show') && togglePromptGuideBtn) {
+                        promptGuideCollapse.classList.remove('show');
+                        togglePromptGuideBtn.classList.remove('expanded');
+                        togglePromptGuideBtn.querySelector('i').className = 'fas fa-chevron-down';
+                    }
                 } else {
                     promptGuideEl.style.display = 'none';
                 }
@@ -472,22 +527,19 @@
                     messageInput.focus();
                     // Update character counter
                     messageInput.dispatchEvent(new Event('input'));
+                    
+                    // Collapse the prompt guide after using example
+                    const promptGuideCollapse = document.getElementById('promptGuideCollapse');
+                    const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
+                    if (promptGuideCollapse && promptGuideCollapse.classList.contains('show') && togglePromptGuideBtn) {
+                        promptGuideCollapse.classList.remove('show');
+                        togglePromptGuideBtn.classList.remove('expanded');
+                        togglePromptGuideBtn.querySelector('i').className = 'fas fa-chevron-down';
+                    }
                 }
             });
             
-            // Add toggle functionality for prompt guide
-            const togglePromptGuideBtn = document.getElementById('togglePromptGuide');
-            if (togglePromptGuideBtn) {
-                togglePromptGuideBtn.addEventListener('click', function() {
-                    const promptGuideBody = document.querySelector('.prompt-guide-body');
-                    if (promptGuideBody) {
-                        const isVisible = !(promptGuideBody.style.display === 'none');
-                        promptGuideBody.style.display = isVisible ? 'none' : 'block';
-                        this.classList.toggle('collapsed', isVisible);
-                        this.querySelector('i').className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
-                    }
-                });
-            }
+            // Prompt guide toggle functionality already added above
 
             // Initialize image upload functionality
             function initImageUpload() {
