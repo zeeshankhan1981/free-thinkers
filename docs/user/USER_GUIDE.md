@@ -52,6 +52,19 @@ Models are automatically categorized by family:
 - Visual badges for model types
 - Persistent settings across sessions
 
+### Model Support
+- Compatible with multiple LLMs through Ollama integration
+- Supports popular models including:
+  - Mistral
+  - Llama 3.x
+  - Llama 2 Uncensored
+  - Phi
+  - Zephyr
+  - Gemma 3.x
+  - Gemma 1B
+- Customizable model parameters and settings
+- Optimized prompts for better output quality
+
 ### Conversation Features
 - Real-time responses with loading indicators
 - Model-specific parameter optimization

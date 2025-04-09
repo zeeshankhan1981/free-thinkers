@@ -59,21 +59,16 @@ These features were implemented with clean, maintainable JavaScript and best pra
 ## Available Models
 Free Thinkers supports multiple language models, each with its own strengths and characteristics. The available models are:
 
-### Gemma 3
-- **gemma3:4b**: 4B parameter model optimized for general conversation and text generation
-- **gemma3:1b**: Lightweight 1B parameter variant, ideal for resource-constrained environments
-- **gemma-2b-it:latest**: Italian language specialized model with 2B parameters
+### Model Management
 
-### Llama 3
-- **llama3.1:8b**: 8B parameter model with enhanced reasoning capabilities
-- **llama3.2:latest**: Latest version with improved performance and context understanding
-
-### Specialized Models
-- **llama2-uncensored:7b**: 7B parameter model optimized for uncensored content generation
-- **phi3:3.8b**: 3.8B parameter model with specialized training for various tasks
-- **mistral-7b:latest**: Latest version of the Mistral model with 7B parameters
-- **zephyr:latest**: Latest version of the Zephyr model, optimized for conversation
-- **llava-phi3:latest**: 3.8B parameter multimodal model specialized in image understanding and description
+#### Supported Models
+- **Mistral**: Latest version with advanced reasoning capabilities
+- **Llama 3.x**: Latest iteration of the Llama series
+- **Llama 2 Uncensored**: Community version of Llama 2
+- **Phi**: Latest version with improved performance
+- **Zephyr**: Latest version with enhanced capabilities
+- **Gemma 3.x**: Latest version of the Gemma series
+- **Gemma 1B**: Lightweight version for resource-constrained environments
 
 ### Model Comparison
 
@@ -87,7 +82,6 @@ Free Thinkers supports multiple language models, each with its own strengths and
 | phi3:3.8b | 3.8B | ~4GB | Specialized tasks | Text-only |
 | mistral-7b:latest | 7B | ~7GB | Balanced performance | Text-only |
 | zephyr:latest | N/A | N/A | Conversational AI | Text-only |
-| gemma-2b-it:latest | 2B | ~2GB | Italian language tasks | Text-only |
 | llava-phi3:latest | 3.8B | ~4GB | Image analysis and description | Text + Image |
 
 ### Model Parameters

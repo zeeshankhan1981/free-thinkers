@@ -1,0 +1,636 @@
+/**
+ * Streamlined Chat Interface Styles for Free Thinkers
+ * A modern, clean interface for AI chat with collapsible controls
+ */
+
+:root {
+  --primary-color: #0d6efd;
+  --primary-light: #cfe2ff;
+  --secondary-color: #6c757d;
+  --success-color: #198754;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #0dcaf0;
+  --dark-color: #212529;
+  --light-color: #f8f9fa;
+  --border-color: #dee2e6;
+  --border-radius: 0.375rem;
+  --transition-speed: 0.2s;
+  --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --card-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Dark mode variables */
+body.dark-mode {
+  --primary-color: #3b82f6;
+  --primary-light: #1e3a8a;
+  --secondary-color: #9ca3af;
+  --border-color: #374151;
+  --dark-color: #f8f9fa;
+  --light-color: #1f2937;
+}
+
+/* New streamlined chat container */
+.streamlined-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--light-color);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+}
+
+/* Chat messages display area */
+.chat-display {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* Message styling */
+.message {
+  margin-bottom: 1.25rem;
+  max-width: 90%;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  box-shadow: var(--box-shadow);
+  animation: fadeIn 0.3s ease;
+}
+
+.message.user {
+  background-color: var(--primary-light);
+  margin-left: auto;
+  border-top-right-radius: 0;
+}
+
+.message.assistant {
+  background-color: white;
+  margin-right: auto;
+  border-top-left-radius: 0;
+}
+
+body.dark-mode .message.assistant {
+  background-color: #2d3748;
+}
+
+body.dark-mode .message.user {
+  background-color: var(--primary-light);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Compact controls bar */
+.compact-controls {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);
+}
+
+body.dark-mode .compact-controls {
+  background-color: rgba(31, 41, 55, 0.8);
+}
+
+/* Model selector */
+.model-selector {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.model-display {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: all var(--transition-speed) ease;
+}
+
+body.dark-mode .model-display {
+  background-color: #374151;
+  color: white;
+}
+
+.model-display:hover {
+  border-color: var(--primary-color);
+}
+
+.model-display i {
+  margin-right: 0.5rem;
+  color: var(--primary-color);
+}
+
+.model-display .chevron {
+  margin-left: 0.5rem;
+  transition: transform var(--transition-speed) ease;
+}
+
+.model-display.active .chevron {
+  transform: rotate(180deg);
+}
+
+/* Controls menu */
+.controls-menu {
+  position: absolute;
+  top: -250px;
+  left: 0;
+  width: 300px;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: all var(--transition-speed) ease;
+  padding: 1rem;
+}
+
+body.dark-mode .controls-menu {
+  background-color: #1f2937;
+  color: white;
+}
+
+.controls-menu.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Parameter display and indicators */
+.parameter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.parameter-chip {
+  display: flex;
+  align-items: center;
+  background-color: var(--light-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+body.dark-mode .parameter-chip {
+  background-color: #374151;
+}
+
+.parameter-chip i {
+  margin-right: 0.375rem;
+  font-size: 0.7rem;
+  color: var(--secondary-color);
+}
+
+/* Template selector */
+.template-toggle {
+  padding: 0.5rem 0.75rem;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: all var(--transition-speed) ease;
+  display: flex;
+  align-items: center;
+}
+
+body.dark-mode .template-toggle {
+  background-color: #374151;
+  color: white;
+}
+
+.template-toggle:hover {
+  border-color: var(--primary-color);
+}
+
+.template-toggle i {
+  margin-right: 0.5rem;
+  color: var(--primary-color);
+}
+
+/* Input area */
+.input-area {
+  flex: 1;
+  display: flex;
+  margin: 0 0.75rem;
+}
+
+.input-field {
+  position: relative;
+  flex: 1;
+}
+
+.message-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  resize: none;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-height: 150px;
+  overflow-y: auto;
+  transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+.message-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+body.dark-mode .message-input {
+  background-color: #374151;
+  color: white;
+}
+
+/* Send button */
+.send-button {
+  margin-left: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-button:hover {
+  background-color: #0b5ed7;
+}
+
+.send-button i {
+  font-size: 1rem;
+}
+
+/* Advanced controls area */
+.advanced-controls {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: var(--light-color);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+body.dark-mode .advanced-controls {
+  background-color: #2d3748;
+}
+
+.advanced-controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.advanced-controls-header h5 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
+/* Parameter sliders */
+.slider-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.slider-label {
+  width: 100px;
+  font-size: 0.875rem;
+  margin-right: 0.75rem;
+}
+
+.slider-control {
+  flex: 1;
+  position: relative;
+}
+
+.slider-value {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+}
+
+/* Token usage display */
+.compact-token-display {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 0.8rem;
+}
+
+body.dark-mode .compact-token-display {
+  background-color: #374151;
+  color: white;
+}
+
+.compact-token-display .progress {
+  width: 80px;
+  height: 6px;
+  margin: 0 0.5rem;
+  background-color: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.compact-token-display .progress-bar {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+/* Collapsible elements */
+.collapsible {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.collapsible.expanded {
+  max-height: 300px;
+}
+
+/* Preset buttons */
+.preset-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.preset-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  background-color: white;
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+}
+
+body.dark-mode .preset-btn {
+  background-color: #374151;
+  color: white;
+}
+
+.preset-btn:hover {
+  border-color: var(--primary-color);
+}
+
+.preset-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* Tooltip styles */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background-color: var(--dark-color);
+  color: white;
+  text-align: center;
+  border-radius: 6px;
+  padding: 0.5rem;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.75rem;
+  box-shadow: var(--box-shadow);
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .compact-controls {
+    flex-wrap: wrap;
+  }
+  
+  .input-area {
+    flex: 0 0 100%;
+    margin: 0.5rem 0;
+    order: -1;
+  }
+  
+  .parameter-chips {
+    flex: 0 0 100%;
+    order: 1;
+    margin-top: 0.5rem;
+  }
+  
+  .template-toggle, .model-display, .compact-token-display {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+  }
+}
+
+/* Context usage bar */
+.context-bar {
+  height: 4px;
+  background-color: var(--border-color);
+  margin-top: 0.25rem;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.context-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Model menu styles */
+.model-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 200px;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: all var(--transition-speed) ease;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+body.dark-mode .model-menu {
+  background-color: #1f2937;
+  color: white;
+}
+
+.model-menu.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.model-option {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+  display: flex;
+  align-items: center;
+}
+
+.model-option:hover {
+  background-color: var(--light-color);
+}
+
+body.dark-mode .model-option:hover {
+  background-color: #374151;
+}
+
+.model-option.selected {
+  background-color: var(--primary-light);
+}
+
+.model-option .check {
+  margin-right: 0.5rem;
+  color: var(--primary-color);
+  visibility: hidden;
+}
+
+.model-option.selected .check {
+  visibility: visible;
+}
+
+/* Template menu */
+.template-menu {
+  position: absolute;
+  width: 300px;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: all var(--transition-speed) ease;
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+body.dark-mode .template-menu {
+  background-color: #1f2937;
+  color: white;
+}
+
+.template-menu.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.template-header {
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.template-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.template-item {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+}
+
+.template-item:hover {
+  border-color: var(--primary-color);
+  background-color: var(--light-color);
+}
+
+body.dark-mode .template-item:hover {
+  background-color: #374151;
+}
+
+.template-item-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.template-item-desc {
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+}
+
+/* Example usage styles */
+.example-chip {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--light-color);
+  border-radius: var(--border-radius);
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.example-chip:hover {
+  background-color: var(--primary-light);
+}
+
+body.dark-mode .example-chip {
+  background-color: #374151;
+}
+
+body.dark-mode .example-chip:hover {
+  background-color: var(--primary-light);
+}

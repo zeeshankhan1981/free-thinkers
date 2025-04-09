@@ -1,0 +1,466 @@
+<!-- Streamlined Chat Interface Component -->
+<div class="streamlined-chat">
+    <!-- Chat Messages Display Area -->
+    <div class="chat-display" id="chatDisplay">
+        <!-- Messages will be displayed here by the JavaScript -->
+    </div>
+
+    <!-- Compact Control Bar -->
+    <div class="compact-controls">
+        <!-- Model Selector -->
+        <div class="model-selector">
+            <div class="model-display" id="modelDisplayToggle">
+                <i class="fas fa-robot"></i>
+                <span id="currentModelName">Llama 3.2</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <!-- Model Menu (hidden by default) -->
+            <div class="model-menu" id="modelMenu">
+                <div class="model-option selected" data-model="llama3.2">
+                    <i class="fas fa-check check"></i>
+                    Llama 3.2
+                </div>
+                <div class="model-option" data-model="mistral-7b">
+                    <i class="fas fa-check check"></i>
+                    Mistral 7B
+                </div>
+                <div class="model-option" data-model="llava-phi3:latest">
+                    <i class="fas fa-check check"></i>
+                    LLaVA-Phi3 (Multimodal)
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Chain Toggle -->
+        <div class="model-chain-toggle ms-2">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="modelChainToggle">
+                <label class="form-check-label small" for="modelChainToggle">Chain</label>
+            </div>
+        </div>
+
+        <!-- Parameters Display Chips -->
+        <div class="parameter-chips ms-2" id="parameterChips">
+            <div class="parameter-chip" id="tempChip" title="Temperature">
+                <i class="fas fa-thermometer-half"></i> T: 0.7
+            </div>
+            <div class="parameter-chip" id="topPChip" title="Top-P (nucleus sampling)">
+                <i class="fas fa-filter"></i> P: 0.95
+            </div>
+            <div class="parameter-chip" id="topKChip" title="Top-K">
+                <i class="fas fa-sort-amount-down"></i> K: 40
+            </div>
+        </div>
+
+        <!-- Token Usage Display -->
+        <div class="compact-token-display ms-auto">
+            <span id="tokenUsageText">0/4096</span>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" id="tokenProgressBar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Settings Button -->
+        <button class="btn btn-sm btn-outline-secondary ms-2" id="settingsToggle" title="Advanced Settings">
+            <i class="fas fa-sliders-h"></i>
+        </button>
+    </div>
+
+    <!-- Advanced Settings (hidden by default) -->
+    <div class="collapsible" id="advancedSettings">
+        <div class="advanced-controls">
+            <div class="advanced-controls-header">
+                <h5>Advanced Settings</h5>
+            </div>
+            
+            <!-- Preset Buttons -->
+            <div class="preset-buttons">
+                <button class="preset-btn active" data-preset="balanced">Balanced</button>
+                <button class="preset-btn" data-preset="creative">Creative</button>
+                <button class="preset-btn" data-preset="precise">Precise</button>
+            </div>
+            
+            <!-- Parameter Sliders -->
+            <div class="slider-row">
+                <div class="slider-label">Temperature</div>
+                <div class="slider-control">
+                    <input type="range" min="0.1" max="1.0" step="0.1" value="0.7" class="form-range" id="temperatureSlider">
+                    <div class="slider-value">0.7</div>
+                </div>
+            </div>
+            
+            <div class="slider-row">
+                <div class="slider-label">Top P</div>
+                <div class="slider-control">
+                    <input type="range" min="0.0" max="1.0" step="0.05" value="0.95" class="form-range" id="topPSlider">
+                    <div class="slider-value">0.95</div>
+                </div>
+            </div>
+            
+            <div class="slider-row">
+                <div class="slider-label">Top K</div>
+                <div class="slider-control">
+                    <input type="range" min="1" max="50" step="1" value="40" class="form-range" id="topKSlider">
+                    <div class="slider-value">40</div>
+                </div>
+            </div>
+            
+            <!-- Context Usage Display -->
+            <div class="context-usage mt-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small>Context Usage: <span id="contextUsageText">0%</span></small>
+                    <small id="contextStatus" class="badge bg-success">Optimal</small>
+                </div>
+                <div class="context-bar">
+                    <div class="context-fill" id="contextFill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Area (hidden by default) -->
+    <div class="collapsible" id="templateArea">
+        <div class="advanced-controls">
+            <div class="advanced-controls-header">
+                <h5>Prompt Templates</h5>
+            </div>
+            
+            <div class="template-dropdown-container">
+                <select class="form-select form-select-sm" id="templateDropdown">
+                    <option value="" selected>Select a template...</option>
+                    <option value="expert_analysis">Expert Analysis</option>
+                    <option value="structured_output">Structured Analysis</option>
+                    <option value="creative_generation">Creative Content</option>
+                    <option value="complex_reasoning">Complex Problem Solver</option>
+                </select>
+            </div>
+            
+            <div id="templateDescription" class="template-description mt-2" style="display: none;"></div>
+            
+            <div id="templatePlaceholders" class="template-placeholders mt-2" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="d-flex p-2 align-items-center">
+        <!-- Template Selector -->
+        <div class="me-2 position-relative">
+            <div class="template-toggle" id="templateToggle">
+                <i class="fas fa-file-alt"></i>
+                <span>Templates</span>
+            </div>
+        </div>
+        
+        <!-- Text Input -->
+        <div class="input-area">
+            <div class="input-field">
+                <textarea class="message-input" id="messageInput" placeholder="Type your message here..." rows="1"></textarea>
+            </div>
+            
+            <!-- Send Button -->
+            <button class="send-button" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Indicator (hidden by default) -->
+<div class="loading-indicator" id="loadingIndicator" style="display: none;">
+    <div class="loading-content">
+        <div class="model-info thinking-pulse" id="loadingModelInfo"></div>
+        <div class="thinking-animation">
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+        </div>
+        <div class="loading-text thinking-pulse">Model is thinking...</div>
+    </div>
+</div>
+
+<!-- Initialize the streamlined chat interface -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM elements
+    const modelDisplay = document.getElementById('modelDisplayToggle');
+    const modelMenu = document.getElementById('modelMenu');
+    const currentModelName = document.getElementById('currentModelName');
+    const modelOptions = document.querySelectorAll('.model-option');
+    const settingsToggle = document.getElementById('settingsToggle');
+    const advancedSettings = document.getElementById('advancedSettings');
+    const templateToggle = document.getElementById('templateToggle');
+    const templateArea = document.getElementById('templateArea');
+    const modelChainToggle = document.getElementById('modelChainToggle');
+    
+    // Sliders
+    const temperatureSlider = document.getElementById('temperatureSlider');
+    const topPSlider = document.getElementById('topPSlider');
+    const topKSlider = document.getElementById('topKSlider');
+    
+    // Parameter chips
+    const tempChip = document.getElementById('tempChip');
+    const topPChip = document.getElementById('topPChip');
+    const topKChip = document.getElementById('topKChip');
+    
+    // Initialize parameters from localStorage or use defaults
+    initializeParameters();
+    
+    // Toggle model menu
+    modelDisplay.addEventListener('click', function() {
+        modelMenu.classList.toggle('active');
+        modelDisplay.classList.toggle('active');
+    });
+    
+    // Close model menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!modelDisplay.contains(event.target) && !modelMenu.contains(event.target)) {
+            modelMenu.classList.remove('active');
+            modelDisplay.classList.remove('active');
+        }
+    });
+    
+    // Model selection
+    modelOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const modelName = this.dataset.model;
+            const displayName = this.textContent.trim();
+            
+            // Update model selector in the original select element (for compatibility)
+            const modelSelect = document.getElementById('modelSelect');
+            if (modelSelect) {
+                modelSelect.value = modelName;
+                // Dispatch change event for compatibility
+                modelSelect.dispatchEvent(new Event('change'));
+            }
+            
+            // Update the display
+            currentModelName.textContent = displayName;
+            
+            // Update selected state
+            modelOptions.forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+            
+            // Close the menu
+            modelMenu.classList.remove('active');
+            modelDisplay.classList.remove('active');
+        });
+    });
+    
+    // Toggle advanced settings
+    settingsToggle.addEventListener('click', function() {
+        advancedSettings.classList.toggle('expanded');
+        templateArea.classList.remove('expanded');
+    });
+    
+    // Toggle template area
+    templateToggle.addEventListener('click', function() {
+        templateArea.classList.toggle('expanded');
+        advancedSettings.classList.remove('expanded');
+    });
+    
+    // Update parameter sliders and chips
+    function initializeParameters() {
+        // Get parameters from localStorage or use defaults
+        let parameters = {
+            temperature: 0.7,
+            top_p: 0.95,
+            top_k: 40
+        };
+        
+        try {
+            const savedParams = localStorage.getItem('parameters');
+            if (savedParams) {
+                parameters = JSON.parse(savedParams);
+            }
+        } catch (e) {
+            console.warn('Error loading parameters:', e);
+        }
+        
+        // Update sliders
+        temperatureSlider.value = parameters.temperature;
+        topPSlider.value = parameters.top_p;
+        topKSlider.value = parameters.top_k;
+        
+        // Update slider values
+        document.querySelector('#temperatureSlider + .slider-value').textContent = parameters.temperature;
+        document.querySelector('#topPSlider + .slider-value').textContent = parameters.top_p;
+        document.querySelector('#topKSlider + .slider-value').textContent = parameters.top_k;
+        
+        // Update parameter chips
+        tempChip.innerHTML = `<i class="fas fa-thermometer-half"></i> T: ${parameters.temperature}`;
+        topPChip.innerHTML = `<i class="fas fa-filter"></i> P: ${parameters.top_p}`;
+        topKChip.innerHTML = `<i class="fas fa-sort-amount-down"></i> K: ${parameters.top_k}`;
+    }
+    
+    // Handle slider changes
+    [temperatureSlider, topPSlider, topKSlider].forEach(slider => {
+        slider.addEventListener('input', function() {
+            const value = this.value;
+            const valueDisplay = this.nextElementSibling;
+            valueDisplay.textContent = value;
+            
+            // Update parameter chips
+            if (this.id === 'temperatureSlider') {
+                tempChip.innerHTML = `<i class="fas fa-thermometer-half"></i> T: ${value}`;
+            } else if (this.id === 'topPSlider') {
+                topPChip.innerHTML = `<i class="fas fa-filter"></i> P: ${value}`;
+            } else if (this.id === 'topKSlider') {
+                topKChip.innerHTML = `<i class="fas fa-sort-amount-down"></i> K: ${value}`;
+            }
+            
+            // Get current parameters
+            let parameters = {
+                temperature: temperatureSlider.value,
+                top_p: topPSlider.value,
+                top_k: topKSlider.value
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('parameters', JSON.stringify(parameters));
+            
+            // Update the original parameters display for compatibility
+            const paramDisplay = document.getElementById('currentParameters');
+            if (paramDisplay) {
+                paramDisplay.innerHTML = `
+                    <div>Temp: ${parameters.temperature}</div>
+                    <div>Top P: ${parameters.top_p}</div>
+                    <div>Top K: ${parameters.top_k}</div>
+                `;
+            }
+            
+            // Save to session storage for API requests
+            sessionStorage.setItem('parameters', JSON.stringify(parameters));
+        });
+    });
+    
+    // Apply preset
+    const presetButtons = document.querySelectorAll('.preset-btn');
+    presetButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const preset = this.dataset.preset;
+            let parameters = {};
+            
+            switch (preset) {
+                case 'balanced':
+                    parameters = {
+                        temperature: 0.7,
+                        top_p: 0.95,
+                        top_k: 40
+                    };
+                    break;
+                case 'creative':
+                    parameters = {
+                        temperature: 0.9,
+                        top_p: 0.95,
+                        top_k: 50
+                    };
+                    break;
+                case 'precise':
+                    parameters = {
+                        temperature: 0.3,
+                        top_p: 0.85,
+                        top_k: 20
+                    };
+                    break;
+            }
+            
+            // Update sliders
+            temperatureSlider.value = parameters.temperature;
+            topPSlider.value = parameters.top_p;
+            topKSlider.value = parameters.top_k;
+            
+            // Update slider values
+            document.querySelector('#temperatureSlider + .slider-value').textContent = parameters.temperature;
+            document.querySelector('#topPSlider + .slider-value').textContent = parameters.top_p;
+            document.querySelector('#topKSlider + .slider-value').textContent = parameters.top_k;
+            
+            // Update parameter chips
+            tempChip.innerHTML = `<i class="fas fa-thermometer-half"></i> T: ${parameters.temperature}`;
+            topPChip.innerHTML = `<i class="fas fa-filter"></i> P: ${parameters.top_p}`;
+            topKChip.innerHTML = `<i class="fas fa-sort-amount-down"></i> K: ${parameters.top_k}`;
+            
+            // Update active state
+            presetButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Save to localStorage
+            localStorage.setItem('parameters', JSON.stringify(parameters));
+            
+            // Update the original parameters display for compatibility
+            const paramDisplay = document.getElementById('currentParameters');
+            if (paramDisplay) {
+                paramDisplay.innerHTML = `
+                    <div>Temp: ${parameters.temperature}</div>
+                    <div>Top P: ${parameters.top_p}</div>
+                    <div>Top K: ${parameters.top_k}</div>
+                `;
+            }
+            
+            // Save to session storage for API requests
+            sessionStorage.setItem('parameters', JSON.stringify(parameters));
+        });
+    });
+    
+    // Integrate with existing template system
+    const templateDropdown = document.getElementById('templateDropdown');
+    const templateDescription = document.getElementById('templateDescription');
+    const templatePlaceholders = document.getElementById('templatePlaceholders');
+    
+    if (templateDropdown) {
+        templateDropdown.addEventListener('change', function() {
+            const templateId = this.value;
+            
+            if (!templateId) {
+                templateDescription.style.display = 'none';
+                templatePlaceholders.style.display = 'none';
+                return;
+            }
+            
+            // Call existing template function if available
+            if (window.selectTemplate && typeof window.selectTemplate === 'function') {
+                window.selectTemplate(templateId);
+            }
+        });
+    }
+    
+    // Make sure the send button works
+    const sendButton = document.getElementById('sendButton');
+    const messageInput = document.getElementById('messageInput');
+    
+    if (sendButton && messageInput) {
+        sendButton.addEventListener('click', function() {
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            // Call existing send function if available
+            if (window.sendMessage && typeof window.sendMessage === 'function') {
+                window.sendMessage(message);
+            }
+        });
+        
+        // Allow Enter to send
+        messageInput.addEventListener('keydown', function(e) {
+            // Enter without shift key sends the message
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendButton.click();
+            }
+        });
+    }
+    
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = `${Math.min(this.scrollHeight, 150)}px`;
+    });
+    
+    // Model chain toggle
+    modelChainToggle.addEventListener('change', function() {
+        // Call existing toggle function if available
+        if (window.toggleModelChain && typeof window.toggleModelChain === 'function') {
+            window.toggleModelChain(this.checked);
+        }
+    });
+});
+</script>
