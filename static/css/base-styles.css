@@ -1,0 +1,103 @@
+/* Base styles and variables */
+
+:root {
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --secondary-color: #6c757d;
+    --border-radius: 8px;
+    --spacing: 1rem;
+    --transition: all 0.2s ease;
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --border-color: #e9ecef;
+    --bg-light: #f8f9fa;
+    --dark-bg-light: #2d2d2d;
+    --dark-text: #f8f9fa;
+    --primary-color-rgb: 0, 123, 255;
+}
+
+.dark-mode {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+    --border-color: #333333;
+    --bg-light: #2d2d2d;
+    --dark-bg-light: #2d2d2d;
+    --dark-text: #f8f9fa;
+}
+
+/* Dark mode styles */
+.dark-mode body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.dark-mode .form-control,
+.dark-mode .form-select,
+.dark-mode .btn,
+.dark-mode .text-muted {
+    color: var(--text-color);
+}
+
+.dark-mode .chat-container,
+.dark-mode .input-container {
+    background-color: var(--dark-bg-light);
+}
+
+.dark-mode .message {
+    background-color: var(--dark-bg-light);
+}
+
+/* Global styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--spacing);
+}
+
+/* Button styles */
+.btn {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+/* Form control styles */
+.form-control,
+.form-select {
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Hover effects */
+.hover-effect {
+    transition: var(--transition);
+}
+
+.hover-effect:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Focus states */
+:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Mode transition animation */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
