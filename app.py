@@ -122,33 +122,7 @@ MODEL_PARAMS = {
             "max_input_chars": 2048
         }
     },
-    "gemma-2b-it": {
-        "temperature": 0.7,
-        "top_p": 0.95,
-        "top_k": 40,
-        "num_gpu": 1,
-        "num_thread": 4,         # Reduced from 8 to lower CPU usage
-        "num_batch": 1,          # Reduced from 2 to lower memory usage
-        "max_tokens": 512,       # Limit output length to improve performance
-        "f16_kv": True,
-        "low_vram": True,        # Enable low VRAM mode
-        "use_gpu": False,        # Use CPU only to avoid GPU contention
-        "speed_settings": {
-            "slow": {"temperature": 0.8, "top_p": 0.9, "top_k": 50, "max_tokens": 768},
-            "medium": {"temperature": 0.7, "top_p": 0.95, "top_k": 40, "max_tokens": 512},
-            "fast": {"temperature": 0.6, "top_p": 0.9, "top_k": 20, "max_tokens": 256}
-        },
-        "prompt_guide": {
-            "use_case_title": "Creative writing, artistic responses, nuanced storytelling",
-            "use_case": "Creative writing, artistic responses, nuanced storytelling",
-            "example_prompt": "Write a short story about a dragon who befriends a human child.",
-            "tip": "Best for creative and imaginative writing tasks, like storytelling and poetry."
-        },
-        "limits": {
-            "max_tokens": 4096,
-            "max_input_chars": 2048
-        }
-    },
+    # gemma-2b-it removed
     "llava-phi3:latest": {
         "temperature": 0.65,
         "top_p": 0.85,
@@ -292,10 +266,6 @@ TOKEN_COUNTS = {
         "tokenizer": "default"
     },
     "llama3.2": {
-        "max_tokens": 4096,
-        "tokenizer": "default"
-    },
-    "gemma-2b-it": {
         "max_tokens": 4096,
         "tokenizer": "default"
     },
@@ -489,13 +459,7 @@ def chat():
                         'gpu_layers': model_params.get('gpu_layers', 42),
                         'use_gpu': True
                     })
-                elif model == 'gemma-2b-it':
-                    ollama_params.update({
-                        'num_thread': model_params.get('num_thread', 8),
-                        'num_batch': model_params.get('num_batch', 2),
-                        'low_vram': model_params.get('low_vram', True),
-                        'max_tokens': min(model_params.get('limits', {}).get('max_tokens', 1024), max_tokens)
-                    })
+                # gemma-2b-it model configuration removed
                 
                 print(f"Using Ollama parameters: {ollama_params}")
                 
@@ -642,13 +606,7 @@ def chat_with_image():
                         'gpu_layers': model_params.get('gpu_layers', 42),
                         'use_gpu': True
                     })
-                elif model == 'gemma-2b-it':
-                    ollama_request.update({
-                        'num_thread': model_params.get('num_thread', 8),
-                        'num_batch': model_params.get('num_batch', 2),
-                        'low_vram': model_params.get('low_vram', True),
-                        'max_tokens': min(model_params.get('limits', {}).get('max_tokens', 1024), max_tokens)
-                    })
+                # gemma-2b-it model configuration removed
                 
                 print(f"Using Ollama parameters: {ollama_request}")
                 

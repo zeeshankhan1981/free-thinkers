@@ -1404,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 { name: 'llama3:8b', description: 'Meta\'s LLaMA 3 8B model' },
                 { name: 'mistral:latest', description: 'Mistral 7B model, good all-around performer' },
                 { name: 'mistral:7b', description: 'Mistral 7B model, specific version' },
-                { name: 'gemma:2b', description: 'Google\'s Gemma 2B model, small and efficient' },
+                { name: 'gemma3:1b', description: 'Google\'s Gemma3 1B model, small and efficient' },
                 { name: 'gemma:7b', description: 'Google\'s Gemma 7B model, more powerful' },
                 { name: 'phi3:latest', description: 'Microsoft\'s Phi-3 model, impressive for its size' },
                 { name: 'phi3:3.8b', description: 'Microsoft\'s Phi-3 3.8B model, specific version' }

@@ -40,7 +40,6 @@ class ContextManager {
         const TOKEN_COUNTS = window.TOKEN_COUNTS || {
             "mistral-7b": { max_tokens: 4096 },
             "llama3.2": { max_tokens: 4096 },
-            "gemma-2b-it": { max_tokens: 4096 },
             "llava-phi3:latest": { max_tokens: 4096 }
         };
         

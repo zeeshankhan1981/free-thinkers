@@ -640,7 +640,7 @@ MODEL_TEMPLATE_MAPPING = {
     "gemma3:4b": {**CLAUDE_TEMPLATES, **GEMMA_TEMPLATES},
     "phi3:3.8b": {**CLAUDE_TEMPLATES, **PHI3_TEMPLATES},
     "zephyr": {**CLAUDE_TEMPLATES, **INSTRUCTION_TEMPLATES},
-    "gemma-2b-it": {**CLAUDE_TEMPLATES, **GEMMA_TEMPLATES, **INSTRUCTION_TEMPLATES},
+    # gemma-2b-it removed from template mapping
     
     # Small models
     "gemma3:1b": {**SMALL_MODEL_TEMPLATES},

@@ -3,7 +3,6 @@
 # Array of model names
 models=(
     "llama3.2"
-    "gemma-2b-it"
     "mistral-7b-instruct-v0.2.Q4_K_M"
 )
 

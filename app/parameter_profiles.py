@@ -163,26 +163,7 @@ DEFAULT_PARAMETER_PROFILES = {
                 "repetition_penalty": 1.1
             }
         },
-        "gemma-2b-it": {
-            "Balanced": {
-                "temperature": 0.7,
-                "top_p": 0.95,
-                "top_k": 40,
-                "repetition_penalty": 1.15
-            },
-            "Creative": {
-                "temperature": 0.9,
-                "top_p": 0.98,
-                "top_k": 50,
-                "repetition_penalty": 1.05
-            },
-            "Precise": {
-                "temperature": 0.4,
-                "top_p": 0.9,
-                "top_k": 20,
-                "repetition_penalty": 1.2
-            }
-        },
+        # gemma-2b-it removed from model-specific profiles
         "llava-phi3:latest": {
             "Balanced": {
                 "temperature": 0.7,

@@ -438,7 +438,7 @@ class ModelChain:
             'code': 'phi3:3.8b',
             'reasoning': 'mistral-7b',
             'general': 'llama3.2',
-            'efficient': 'gemma-2b-it'
+            'efficient': 'llama3.2'  # Changed from gemma-2b-it to llama3.2
         }
         
         return fallbacks.get(capability, 'mistral-7b')
@@ -462,13 +462,7 @@ class ModelChain:
         }
         
         # Apply specific model optimizations
-        if "gemma" in model_name:
-            default_params.update({
-                'use_gpu': False,      # Use CPU only for Gemma to reduce resource usage
-                'max_tokens': 256,     # Further reduce output size for Gemma
-                'low_vram': True       # Enable low VRAM mode
-            })
-        elif "llava" in model_name:
+        if "llava" in model_name:
             default_params.update({
                 'gpu_layers': 32,      # Limit GPU layers for vision models
                 'max_tokens': 256,     # Shorter responses for vision tasks
