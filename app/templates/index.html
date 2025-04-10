@@ -111,7 +111,14 @@
                 <div class="model-actions">
                     <!-- Clear Messages Button -->
                     <button class="btn btn-outline-secondary" id="clearMessages" title="Clear all messages">
-                        <i class="fas fa-trash-alt"></i> Clear
+                        <i class="fas fa-trash-alt"></i>
+                        <span class="nav-btn-text">Clear</span>
+                    </button>
+                    
+                    <!-- Login Button -->
+                    <button class="btn btn-outline-primary" id="loginButton" title="Login">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span class="nav-btn-text">Login</span>
                     </button>
                     
                     <!-- Image Upload Button (hidden by default) -->
@@ -1321,82 +1328,17 @@
 
             // Add cancel response functionality
             cancelResponse.addEventListener('click', function() {
-                if (responseController) {
-                    responseController.cancel();
-                    responseController = null;
-                    
-                    // Re-enable input
-                    messageInput.disabled = false;
-                    sendMessage.disabled = false;
-                    cancelResponse.style.display = 'none';
-                    loadingIndicator.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingIndicator.style.display = 'none';
-                        loadingIndicator.style.opacity = '1';
-                    }, 300);
-                }
+                cancelResponse.style.display = 'none';
+                sendMessage.style.display = '';
+                isStreaming = false;
             });
 
-            // Add clear messages functionality
-            clearMessages.addEventListener('click', function() {
-                currentThread = [];
-                renderMessages();
-            });
-
-            // Handle model change
-            modelSelect.addEventListener('change', function() {
-                currentModel = this.value;
-                console.log('Model changed to:', currentModel);
-                
-                // Update prompt guide
-                updatePromptGuide(currentModel);
-                
-                // Update token visualization
-                if (typeof updateTokenVisualization === 'function') {
-                    const userInput = document.getElementById('userInput');
-                    if (userInput) {
-                        updateTokenVisualization(userInput.value, currentModel);
-                    } else {
-                        updateTokenVisualization('', currentModel);
-                    }
-                }
-                
-                // Show notification
-                showNotification(`Model changed to ${currentModel}`);
-            });
-            
-            /**
-             * Show a notification message
-             */
-            function showNotification(message, type = 'success') {
-                // Use the global notification system if available
-                if (window.showToast) {
-                    // Use toast notifications (best UI match for Free Thinkers design)
-                    window.showToast(message, type, 3000);
-                    return;
-                } else if (window.showNotification && window.showNotification !== showNotification) {
-                    // Use the external notification system if available (avoid recursion)
-                    window.showNotification(message, type, 3000);
-                    return;
-                }
-                
-                // Fallback to inline implementation
-                const notification = document.createElement('div');
-                notification.className = `notification notification-${type}`;
-                notification.textContent = message;
-                
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    notification.classList.add('show');
-                }, 10);
-                
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 300);
-                }, 3000);
+            // Handle login button click
+            const loginButton = document.getElementById('loginButton');
+            if (loginButton) {
+                loginButton.addEventListener('click', function() {
+                    window.location.href = '/login';
+                });
             }
 
             // Load history
