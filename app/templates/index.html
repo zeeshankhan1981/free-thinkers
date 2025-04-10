@@ -43,6 +43,24 @@
                 <i class="fas fa-comments"></i>
                 <span class="nav-btn-text">Conversations</span>
             </button>
+            <!-- User Authentication Button -->
+            <button class="nav-btn" id="authButton">
+                <i class="fas fa-user"></i>
+                <span class="nav-btn-text">Login / Sign Up</span>
+            </button>
+            <!-- User Profile Button (Logged in) - Hidden by default -->
+            <div class="dropdown" id="userDropdown" style="display: none;">
+                <button class="nav-btn dropdown-toggle" type="button" id="userDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="nav-btn-text" id="username">Username</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdownButton">
+                    <li><a class="dropdown-item" href="#" id="profileLink">Profile</a></li>
+                    <li><a class="dropdown-item" href="#" id="preferencesLink">Preferences</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </div>
         </nav>
     </header>
 
@@ -227,9 +245,11 @@
     <div class="history-sidebar" id="historySidebar">
         <div class="history-header">
             <h5>Conversation History</h5>
-            <button class="close-btn" id="closeHistory">×</button>
+            <button id="closeHistory" class="btn-close"></button>
         </div>
-        <div class="history-list" id="historyList"></div>
+        <div class="history-list" id="historyList">
+            <!-- History items will be added here -->
+        </div>
     </div>
 
     <button class="history-btn" id="historyBtn">
@@ -996,64 +1016,63 @@
                                 </div>`;
                         }
                         
-                        // Disable send button and scroll to loading indicator
+                        // Disable send button
                         sendMessage.disabled = true;
-                        loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'end' });
                         
-                        // Process with chain
-                        useModelChain = true;
+                        // Show cancel button
+                        cancelResponse.style.display = 'block';
                         
-                        // Start a progress updater every 2 seconds to show chain is still processing
-                        let elapsedTime = 0;
-                        const progressUpdater = setInterval(() => {
-                            elapsedTime += 2;
-                            const loadingText = document.querySelector('.loading-text .current-step');
-                            if (loadingText) {
-                                loadingText.textContent = `Chain processing in progress... (${elapsedTime}s)`;
+                        try {
+                            // Process with chain
+                            chainProcessing = await window.modelChain.processWithChain(userInput);
+                            
+                            // Add assistant message with chain result
+                            currentThread.push({
+                                role: 'assistant',
+                                content: chainProcessing.output,
+                                chainDetails: chainProcessing.details
+                            });
+                            
+                            // Update display
+                            renderMessages();
+                            
+                            // Sync with conversation manager
+                            if (activeConversation && typeof window.conversationManager !== 'undefined') {
+                                window.conversationManager.syncWithCurrentThread(activeConversation.id);
                             }
-                        }, 2000);
-                        
-                        // Process with chain
-                        chainProcessing = await window.modelChain.processWithChain(userInput);
-                        
-                        // Clear progress updater
-                        clearInterval(progressUpdater);
-                        
-                        console.log('Chain processing result:', chainProcessing);
-                        
-                        // Add assistant message with chain result
-                        currentThread.push({
-                            role: 'assistant',
-                            content: chainProcessing.output,
-                            chainDetails: chainProcessing.details
-                        });
-                        
-                        // Update display
-                        renderMessages();
-                        
-                        // Sync with conversation manager
-                        if (activeConversation && typeof window.conversationManager !== 'undefined') {
-                            window.conversationManager.syncWithCurrentThread(activeConversation.id);
+                            
+                            // Save to history
+                            saveToHistory({
+                                model: "chain:" + window.modelChain.currentChain,
+                                messages: currentThread
+                            });
+                            
+                            // Hide loading indicator smoothly
+                            loadingIndicator.style.opacity = '0';
+                            setTimeout(() => {
+                                loadingIndicator.style.display = 'none';
+                                loadingIndicator.style.opacity = '1';
+                            }, 300);
+                            
+                            // Re-enable UI
+                            sendMessage.disabled = false;
+                            cancelResponse.style.display = 'none';
+                            
+                            return;
+                        } catch (error) {
+                            console.error('Error in chain processing:', error);
+                            
+                            // Add error message and continue with normal processing
+                            currentThread.push({
+                                role: 'assistant',
+                                content: `Error in chain processing: ${error.message}. Falling back to standard model.`
+                            });
+                            
+                            renderMessages();
+                            
+                            // Continue with normal processing
+                            useModelChain = false;
                         }
-                        
-                        // Save to history
-                        saveToHistory({
-                            model: "chain:" + window.modelChain.currentChain,
-                            messages: currentThread
-                        });
-                        
-                        // Hide loading indicator smoothly
-                        loadingIndicator.style.opacity = '0';
-                        setTimeout(() => {
-                            loadingIndicator.style.display = 'none';
-                            loadingIndicator.style.opacity = '1';
-                        }, 300);
-                        
-                        // Re-enable UI
-                        sendMessage.disabled = false;
-                        cancelResponse.style.display = 'none';
-                        
-                        return;
                     } catch (error) {
                         console.error('Error in chain processing:', error);
                         
@@ -1817,121 +1836,232 @@
     <script src="{{ url_for('static', filename='js/auth.js') }}?v=0.1.0"></script>
     
     <!-- Login Modal -->
-    <div id="login-modal" class="modal" style="display: none;">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Login</h2>
-        <form id="login-form">
-          <div class="form-group">
-            <label for="login-username">Username</label>
-            <input type="text" id="login-username" name="username" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label for="login-password">Password</label>
-            <input type="password" id="login-password" name="password" class="form-control" required>
-          </div>
-          <div class="form-group checkbox-group">
-            <input type="checkbox" id="remember-me" name="remember_me">
-            <label for="remember-me">Remember me</label>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Login</button>
-            <button type="button" class="btn btn-secondary" id="register-btn">Register</button>
-            <button type="button" class="btn btn-secondary" id="guest-btn">Continue as Guest</button>
-          </div>
-          <div id="login-message" style="margin-top: 10px; color: red;"></div>
-        </form>
-      </div>
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loginModalLabel">Login</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" id="loginError" style="display: none;"></div>
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="loginUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="loginUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">Remember me</label>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <p class="text-center mb-0">
+                        Don't have an account? 
+                        <a href="#" id="showRegisterModal">Sign up</a>
+                    </p>
+                    <p class="text-center text-muted small mb-0 mt-2">
+                        <span id="continueAsGuest">Or continue as guest</span>
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Register Modal -->
-    <div id="register-modal" class="modal" style="display: none;">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Register</h2>
-        <form id="register-form">
-          <div class="form-group">
-            <label for="register-username">Username</label>
-            <input type="text" id="register-username" name="username" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label for="register-email">Email</label>
-            <input type="email" id="register-email" name="email" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label for="register-password">Password</label>
-            <input type="password" id="register-password" name="password" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label for="register-confirm">Confirm Password</label>
-            <input type="password" id="register-confirm" name="confirm_password" class="form-control" required>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Register</button>
-            <button type="button" class="btn btn-secondary" id="login-btn">Back to Login</button>
-          </div>
-          <div id="register-message" style="margin-top: 10px; color: red;"></div>
-        </form>
-      </div>
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="registerModalLabel">Create Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" id="registerError" style="display: none;"></div>
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="registerUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="registerUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="registerEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="registerPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="acceptTerms" required>
+                            <label class="form-check-label" for="acceptTerms">
+                                I agree to the <a href="#" id="showTerms">Terms of Service</a>
+                            </label>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Create Account</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <p class="text-center mb-0">
+                        Already have an account? 
+                        <a href="#" id="showLoginModal">Login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <style>
-    /* Modal styles */
-    .modal {
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
-    }
-
-    .modal-content {
-      background-color: #fefefe;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      max-width: 500px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .checkbox-group {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .checkbox-group label {
-      margin-bottom: 0;
-    }
-    </style>
+    <!-- Bootstrap JS for modals -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Direct authentication script to ensure modals are properly initialized -->
+    <script>
+        // Initialize modals and authentication when the page is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Document fully loaded, initializing authentication...');
+            
+            // Make sure the login button is working
+            const authButton = document.getElementById('authButton');
+            if (authButton) {
+                console.log('Auth button found, adding click handler');
+                authButton.addEventListener('click', function() {
+                    console.log('Auth button clicked directly');
+                    const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                    loginModal.show();
+                });
+            } else {
+                console.error('Auth button not found');
+            }
+            
+            // Initialize modal connections
+            const showRegisterModalBtn = document.getElementById('showRegisterModal');
+            if (showRegisterModalBtn) {
+                showRegisterModalBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    if (loginModal) loginModal.hide();
+                    const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+                    registerModal.show();
+                });
+            }
+            
+            const showLoginModalBtn = document.getElementById('showLoginModal');
+            if (showLoginModalBtn) {
+                showLoginModalBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                    if (registerModal) registerModal.hide();
+                    const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                    loginModal.show();
+                });
+            }
+            
+            // Initialize login form submission
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Login form submitted directly');
+                    const username = document.getElementById('loginUsername').value;
+                    const password = document.getElementById('loginPassword').value;
+                    const remember = document.getElementById('rememberMe').checked;
+                    
+                    // Direct login API call
+                    fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            password: password,
+                            remember: remember
+                        })
+                    })
+                    .then(response => {
+                        console.log('Login response:', response);
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.error || 'Login failed');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Login successful:', data);
+                        // Close modal
+                        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                        if (loginModal) loginModal.hide();
+                        
+                        // Show success message
+                        if (typeof window.showNotification === 'function') {
+                            window.showNotification('Login successful', 'success');
+                        } else {
+                            alert('Login successful');
+                        }
+                        
+                        // Reload page to update UI
+                        window.location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error logging in:', error);
+                        const loginError = document.getElementById('loginError');
+                        if (loginError) {
+                            loginError.textContent = error.message;
+                            loginError.style.display = 'block';
+                        }
+                    });
+                });
+            }
+            
+            // Initialize continue as guest
+            const continueAsGuest = document.getElementById('continueAsGuest');
+            if (continueAsGuest) {
+                continueAsGuest.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Continue as guest clicked');
+                    
+                    fetch('/api/auth/guest-session', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Guest session created:', data);
+                        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                        if (loginModal) loginModal.hide();
+                        
+                        // Show success message
+                        if (typeof window.showNotification === 'function') {
+                            window.showNotification('Continuing as guest', 'info');
+                        } else {
+                            alert('Continuing as guest');
+                        }
+                        
+                        // Reload page to update UI
+                        window.location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error creating guest session:', error);
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>

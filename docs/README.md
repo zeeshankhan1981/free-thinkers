@@ -16,6 +16,9 @@ A minimalist, local-first web-based chat interface for interacting with LLMs.
 - Responsive design
 - Multimodal image upload support with models like llava-phi3
 - Optimized performance with GPU acceleration and reduced token limits
+- Multi-user support with user authentication
+- User preferences and profile management
+- Cross-device conversation syncing
 
 ## Requirements
 
@@ -50,11 +53,14 @@ pip install -r requirements.txt
 ## Usage
 
 1. Open your web browser and navigate to `http://localhost:5000`
-2. Select a model from the dropdown
-3. Type your message and click Send
-4. Toggle between light and dark mode using the theme switch
-5. Manage your conversations using the conversation manager
-6. Configure model parameters to optimize responses
+2. If you're a new user, click "Register" to create an account
+3. If you have an account, click "Login" to sign in
+4. Select a model from the dropdown
+5. Type your message and click Send
+6. Toggle between light and dark mode using the theme switch
+7. Manage your conversations using the conversation manager
+8. Configure model parameters to optimize responses
+9. Access your user profile to manage preferences and settings
 
 ## Technical Specifications
 
@@ -65,12 +71,15 @@ pip install -r requirements.txt
 - **UI Library**: Bootstrap 5.3
 - **Design**: Flat monochrome design with light/dark mode support
 - **Browser Support**: Modern browsers (Chrome, Firefox, Safari)
+- **Authentication**: Session-based with Flask-Login
 
 #### Backend
 - **Framework**: Flask 3.1.0
 - **Python Version**: 3.8+
 - **API**: RESTful endpoints with JSON responses
 - **CORS**: Enabled for localhost
+- **Database**: SQLite for user and session management
+- **Authentication**: Flask-Login for user sessions
 
 #### LLM Integration
 - **Model Manager**: Ollama 0.6.2
@@ -307,11 +316,11 @@ The Free Thinkers UI is designed to be clean, intuitive, and distraction-free:
 - [x] Model management system
 - [x] Usage statistics
 - [x] Performance optimizations
+- [x] Multi-user support with user authentication
 
 ### Upcoming Features
 - [ ] Plugins/tools system
 - [ ] RAG (Retrieval-Augmented Generation)
-- [ ] Multi-user support
 - [ ] Mobile optimization
 - [ ] Enhanced documentation
 - [ ] Community features

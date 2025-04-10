@@ -1,5 +1,122 @@
 # Free Thinkers API Reference
 
+## Authentication API
+
+### POST /api/auth/register
+
+#### Description
+Register a new user account.
+
+#### Request
+```json
+{
+    "username": "string",
+    "email": "string",
+    "password": "string"
+}
+```
+
+#### Response
+```json
+{
+    "message": "User registered successfully",
+    "user_id": "integer"
+}
+```
+
+### POST /api/auth/login
+
+#### Description
+Authenticate an existing user.
+
+#### Request
+```json
+{
+    "username": "string",
+    "password": "string"
+}
+```
+
+#### Response
+```json
+{
+    "message": "Login successful",
+    "user_id": "integer"
+}
+```
+
+### POST /api/auth/logout
+
+#### Description
+Logout the current user.
+
+#### Response
+```json
+{
+    "message": "Logged out successfully"
+}
+```
+
+### GET /api/auth/session
+
+#### Description
+Get current session information.
+
+#### Response
+```json
+{
+    "user_id": "integer",
+    "username": "string",
+    "is_authenticated": "boolean"
+}
+```
+
+## User Management API
+
+### GET /api/user/profile
+
+#### Description
+Get the current user's profile information.
+
+#### Response
+```json
+{
+    "user": {
+        "id": "integer",
+        "username": "string",
+        "email": "string",
+        "preferences": {
+            "theme": "string",
+            "default_model": "string",
+            "other_preferences": "object"
+        }
+    }
+}
+```
+
+### PUT /api/user/preferences
+
+#### Description
+Update user preferences.
+
+#### Request
+```json
+{
+    "preferences": {
+        "theme": "string",
+        "default_model": "string",
+        "other_preferences": "object"
+    }
+}
+```
+
+#### Response
+```json
+{
+    "message": "Preferences updated successfully"
+}
+```
+
 ## Model Management API
 
 ### GET /api/models
