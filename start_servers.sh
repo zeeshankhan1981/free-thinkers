@@ -65,21 +65,25 @@ start_servers() {
     echo -e "${YELLOW}Starting Flask server...${NC}"
     
     # Check if port is already in use
-    if is_port_in_use 5000; then
-        echo -e "${RED}Error: Port 5000 is already in use. Cannot start Flask server.${NC}"
+    if is_port_in_use 5001; then
+        echo -e "${RED}Error: Port 5001 is already in use. Cannot start Flask server.${NC}"
         echo -e "${YELLOW}Please run ./stop_servers.sh first to free up the port.${NC}"
         return 1
     fi
     
-    # Start Flask app with virtual environment
-    source venv/bin/activate && python app.py &
+    # Activate virtual environment and install dependencies
+    source venv311/bin/activate
+    pip install -r requirements.txt
+    
+    # Start Flask app
+    python app.py &
     FLASK_PID=$!
     
     # Wait for Flask to start
     echo -e "${YELLOW}Waiting for Flask server to initialize...${NC}"
     for i in {1..10}; do
         sleep 1
-        if curl -s http://127.0.0.1:5000 &> /dev/null; then
+        if curl -s http://127.0.0.1:5001 &> /dev/null; then
             echo -e "${GREEN}✓ Flask server started successfully${NC}"
             break
         fi
@@ -104,7 +108,7 @@ start_servers() {
     fi
     
     # Check Flask server
-    if curl -s http://127.0.0.1:5000 &> /dev/null; then
+    if curl -s http://127.0.0.1:5001 &> /dev/null; then
         echo -e "${GREEN}✓ Flask server is running${NC}"
         FLASK_RUNNING=true
     else
@@ -115,7 +119,7 @@ start_servers() {
     # Final status
     if $OLLAMA_RUNNING && $FLASK_RUNNING; then
         echo -e "\n${GREEN}${BOLD}✓ All servers are running successfully${NC}"
-        echo -e "${BLUE}Open your browser and navigate to ${BOLD}http://127.0.0.1:5000${NC} to use the application"
+        echo -e "${BLUE}Open your browser and navigate to ${BOLD}http://127.0.0.1:5001${NC} to use the application"
         return 0
     else
         echo -e "\n${RED}${BOLD}✗ Some servers failed to start${NC}"

@@ -63,24 +63,24 @@ kill_process "ollama serve" "Ollama server"
 OLLAMA_STOPPED=$?
 
 # Check if ports are still in use
-PORT_5000_FREE=1
+PORT_5001_FREE=1
 PORT_11434_FREE=1
 
-# Check if port 5000 is free
-if ! lsof -i:5000 &> /dev/null; then
-    PORT_5000_FREE=0
-    echo -e "${GREEN}✓ Port 5000 is free${NC}"
+# Check if port 5001 is free
+if ! lsof -i:5001 &> /dev/null; then
+    PORT_5001_FREE=0
+    echo -e "${GREEN}✓ Port 5001 is free${NC}"
 else
-    echo -e "${RED}✗ Port 5000 is still in use${NC}"
-    echo "Attempting to free port 5000..."
-    lsof -ti:5000 | xargs kill -9 &> /dev/null
+    echo -e "${RED}✗ Port 5001 is still in use${NC}"
+    echo "Attempting to free port 5001..."
+    lsof -ti:5001 | xargs kill -9 &> /dev/null
     sleep 1
     
-    if ! lsof -i:5000 &> /dev/null; then
-        PORT_5000_FREE=0
-        echo -e "${GREEN}✓ Port 5000 is now free${NC}"
+    if ! lsof -i:5001 &> /dev/null; then
+        PORT_5001_FREE=0
+        echo -e "${GREEN}✓ Port 5001 is now free${NC}"
     else
-        echo -e "${RED}✗ Failed to free port 5000${NC}"
+        echo -e "${RED}✗ Failed to free port 5001${NC}"
     fi
 fi
 
@@ -103,7 +103,7 @@ else
 fi
 
 # Final status
-if [ $FLASK_STOPPED -eq 0 ] && [ $OLLAMA_STOPPED -eq 0 ] && [ $PORT_5000_FREE -eq 0 ] && [ $PORT_11434_FREE -eq 0 ]; then
+if [ $FLASK_STOPPED -eq 0 ] && [ $OLLAMA_STOPPED -eq 0 ] && [ $PORT_5001_FREE -eq 0 ] && [ $PORT_11434_FREE -eq 0 ]; then
     echo -e "${GREEN}✓ All servers stopped successfully${NC}"
     exit 0
 else

@@ -7,14 +7,15 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css?v=0.2.0" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css?v=0.2.0">
     <!-- Load base styles first -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base-styles.css') }}?v=0.2.1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-styles.css') }}?v=0.2.1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components-styles.css') }}?v=0.2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base-styles.css') }}?v=0.2.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-styles.css') }}?v=0.3.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components-styles.css') }}?v=0.2.2">
     <!-- Load component-specific styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='components/model_management.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/conversation_manager.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/templates.css') }}?v=0.3.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/templates-panel.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=0.1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/streamlined.css') }}?v=0.1.0">
 </head>
@@ -42,6 +43,10 @@
             <button class="nav-btn" id="conversationManagerBtn">
                 <i class="fas fa-comments"></i>
                 <span class="nav-btn-text">Conversations</span>
+            </button>
+            <button class="nav-btn" id="templatesToggleBtn">
+                <i class="fas fa-clipboard-list"></i>
+                <span class="nav-btn-text">Templates</span>
             </button>
         </nav>
     </header>
@@ -128,9 +133,32 @@
                 </div>
             </div>
 
-            <!-- Template Selector -->
-            <div id="template-selector" class="template-selector mb-3">
-                <!-- Template UI will be rendered here by templates.js -->
+            <!-- Template Button moved to nav controls for better UX -->
+            
+            <!-- Template Selector (now in slide-out panel) -->
+            <div id="templates-panel" class="templates-panel">
+                <div class="templates-panel-header">
+                    <h5><i class="fas fa-clipboard-list"></i> Prompt Templates</h5>
+                    <button class="btn-close" id="closeTemplatesPanel" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="templates-panel-body">
+                    <div id="template-selector" class="template-selector">
+                        <!-- Template UI will be rendered here by templates.js -->
+                        <div class="template-loading">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Loading templates...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="templates-panel-footer">
+                    <button class="btn btn-sm btn-outline-secondary" id="refresh-templates">
+                        <i class="fas fa-sync-alt"></i> Refresh Templates
+                    </button>
+                </div>
             </div>
 
             <!-- Image Upload Container -->
@@ -224,6 +252,9 @@
         </div>
     </div>
 
+    <!-- Templates overlay for backdrop -->
+    <div class="templates-overlay" id="templatesOverlay"></div>
+    
     <div class="history-sidebar" id="historySidebar">
         <div class="history-header">
             <h5>Conversation History</h5>
@@ -1533,11 +1564,20 @@
                         `;
                     } else {
                         // Standard message without image
-                        return `
-                            <div class="message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}">
-                                ${msg.content}
-                            </div>
-                        `;
+                        if (msg.role === 'user') {
+                            return `
+                                <div class="message user-message">
+                                    ${msg.content}
+                                </div>
+                            `;
+                        } else {
+                            // Apply proper formatting for assistant messages
+                            return `
+                                <div class="message assistant-message">
+                                    <div class="message-content">${msg.content}</div>
+                                </div>
+                            `;
+                        }
                     }
                 }).join('');
                 
@@ -1767,17 +1807,146 @@
     <script src="{{ url_for('static', filename='js/model_integration.js') }}"></script>
     
     <!-- Templates system -->
-    <script src="{{ url_for('static', filename='js/templates.js') }}?v=0.3.0"></script>
+    <script src="{{ url_for('static', filename='js/templates.js') }}?v=0.3.1"></script>
     
     <!-- Main script -->
     <script src="{{ url_for('static', filename='js/main.js') }}?v=0.3.0"></script>
     
+    <!-- Function to toggle chain details visibility -->
+    <script>
+    function toggleChainDetails(element) {
+        const detailsPanel = element.nextElementSibling;
+        if (detailsPanel) {
+            const isHidden = detailsPanel.style.display === 'none';
+            detailsPanel.style.display = isHidden ? 'block' : 'none';
+            
+            // Update button text
+            if (isHidden) {
+                element.innerHTML = '<i class="fas fa-cogs"></i> Hide chain processing details';
+            } else {
+                element.innerHTML = '<i class="fas fa-cogs"></i> Show chain processing details';
+            }
+        }
+    }
+    </script>
+    
     <!-- Initialize templates after page load -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Templates panel functionality
+        const templatesToggleBtn = document.getElementById('templatesToggleBtn');
+        const templatesPanel = document.getElementById('templates-panel');
+        const closeTemplatesPanel = document.getElementById('closeTemplatesPanel');
+        const templatesOverlay = document.getElementById('templatesOverlay');
+        const refreshTemplatesBtn = document.getElementById('refresh-templates');
+        
+        // Function to close the templates panel
+        function closePanelHandler() {
+            templatesPanel.classList.remove('active');
+            templatesOverlay.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scrolling
+            
+            // Remove active state from toggle button
+            if (templatesToggleBtn) {
+                templatesToggleBtn.classList.remove('active');
+            }
+        }
+        
+        // Add escape key functionality to close panel
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && templatesPanel.classList.contains('active')) {
+                closePanelHandler();
+            }
+        });
+        
+        // Toggle templates panel
+        if (templatesToggleBtn && templatesPanel) {
+            templatesToggleBtn.addEventListener('click', function() {
+                // Toggle active state on button
+                this.classList.toggle('active');
+                
+                // Always open panel (toggle handled by button state)
+                templatesPanel.classList.add('active');
+                templatesOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+                
+                // If we have template UI initialized, refresh templates
+                if (window.templatesUI) {
+                    const modelSelector = document.getElementById('modelSelect');
+                    const currentModel = modelSelector && modelSelector.value ? 
+                        modelSelector.value : 'llama3.2';
+                    
+                    window.templatesUI.init(currentModel);
+                }
+            });
+        }
+        
+        // Close templates panel using the button
+        if (closeTemplatesPanel && templatesPanel) {
+            closeTemplatesPanel.addEventListener('click', function() {
+                closePanelHandler();
+            });
+        }
+        
+        // Close panel when clicking the overlay
+        if (templatesOverlay && templatesPanel) {
+            templatesOverlay.addEventListener('click', function() {
+                closePanelHandler();
+            });
+        }
+        
+        // Refresh templates button handler
+        if (refreshTemplatesBtn) {
+            refreshTemplatesBtn.addEventListener('click', function() {
+                this.disabled = true;
+                const btnText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+                
+                // Get the current model
+                const modelSelector = document.getElementById('modelSelect');
+                const currentModel = modelSelector && modelSelector.value ? 
+                    modelSelector.value : 'llama3.2';
+                
+                // Reload templates
+                if (window.templatesUI) {
+                    window.templatesUI.init(currentModel)
+                        .then(() => {
+                            // Show success toast if available
+                            if (window.showNotification) {
+                                window.showNotification('Templates refreshed successfully', 'success');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error refreshing templates:', err);
+                            if (window.showNotification) {
+                                window.showNotification('Error refreshing templates', 'error');
+                            }
+                        })
+                        .finally(() => {
+                            // Re-enable button
+                            this.disabled = false;
+                            this.innerHTML = btnText;
+                        });
+                }
+            });
+        }
+        
         // Initialize template UI with more robust error handling
         function initializeTemplatesUI() {
             try {
+                // Show loading state
+                const templateSelector = document.getElementById('template-selector');
+                if (templateSelector) {
+                    templateSelector.innerHTML = `
+                        <div class="template-loading">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Loading templates...</span>
+                        </div>
+                    `;
+                }
+                
                 // Get the currently selected model
                 const modelSelector = document.getElementById('modelSelect');
                 const currentModel = modelSelector && modelSelector.value ? 
@@ -1793,6 +1962,16 @@
                 }
             } catch (err) {
                 console.error('Error initializing templates UI:', err);
+                // Show error state
+                const templateSelector = document.getElementById('template-selector');
+                if (templateSelector) {
+                    templateSelector.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Error loading templates. Please try refreshing.
+                        </div>
+                    `;
+                }
             }
         }
         

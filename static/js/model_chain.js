@@ -161,10 +161,7 @@ class ModelChain {
                 background-color: #007bff;
             }
             
-            .chain-step-model {
-                font-weight: 500;
-                color: #0056b3;
-            }
+            /* Chain step model styling is now handled by unified_dashboard.css */
             
             .dark-mode .chain-selector {
                 background-color: #1a2537;
@@ -187,9 +184,7 @@ class ModelChain {
                 background-color: #3b82f6;
             }
             
-            .dark-mode .chain-step-model {
-                color: #60a5fa;
-            }
+            /* Dark mode styling for chain-step-model is now in unified_dashboard.css */
             
             .chain-result {
                 margin-top: 16px;

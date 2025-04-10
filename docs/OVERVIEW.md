@@ -2,6 +2,25 @@
 
 Free Thinkers is a powerful, local-first AI chat interface designed to provide a seamless and efficient way to interact with various large language models (LLMs) directly on your machine. Built with privacy and performance in mind, Free Thinkers offers a clean, minimalist interface while maintaining robust functionality.
 
+## Current Version
+
+**Version: 0.5.2**
+
+### Key Features
+- Multi-user authentication system with guest support
+- Improved model chain visualization and management
+- Enhanced conversation UI with better formatting
+- Improved server management scripts
+- Updated dependency management
+
+### Recent Changes
+- Implemented user authentication system with Flask-Login and JWT
+- Added guest session support for anonymous users
+- Updated server management scripts to use port 5001
+- Enhanced message formatting in the conversation UI
+- Added proper styling for assistant messages including code blocks, tables, and lists
+- Improved model chain visualization with toggleable details
+
 ## Core Features
 
 #### Authentication & User Management

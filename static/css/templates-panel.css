@@ -1,0 +1,365 @@
+/**
+ * Templates Panel CSS v0.2
+ * Styles for the slide-out templates panel
+ * Updated for improved UI theming and usability
+ */
+
+/* Templates Panel Slide-out */
+.templates-panel {
+    position: fixed;
+    top: 0;
+    right: -420px; /* Start offscreen */
+    width: 420px;
+    height: 100vh;
+    background-color: var(--bg-color, white);
+    z-index: 1050;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-color);
+    transform: translateZ(0); /* Force hardware acceleration */
+    opacity: 0.95;
+}
+
+.templates-panel.active {
+    right: 0;
+    opacity: 1;
+}
+
+.templates-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--header-bg, var(--bg-color, white));
+    height: 65px; /* Match header height */
+}
+
+.templates-panel-header h5 {
+    margin: 0;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    color: var(--primary-color);
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+.templates-panel-header h5 i {
+    margin-right: 0.75rem;
+    color: var(--primary-color);
+}
+
+.templates-panel-header .btn-close {
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    color: var(--secondary-color);
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+}
+
+.templates-panel-header .btn-close:hover {
+    opacity: 1;
+    background-color: rgba(0,0,0,0.05);
+}
+
+.templates-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background-color: var(--bg-color, white);
+    scrollbar-width: thin;
+    scrollbar-color: var(--secondary-color) transparent;
+}
+
+.templates-panel-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.templates-panel-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.templates-panel-body::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 6px;
+}
+
+.templates-trigger {
+    text-align: left;
+}
+
+.templates-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    backdrop-filter: blur(3px);
+}
+
+.templates-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.template-selector {
+    padding: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* Active state for nav button */
+#templatesToggleBtn.active {
+    background-color: rgba(var(--primary-color-rgb), 0.15);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Template content styling */
+.template-header {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
+}
+
+.template-dropdown {
+    margin-bottom: 1.5rem;
+    background-color: var(--input-bg, white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    color: var(--text-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.template-dropdown:focus,
+.template-dropdown:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 1px 3px rgba(var(--primary-color-rgb), 0.1);
+}
+
+.template-description {
+    font-size: 0.9rem;
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    border-left: 3px solid var(--primary-color);
+    color: var(--text-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    line-height: 1.5;
+}
+
+.template-placeholders {
+    background-color: var(--card-bg, #f9f9f9);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.template-placeholders .form-group label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.35rem;
+    color: var(--text-color);
+}
+
+.template-placeholders .form-control {
+    background-color: var(--input-bg, white);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.template-placeholders .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+}
+
+.template-apply-btn {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(var(--primary-color-rgb), 0.2);
+    transition: all 0.2s ease;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.template-apply-btn:hover {
+    background-color: var(--primary-hover, var(--primary-color));
+    border-color: var(--primary-hover, var(--primary-color));
+    transform: translateY(-1px);
+    box-shadow: 0 3px 5px rgba(var(--primary-color-rgb), 0.25);
+}
+
+.template-apply-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(var(--primary-color-rgb), 0.2);
+}
+
+/* Dark mode adjustments for template panel */
+.dark-mode .templates-panel {
+    background-color: var(--bg-dark, #1a1a1a);
+    border-color: var(--border-color-dark, #333333);
+}
+
+.dark-mode .templates-panel-header {
+    background-color: var(--header-bg-dark, var(--bg-dark, #1a1a1a));
+    border-color: var(--border-color-dark, #333333);
+}
+
+.dark-mode .templates-panel-header .btn-close:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+.dark-mode .templates-panel-body {
+    background-color: var(--bg-dark, #1a1a1a);
+}
+
+.dark-mode .template-header {
+    color: var(--text-color-dark, #f8f9fa);
+    border-color: var(--border-color-dark, #333333);
+}
+
+.dark-mode .template-dropdown {
+    background-color: var(--input-bg-dark, #2d3748);
+    color: var(--text-color-dark, #f8f9fa);
+    border-color: var(--border-color-dark, #4b5563);
+}
+
+.dark-mode .template-description {
+    background-color: var(--bg-dark-accent, #2d3748);
+    border-color: var(--primary-color-dark, #3b82f6);
+    color: var(--text-color-dark, #f8f9fa);
+}
+
+.dark-mode .template-placeholders {
+    background-color: var(--card-bg-dark, #252525);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.dark-mode .template-placeholders .form-control {
+    background-color: var(--input-bg-dark, #2d3748);
+    border-color: var(--border-color-dark, #4b5563);
+    color: var(--text-color-dark, #f8f9fa);
+}
+
+.dark-mode .template-apply-btn {
+    background-color: var(--primary-color-dark, #3b82f6);
+    border-color: var(--primary-color-dark, #3b82f6);
+}
+
+.dark-mode .template-apply-btn:hover {
+    background-color: var(--primary-hover-dark, #2563eb);
+    border-color: var(--primary-hover-dark, #2563eb);
+}
+
+.dark-mode .templates-panel-footer {
+    background-color: var(--bg-dark, #1a1a1a);
+    border-color: var(--border-color-dark, #333333);
+}
+
+.dark-mode .template-loading {
+    color: var(--text-color-dark, #f8f9fa);
+}
+
+/* Panel Footer */
+.templates-panel-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-color, white);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.templates-panel-footer .btn {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.templates-panel-footer .btn i {
+    margin-right: 0.35rem;
+}
+
+/* Loading state */
+.template-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+}
+
+/* Enhanced Animations */
+.templates-panel.active {
+    animation: slideInPanel 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInPanel {
+    from {
+        right: -420px;
+        opacity: 0.9;
+    }
+    to {
+        right: 0;
+        opacity: 1;
+    }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .templates-panel {
+        width: 85%;
+        max-width: 350px;
+        right: -100%;
+    }
+    
+    .templates-panel-header {
+        padding: 0 1rem;
+    }
+    
+    .templates-panel-body {
+        padding: 1rem;
+    }
+    
+    .template-header {
+        font-size: 0.95rem;
+    }
+    
+    .template-description,
+    .template-placeholders {
+        padding: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .templates-panel {
+        width: 100%;
+        max-width: none;
+    }
+}

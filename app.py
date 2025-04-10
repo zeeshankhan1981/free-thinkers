@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, session
+from flask import Flask, render_template, request, jsonify, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_required, current_user
 from flask_cors import CORS
 import os
 import sys
@@ -20,6 +22,7 @@ from app.system_monitor_api import system_monitor_api
 from app.auth import auth
 from app.user_management_api import user_management_api
 from app.conversation_api import conversation_api
+from app.models import db, User
 
 # Explicitly setting correct paths for templates and static files
 app = Flask(__name__, 
@@ -27,6 +30,17 @@ app = Flask(__name__,
            static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'))
 app.secret_key = os.urandom(24)  # Generate a secure secret key for sessions
 CORS(app)
+
+# Configuration
+app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///free_thinkers.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize extensions
+db.init_app(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
 
 # Configuration
 HISTORY_DIR = Path(os.path.expanduser("~/.freethinkers/history/"))
@@ -354,9 +368,15 @@ app.register_blueprint(auth)
 app.register_blueprint(user_management_api)
 app.register_blueprint(conversation_api)
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Check if user is logged in
+    is_authenticated = current_user.is_authenticated if current_user else False
+    return render_template('index.html', is_authenticated=is_authenticated)
 
 @app.route('/profile')
 def profile():
@@ -831,12 +851,23 @@ def download_model():
         print(f"Error downloading model: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/health')
+def health_check():
+    return jsonify({'status': 'healthy'}), 200
+
+@app.route('/api/config')
+def get_config():
+    return jsonify({
+        'version': '0.5.1',
+        'features': {
+            'guest_mode': True,
+            'registration': True,
+            'dark_mode': True,
+            'templates': True
+        }
+    }), 200
+
 if __name__ == '__main__':
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Free Thinkers - Local AI Chat Interface')
-    parser.add_argument('--port', type=int, default=5000, help='Port to run the application on')
-    parser.add_argument('--host', type=str, default='127.0.0.1', help='Host to run the application on')
-    args = parser.parse_args()
-    
-    app.run(host=args.host, port=args.port, debug=True)
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, port=5001)
