@@ -285,7 +285,7 @@ class ChainVisualizer {
                     <div class="chain-step-number">${index + 1}</div>
                     <div class="chain-step-title">${step.name}</div>
                 </div>
-                <div class="chain-step-model">${step.model || 'Auto'}</div>
+                <div class="chain-step-model">Model: ${step.model || 'Auto'}</div>
                 <div class="chain-step-description">${step.description || ''}</div>
                 <div class="chain-step-capability small text-muted">
                     ${step.capability ? `<span class="badge bg-secondary">${step.capability}</span>` : ''}

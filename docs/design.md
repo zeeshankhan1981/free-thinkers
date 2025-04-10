@@ -211,23 +211,81 @@ Run the above command to have Claude Sonnet generate the necessary CSS modificat
     margin-bottom: 1rem;
     padding: 0.75rem;
 }
+
+### Chain Visualization Enhancements
+
+1. **Model Display**
+   - Added explicit "Model:" prefix for clarity
+   - Improved visual hierarchy with icon
+   - Better spacing and alignment
+   - Enhanced dark mode support
+
+2. **Component Styling**
+   - Consistent border radius and padding
+   - Improved background colors
+   - Better contrast ratios
+   - Enhanced hover states
+
+3. **Dark Mode Improvements**
+   - Optimized colors for better readability
+   - Better contrast for model indicators
+   - Improved shadow effects
+   - Enhanced icon visibility
+
+4. **CSS Organization**
+```css
+/* Chain Step Model */
+.chain-step-model {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: var(--border-radius);
+    background-color: var(--bg-light);
+    color: var(--secondary-color);
+    margin-bottom: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    font-weight: 500;
+}
+
+.chain-step-model:before {
+    content: "\f233";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    margin-right: 0.4rem;
+    font-size: 0.7rem;
+    color: var(--primary-color);
+}
+
+/* Dark Mode Specifics */
+.dark-mode .chain-step-model {
+    background-color: #2d3748;
+    color: #cbd5e0;
+    border-color: #4a5568;
+}
+
+.dark-mode .chain-step-model:before {
+    color: #60a5fa;
+}
 ```
 
-### Dark Mode Enhancements
+### Visual Hierarchy
 
-- Improved contrast ratios for better readability
-- Better handling of hover and active states
-- Enhanced visual hierarchy in dark mode
-- Smooth transitions between light and dark modes
-- Better color harmony across components
+1. **Model Indicators**
+   - Clear visual distinction with icon
+   - Consistent sizing and spacing
+   - Better readability in both modes
 
-### Responsive Design
+2. **Step Components**
+   - Improved spacing between elements
+   - Better alignment of text and icons
+   - Enhanced visual grouping
 
-- Better mobile-first approach
-- Improved breakpoint handling
-- Better touch target sizes
-- Enhanced spacing on smaller screens
-- Improved form control layouts
+3. **Interactive Elements**
+   - Better hover states
+   - Improved focus indicators
+   - Smoother transitions
 
 ## Authentication UI Design
 
