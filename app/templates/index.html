@@ -50,11 +50,11 @@
             </button>
             <!-- User Profile Button (Logged in) - Hidden by default -->
             <div class="dropdown" id="userDropdown" style="display: none;">
-                <button class="nav-btn dropdown-toggle" type="button" id="userDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="nav-btn dropdown-toggle" type="button" id="userDropdownButton" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
                     <i class="fas fa-user-circle"></i>
                     <span class="nav-btn-text" id="username">Username</span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdownButton">
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdownButton" style="min-width: 200px;">
                     <li><a class="dropdown-item" href="#" id="profileLink">Profile</a></li>
                     <li><a class="dropdown-item" href="#" id="preferencesLink">Preferences</a></li>
                     <li><hr class="dropdown-divider"></li>
@@ -1932,6 +1932,15 @@
         // Initialize modals and authentication when the page is fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Document fully loaded, initializing authentication...');
+            
+            // Initialize Bootstrap dropdowns
+            const dropdowns = document.querySelectorAll('.dropdown-toggle');
+            dropdowns.forEach(dropdown => {
+                const bsDropdown = new bootstrap.Dropdown(dropdown);
+                dropdown.addEventListener('click', function() {
+                    bsDropdown.toggle();
+                });
+            });
             
             // Make sure the login button is working
             const authButton = document.getElementById('authButton');

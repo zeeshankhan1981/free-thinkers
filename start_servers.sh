@@ -119,7 +119,7 @@ except Exception as e:
     # Initialize the database if it doesn't exist
     if [ ! -f "freethinkers.db" ]; then
         echo -e "${YELLOW}Initializing database...${NC}"
-        python setup_db.py
+        source venv/bin/activate && python3 setup_db.py
         if [ $? -ne 0 ]; then
             echo -e "${RED}✗ Failed to initialize database${NC}"
             return 1

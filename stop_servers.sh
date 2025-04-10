@@ -87,88 +87,53 @@ stop_ollama() {
     fi
 }
 
-# Kill Flask server
-kill_process "python.*app\.py" "Flask server"
-FLASK_STOPPED=$?
+# Function to clean up Python processes
+stop_python_processes() {
+    # Kill Flask server
+    kill_process "python.*app\.py" "Flask server"
+    
+    # Kill any Python processes related to our app
+    kill_process "python.*setup_db\.py" "Database initialization"
+    kill_process "python.*.*\.py" "Python processes"
+    
+    # Kill any Python processes in the virtual environment
+    if [ -d "venv" ]; then
+        kill_process "venv/bin/python.*" "Virtual environment Python"
+    fi
+}
 
-# Kill any Python processes related to our app that might be running
-if pgrep -f "flask run" > /dev/null; then
-    echo -e "Found Flask development server, stopping..."
-    pkill -f "flask run"
-    sleep 1
-fi
-
-# Kill Ollama server
+# Stop servers in order
+stop_python_processes
 stop_ollama
-OLLAMA_STOPPED=$?
 
-# Also try to kill any Ollama CLI processes that might be hanging
-if pgrep -f "ollama " > /dev/null; then
-    echo -e "Stopping additional Ollama processes..."
-    pkill -f "ollama " || true
-    sleep 1
-fi
-
-# Check if ports are still in use
-PORT_5000_FREE=1
-PORT_11434_FREE=1
-
-# Check if port 5000 is free
-if ! is_port_in_use 5000; then
-    PORT_5000_FREE=0
-    echo -e "${GREEN}✓ Port 5000 is free${NC}"
-else
-    echo -e "${RED}✗ Port 5000 is still in use${NC}"
-    echo "Attempting to free port 5000..."
-    lsof -ti:5000 | xargs kill -9 &> /dev/null
-    sleep 1
-    
-    if ! is_port_in_use 5000; then
-        PORT_5000_FREE=0
-        echo -e "${GREEN}✓ Port 5000 is now free${NC}"
-    else
-        echo -e "${RED}✗ Failed to free port 5000${NC}"
+# Check and clean up ports
+PORTS=(5000 11434)
+for port in "${PORTS[@]}"; do
+    if is_port_in_use $port; then
+        echo -e "${YELLOW}Port $port is still in use, cleaning up...${NC}"
+        lsof -ti :$port | xargs kill -9 2>/dev/null
     fi
-fi
-
-# Check if port 11434 is free
-if ! is_port_in_use 11434; then
-    PORT_11434_FREE=0
-    echo -e "${GREEN}✓ Port 11434 is free${NC}"
-else
-    echo -e "${RED}✗ Port 11434 is still in use${NC}"
-    echo "Attempting to free port 11434..."
-    lsof -ti:11434 | xargs kill -9 &> /dev/null
-    sleep 1
-    
-    if ! is_port_in_use 11434; then
-        PORT_11434_FREE=0
-        echo -e "${GREEN}✓ Port 11434 is now free${NC}"
+    if ! is_port_in_use $port; then
+        echo -e "${GREEN}✓ Port $port is free${NC}"
     else
-        echo -e "${RED}✗ Failed to free port 11434${NC}"
+        echo -e "${RED}✗ Failed to free port $port${NC}"
     fi
-fi
+    sleep 1
+
+done
 
 # Clean up log files
-if [ -f "flask.log" ]; then
-    echo -e "Cleaning up Flask log file..."
-    rm flask.log
-fi
+LOG_FILES=("ollama.log" "flask.log" "setup_db.log")
+for log in "${LOG_FILES[@]}"; do
+    if [ -f "$log" ]; then
+        echo -e "${YELLOW}Cleaning up $log...${NC}"
+        rm -f "$log"
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ $log cleaned up${NC}"
+        else
+            echo -e "${RED}✗ Failed to clean up $log${NC}"
+        fi
+    fi
+done
 
-if [ -f "ollama.log" ]; then
-    echo -e "Cleaning up Ollama log file..."
-    rm ollama.log
-fi
-
-# Final status
-if [ $FLASK_STOPPED -eq 0 ] && [ $OLLAMA_STOPPED -eq 0 ] && [ $PORT_5000_FREE -eq 0 ] && [ $PORT_11434_FREE -eq 0 ]; then
-    echo -e "${GREEN}${BOLD}✓ All servers stopped successfully${NC}"
-    exit 0
-else
-    echo -e "${RED}${BOLD}✗ Some servers may still be running${NC}"
-    echo -e "${YELLOW}You may need to manually kill processes or restart your system${NC}"
-    echo -e "Try the following commands if needed:"
-    echo -e "${BLUE}  pkill -9 -f 'python'${NC}"
-    echo -e "${BLUE}  pkill -9 -f 'ollama'${NC}"
-    exit 1
-fi
+echo -e "${GREEN}✓ All servers stopped successfully${NC}"
