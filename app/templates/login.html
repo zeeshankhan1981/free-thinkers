@@ -6,6 +6,7 @@
     <title>Login - Free Thinkers</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base-styles.css') }}?v=0.2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=0.2.0">
     <style>
         body {
@@ -31,56 +32,110 @@
             align-items: center;
             justify-content: center;
             margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
         }
         .brand i {
-            font-size: 2rem;
+            font-size: 2.5rem;
             margin-right: 0.5rem;
             color: var(--primary-color);
+            animation: pulse 2s infinite;
         }
         .brand h1 {
-            font-size: 1.8rem;
+            font-size: 2rem;
             margin: 0;
             color: var(--text-color);
+            font-weight: 600;
         }
-        .form-footer {
-            text-align: center;
-            margin-top: 1.5rem;
+        .login-content {
+            margin-top: 2rem;
         }
-        .login-options {
-            margin-top: 1.5rem;
-            border-top: 1px solid var(--border-color);
-            padding-top: 1.5rem;
+        .form-group {
+            margin-bottom: 1.5rem;
         }
-        .form-control {
-            background-color: var(--input-bg);
-            border-color: var(--border-color);
+        .form-group label {
+            font-weight: 500;
             color: var(--text-color);
         }
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+        .input-group {
+            position: relative;
         }
         .input-group-text {
             background-color: var(--input-bg);
             border-color: var(--border-color);
             color: var(--text-color);
+            width: 40px;
+            text-align: center;
         }
-        .btn-primary {
+        .form-control {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+            padding-left: 1.5rem;
+        }
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 500;
             background-color: var(--primary-color);
             border-color: var(--primary-color);
+            transition: all 0.2s ease;
         }
-        .btn-primary:hover {
+        .btn-login:hover {
             background-color: var(--primary-hover);
             border-color: var(--primary-hover);
+            transform: translateY(-1px);
         }
-        .text-muted {
+        .btn-login i {
+            margin-right: 0.5rem;
+        }
+        .form-footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .form-footer p {
+            margin: 0.5rem 0;
             color: var(--text-muted);
         }
-        .text-decoration-none {
+        .form-footer a {
             color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
         }
-        .text-decoration-none:hover {
+        .form-footer a:hover {
             color: var(--primary-hover);
+            text-decoration: underline;
+        }
+        .login-options {
+            margin-top: 1.5rem;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .checkbox-group label {
+            color: var(--text-color);
+        }
+        .login-error {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            background-color: var(--error-bg);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
         /* Dark mode styles */
         .dark-mode {
@@ -100,6 +155,11 @@
         .dark-mode .text-muted {
             color: var(--dark-text-muted);
         }
+        .dark-mode .login-error {
+            background-color: var(--dark-error-bg);
+            border-color: var(--dark-error-color);
+            color: var(--dark-error-color);
+        }
     </style>
 </head>
 <body class="{{ 'dark-mode' if dark_mode else '' }}">
@@ -109,43 +169,42 @@
             <h1>Free Thinkers</h1>
         </div>
         
-        <div id="loginError" class="alert alert-danger" style="display: none;"></div>
-        
-        <form id="loginForm">
-            <div class="mb-3">
-                <label for="loginUsername" class="form-label">Username</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                    <input type="text" class="form-control" id="loginUsername" placeholder="Enter your username" required>
-                </div>
-            </div>
+        <div class="login-content">
+            <div id="loginError" class="login-error" style="display: none;"></div>
             
-            <div class="mb-3">
-                <label for="loginPassword" class="form-label">Password</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                    <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" required>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text" class="form-control" id="loginUsername" placeholder="Enter your username" required>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="form-check">
+                
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" required>
+                    </div>
+                </div>
+                
+                <div class="checkbox-group">
                     <input type="checkbox" class="form-check-input" id="rememberMe">
                     <label class="form-check-label" for="rememberMe">Remember me</label>
                 </div>
-                <a href="{{ url_for('auth.reset_password_request') }}" class="text-decoration-none">Forgot password?</a>
-            </div>
-            
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt me-2"></i> Login
-                </button>
-            </div>
-        </form>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-login">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </div>
+            </form>
+        </div>
         
         <div class="form-footer">
-            <p class="text-muted mb-2">Don't have an account? <a href="{{ url_for('auth.register') }}" class="text-decoration-none">Sign up</a></p>
-            <p class="text-muted mb-0">Or <a href="{{ url_for('index') }}" id="continueAsGuest" class="text-decoration-none">continue as guest</a></p>
+            <p>Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up</a></p>
+            <p>Or <a href="{{ url_for('index') }}" id="continueAsGuest">continue as guest</a></p>
         </div>
     </div>
     

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2025-04-10
+
+### Added
+- Login button to main page for easier access to authentication
+- Guest mode support with dedicated guest session management
+- Improved error handling and loading states in authentication flow
+
+### Changed
+- Redesigned login page to match Free Thinkers app theme
+- Enhanced dark mode support across authentication components
+- Improved form styling and spacing for better user experience
+- Updated button styles to be more consistent with app design
+
+### Fixed
+- Various styling inconsistencies in the authentication flow
+- Improved error message visibility and styling
+- Fixed dark mode compatibility issues in login page
+
 ## [0.5.5] - 2025-04-10
 
 ### Fixed
