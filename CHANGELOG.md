@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] - 2025-04-10
+
+### Added
+- Header with blue branding to login page
+- Consistent button styling across app
+- Proper dark mode support for login page
+- Improved error message styling
+
+### Changed
+- Redesigned login page to match app UI theme
+- Improved form layout and alignment
+- Consistent color scheme and spacing
+- Enhanced dark mode compatibility
+
+### Fixed
+- Various styling inconsistencies in login page
+- Improved form control styling
+- Fixed dark mode color contrast issues
+- Enhanced error message visibility
+
 ## [0.5.6] - 2025-04-10
 
 ### Added
