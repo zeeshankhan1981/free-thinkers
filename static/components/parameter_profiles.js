@@ -66,7 +66,10 @@ class ParameterProfiles {
             profilesSection = document.createElement('div');
             profilesSection.className = 'profiles-section mb-4';
             profilesSection.innerHTML = `
-                <h4 class="mb-3">Parameter Profiles</h4>
+                <div class="section-header">
+                    <h4 class="mb-2">Parameter Profiles</h4>
+                    <p class="text-muted small mb-0">Save and apply different parameter configurations</p>
+                </div>
                 <div class="profile-selector mb-3">
                     <label for="profileSelect" class="form-label">Select Profile:</label>
                     <select id="profileSelect" class="form-select"></select>
@@ -75,7 +78,7 @@ class ParameterProfiles {
                     <p class="text-muted">Select a profile to view its description</p>
                 </div>
                 <div class="profile-actions mb-3">
-                    <button id="applyProfileBtn" class="btn btn-primary">
+                    <button id="applyProfileBtn" class="btn btn-primary me-2">
                         <i class="fas fa-check"></i> Apply Profile
                     </button>
                     <button id="saveAsNewBtn" class="btn btn-outline-secondary">

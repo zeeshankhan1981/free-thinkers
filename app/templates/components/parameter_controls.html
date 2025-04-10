@@ -9,8 +9,9 @@
 
     <div class="parameter-controls-content">
         <!-- Presets Section -->
-        <div class="presets-section">
+        <div class="section-header presets-section">
             <h4>Presets</h4>
+            <p>Choose a preset to quickly adjust model parameters.</p>
             <div class="presets-list">
                 <button class="btn btn-outline-primary preset-btn" data-preset="balanced">
                     <i class="fas fa-balance-scale"></i> Balanced
@@ -144,6 +145,90 @@
     right: 0;
 }
 
+.parameter-controls-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.parameter-controls-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-color);
+}
+
+.parameter-controls-content {
+    padding: 1rem;
+}
+
+/* Section header styles */
+.section-header {
+    margin-bottom: 1.5rem;
+}
+
+.section-header h4 {
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.section-header p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.presets-section {
+    margin-bottom: 1.5rem;
+}
+
+.presets-section h4 {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.presets-list {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    flex: 1;
+    min-width: 100px;
+    max-width: 120px;
+}
+
+.parameter-group {
+    margin-bottom: 1.5rem;
+}
+
+.parameter-group h5 {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.parameter-description {
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .form-range {
     -webkit-appearance: none;
     appearance: none;
@@ -173,9 +258,45 @@
     cursor: pointer;
 }
 
+.slider-value {
+    min-width: 40px;
+    text-align: right;
+    font-size: 0.9rem;
+}
+
+.controls-section {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.close-btn {
+    padding: 0.25rem 0.5rem;
+}
+
 /* Dark mode styles */
-body.dark-mode .form-range {
-    background: #444;
+.dark-mode .parameter-controls-sidebar {
+    background-color: var(--dark-bg);
+}
+
+.dark-mode .parameter-controls-header h3,
+.dark-mode .parameter-group h5,
+.dark-mode .presets-section h4,
+.dark-mode .section-header h4 {
+    color: var(--dark-text);
+}
+
+.dark-mode .parameter-description,
+.dark-mode .section-header p {
+    color: var(--dark-text-muted);
+}
+
+.dark-mode .form-range {
+    background: var(--dark-border);
+}
+
+.dark-mode .parameter-controls-sidebar {
+    border-left-color: var(--dark-border);
 }
 </style>
 
