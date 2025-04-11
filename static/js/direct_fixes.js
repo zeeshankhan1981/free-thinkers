@@ -22,14 +22,87 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         /* Force model sidebar visibility */
+        .model-management-sidebar {
+            transition: right 0.3s ease, opacity 0.3s ease !important;
+            right: -400px !important;
+            opacity: 0 !important;
+        }
+        
         .model-management-sidebar.active {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
             right: 0 !important;
-            height: 100% !important;
-            overflow-y: auto !important;
             z-index: 10000 !important;
+            background-color: var(--bg-color, white) !important;
+        }
+        
+        /* Force model list visibility */
+        #modelsList {
+            display: block !important;
+            visibility: visible !important;
+            height: auto !important;
+            min-height: 400px !important;
+            overflow-y: auto !important;
+            background-color: var(--bg-light, #f8f9fa) !important;
+            border-radius: 4px !important;
+        }
+        
+        /* Force model items to be visible */
+        .model-item {
+            display: flex !important;
+            visibility: visible !important;
+            background-color: var(--card-bg, white) !important;
+            margin-bottom: 0.75rem !important;
+            border: 1px solid var(--border-color, #dee2e6) !important;
+            border-radius: var(--border-radius, 0.375rem) !important;
+            padding: 0.75rem !important;
+        }
+        
+        /* Force model info visibility */
+        .model-info {
+            display: block !important;
+            visibility: visible !important;
+            flex: 1 !important;
+        }
+        
+        /* Force model actions visibility */
+        .model-actions {
+            display: flex !important;
+            visibility: visible !important;
+        }
+        
+        /* Make section headers visible */
+        .section-header {
+            display: flex !important;
+            visibility: visible !important;
+            justify-content: space-between !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        /* Dark mode compatibility */
+        body.dark-mode #model-management-sidebar.active {
+            background-color: var(--dark-bg, #212529) !important;
+            color: var(--dark-text, #f8f9fa) !important;
+        }
+        
+        body.dark-mode .model-item {
+            background-color: var(--dark-bg-light, #343a40) !important;
+            border-color: var(--dark-border, #444) !important;
+        }
+        
+        body.dark-mode #modelsList {
+            background-color: var(--dark-bg, #212529) !important;
+        }
+        
+        /* Force conversation sidebar visibility */
+        .conversation-manager-sidebar.active {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            right: 0 !important;
+            z-index: 10000 !important;
+            background-color: var(--bg-color, white) !important;
         }
         
         /* Force parameter sidebar visibility */
@@ -43,15 +116,35 @@ document.addEventListener('DOMContentLoaded', function() {
             z-index: 10000 !important;
         }
         
-        /* Force conversation sidebar visibility */
-        .conversation-manager-sidebar.active {
+        /* Force conversation manager visibility */
+        .conversation-manager-sidebar {
+            transition: right 0.3s ease, opacity 0.3s ease !important;
+            right: -400px !important;
+            opacity: 0 !important;
+        }
+        
+        /* Force parameter controls visibility */
+        .parameter-controls-sidebar {
+            transition: right 0.3s ease, opacity 0.3s ease !important;
+            right: -400px !important;
+            opacity: 0 !important;
+        }
+        
+        /* Force history sidebar visibility */
+        .history-sidebar {
+            transition: right 0.3s ease, opacity 0.3s ease !important;
+            right: -400px !important;
+            opacity: 0 !important;
+        }
+        
+        /* Force history sidebar visibility */
+        .history-sidebar.active {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
             right: 0 !important;
-            height: 100% !important;
-            overflow-y: auto !important;
             z-index: 10000 !important;
+            background-color: var(--bg-color, white) !important;
         }
         
         /* Force models section visibility */
@@ -79,25 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
         /* Ensure model list content is visible with !important */
         #modelsList > div {
             display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        /* Force model items to be visible */
-        .model-item {
-            display: flex !important;
-            visibility: visible !important;
-            padding: 10px !important;
-            margin-bottom: 10px !important;
-            border: 1px solid #dee2e6 !important;
-            border-radius: 4px !important;
-            background-color: white !important;
-            opacity: 1 !important;
-        }
-        
-        /* Force model components to be visible */
-        .model-info, .model-actions, .model-name, .model-meta, .model-meta-item, .model-badges {
-            display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
         }
@@ -713,9 +787,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="models-stats-section" style="margin-top:1.5rem;">
                     <div class="section-header" style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
                         <h4 style="margin:0;">Model Usage Statistics</h4>
+                        <button id="toggle-statistics" style="background:none; border:none; font-size:1rem; cursor:pointer;">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
                     </div>
                     
-                    <div id="model-stats-container" style="border:1px solid #dee2e6; border-radius:0.25rem; padding:0.75rem; background-color:#f8f9fa; font-size:0.875rem;">
+                    <div id="usage-statistics" style="border:1px solid #dee2e6; border-radius:0.25rem; padding:0.75rem; background-color:#f8f9fa; font-size:0.875rem;">
                         <div id="model-stats-loading" style="text-align:center; padding:1rem;">
                             Loading statistics...
                         </div>
@@ -2033,6 +2110,27 @@ document.addEventListener('DOMContentLoaded', function() {
             sidebar.classList.remove('active');
             sidebar.style.display = 'none';
         }
+    }
+    
+    // Fix statistics section toggle
+    const toggleStatsBtn = document.getElementById('toggle-stats-btn');
+    const detailedStats = document.getElementById('detailed-stats');
+    
+    if (toggleStatsBtn && detailedStats) {
+        toggleStatsBtn.addEventListener('click', function() {
+            // Toggle visibility
+            const isHidden = detailedStats.style.display === 'none';
+            detailedStats.style.display = isHidden ? 'block' : 'none';
+            
+            // Rotate chevron icon
+            const icon = toggleStatsBtn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            }
+            
+            console.log('Toggled detailed statistics visibility');
+        });
     }
     
     // Fix templates UI initialization

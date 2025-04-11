@@ -1,0 +1,76 @@
+/* Unified Sidebar Styling */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: var(--bg-color);
+    transition: right 0.3s ease, opacity 0.3s ease;
+    z-index: 1000;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    overflow-y: auto;
+}
+
+/* Active State */
+.sidebar.active {
+    right: 0;
+    opacity: 1;
+}
+
+/* Model-Specific Overrides */
+#model-management-sidebar {
+    --bg-color: #ffffff;
+}
+
+#parameter-controls-sidebar {
+    --bg-color: #f8f9fa;
+}
+
+/* Dark Mode Support */
+body.dark-mode .sidebar {
+    --bg-color: #2d3748;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+}
+
+/* Usage Statistics Section */
+#usage-statistics {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+#usage-statistics.show {
+    max-height: 500px; /* Adjust based on content */
+}
+
+/* Usage Stats Panel */
+.usage-stats-panel {
+    transition: all 0.3s ease;
+    max-height: 60px; /* Compact height */
+    overflow: hidden;
+}
+
+.usage-stats-panel.expanded {
+    max-height: 200px; /* Expanded height */
+}
+
+/* Detailed Stats Section */
+.usage-stats-detailed {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.usage-stats-detailed[style*="display: block"] {
+    max-height: 500px; /* Adjust based on content */
+}
+
+/* Chevron rotation */
+.fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+.fa-chevron-up {
+    transform: rotate(180deg);
+}
