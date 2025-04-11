@@ -8,9 +8,9 @@
 class ModelIntegrationSystem {
     constructor() {
         // Core elements
-        this.modelSelect = document.getElementById('modelSelect');
-        this.modelSidebar = document.getElementById('modelManagementSidebar');
-        this.modelMgmtBtn = document.getElementById('modelManagementBtn');
+        this.modelSelect = document.getElementById('model-select');
+        this.modelSidebar = document.getElementById('model-management-sidebar');
+        this.modelMgmtBtn = document.getElementById('model-management-btn');
         
         // Current state
         this.availableModels = [];
@@ -43,9 +43,16 @@ class ModelIntegrationSystem {
             if (this.modelSelect) {
                 this.modelSelect.addEventListener('change', (e) => this.handleModelSelectChange(e));
                 
-                // Store initial selected model
-                this.currentModel = this.modelSelect.value;
+                // Store initial selected model (with fallback to prevent empty string)
+                this.currentModel = this.modelSelect.value || 'llama3.2';
+                if (!this.currentModel || this.currentModel.trim() === '') {
+                    this.currentModel = 'llama3.2';
+                    this.modelSelect.value = this.currentModel;
+                }
                 console.log("Initial model:", this.currentModel);
+            } else {
+                console.warn("Model select element not found in the DOM");
+                this.currentModel = 'llama3.2';
             }
             
             // Add "Manage Models" button next to the dropdown if not already present
@@ -73,7 +80,7 @@ class ModelIntegrationSystem {
         if (!this.modelSelect) return;
         
         // Check if button already exists
-        const existingButton = document.getElementById('modelManageButton');
+        const existingButton = document.getElementById('model-manage-button');
         if (existingButton) return;
         
         // Create container for dropdown + button if it doesn't exist
@@ -87,7 +94,7 @@ class ModelIntegrationSystem {
         
         // Create the manage button
         const manageButton = document.createElement('button');
-        manageButton.id = 'modelManageButton';
+        manageButton.id = 'model-manage-button';
         manageButton.className = 'btn btn-sm btn-outline-secondary';
         manageButton.innerHTML = '<i class="fas fa-cog"></i>';
         manageButton.title = 'Manage Models';

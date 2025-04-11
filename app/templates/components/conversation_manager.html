@@ -1,8 +1,8 @@
 <!-- Conversation Management Sidebar -->
-<div class="conversation-manager-sidebar" id="conversationManagerSidebar">
+<div class="conversation-manager-sidebar sidebar" id="conversation-manager-sidebar">
     <div class="conversation-manager-header">
         <h3>Conversations</h3>
-        <button class="btn btn-sm btn-outline-secondary close-btn" id="closeConversationManager">
+        <button class="btn btn-sm btn-outline-secondary close-btn" id="close-conversation-manager">
             <i class="fas fa-times"></i>
         </button>
     </div>
@@ -14,14 +14,14 @@
                 <span class="input-group-text">
                     <i class="fas fa-search"></i>
                 </span>
-                <input type="text" class="form-control" id="conversationSearch" placeholder="Search conversations...">
+                <input type="text" class="form-control" id="conversation-search" placeholder="Search conversations...">
             </div>
         </div>
 
         <!-- Categories Section -->
         <div class="categories-section">
             <h4>Categories</h4>
-            <div class="categories-list" id="categoriesList">
+            <div class="categories-list" id="categories-list">
                 <!-- Categories will be populated by JavaScript -->
             </div>
         </div>
@@ -29,20 +29,20 @@
         <!-- Conversations Section -->
         <div class="conversations-section">
             <h4>Conversations</h4>
-            <div class="conversations-list" id="conversationsList">
+            <div class="conversations-list" id="conversations-list">
                 <!-- Conversations will be populated by JavaScript -->
             </div>
         </div>
 
         <!-- Actions Section -->
         <div class="actions-section">
-            <button class="btn btn-primary" id="newConversationBtn">
+            <button class="btn btn-primary" id="new-conversation-btn">
                 <i class="fas fa-plus"></i> New Conversation
             </button>
-            <button class="btn btn-outline-secondary" id="importConversationBtn">
+            <button class="btn btn-outline-secondary" id="import-conversation-btn">
                 <i class="fas fa-file-import"></i> Import Conversation
             </button>
-            <button class="btn btn-outline-secondary" id="exportConversationBtn">
+            <button class="btn btn-outline-secondary" id="export-conversation-btn">
                 <i class="fas fa-file-export"></i> Export Conversation
             </button>
         </div>
@@ -50,61 +50,61 @@
 </div>
 
 <!-- Conversation Details Modal -->
-<div class="conversation-details-modal" id="conversationDetailsModal" style="display: none;">
+<div class="conversation-details-modal" id="conversation-details-modal" style="display: none;">
     <div class="conversation-details-content">
         <div class="conversation-details-header">
-            <h4 id="conversationDetailsTitle">Conversation Details</h4>
-            <button class="close-modal" id="closeConversationDetails">
+            <h4 id="conversation-details-title">Conversation Details</h4>
+            <button class="close-modal" id="close-conversation-details">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="conversation-details-body" id="conversationDetailsBody">
+        <div class="conversation-details-body" id="conversation-details-body">
             <!-- Conversation details will be populated by JavaScript -->
         </div>
         <div class="conversation-details-footer">
-            <button class="btn btn-outline-secondary" id="closeConversationDetailsBtn">Close</button>
-            <button class="btn btn-primary" id="saveConversationChanges">Save Changes</button>
+            <button class="btn btn-outline-secondary" id="close-conversation-details-btn">Close</button>
+            <button class="btn btn-primary" id="save-conversation-changes">Save Changes</button>
         </div>
     </div>
 </div>
 
 <!-- Import Modal -->
-<div class="import-modal" id="importModal" style="display: none;">
+<div class="import-modal" id="import-modal" style="display: none;">
     <div class="import-content">
         <h4>Import Conversation</h4>
         <div class="import-options">
             <div class="import-option">
                 <label class="form-label">JSON File</label>
-                <input type="file" class="form-control" id="jsonFileInput" accept=".json">
+                <input type="file" class="form-control" id="json-file-input" accept=".json">
             </div>
             <div class="import-option">
                 <label class="form-label">Markdown File</label>
-                <input type="file" class="form-control" id="markdownFileInput" accept=".md">
+                <input type="file" class="form-control" id="markdown-file-input" accept=".md">
             </div>
         </div>
         <div class="import-actions">
-            <button class="btn btn-outline-secondary" id="closeImportModal">Cancel</button>
-            <button class="btn btn-primary" id="importConversation">Import</button>
+            <button class="btn btn-outline-secondary" id="close-import-modal">Cancel</button>
+            <button class="btn btn-primary" id="import-conversation">Import</button>
         </div>
     </div>
 </div>
 
 <!-- Export Modal -->
-<div class="export-modal" id="exportModal" style="display: none;">
+<div class="export-modal" id="export-modal" style="display: none;">
     <div class="export-content">
         <h4>Export Conversation</h4>
         <div class="export-options">
-            <button class="btn btn-outline-primary" id="exportAsJSON">Export as JSON</button>
-            <button class="btn btn-outline-primary" id="exportAsMarkdown">Export as Markdown</button>
+            <button class="btn btn-outline-primary" id="export-as-json">Export as JSON</button>
+            <button class="btn btn-outline-primary" id="export-as-markdown">Export as Markdown</button>
         </div>
         <div class="export-actions">
-            <button class="btn btn-outline-secondary" id="closeExportModal">Cancel</button>
+            <button class="btn btn-outline-secondary" id="close-export-modal">Cancel</button>
         </div>
     </div>
 </div>
 
 <!-- Notification -->
-<div class="notification" id="conversationNotification"></div>
+<div class="notification" id="conversation-notification"></div>
 
 <!-- Conversation Manager Styles -->
 <style>

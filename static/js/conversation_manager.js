@@ -17,7 +17,7 @@ class ConversationManager {
         
         // First load from localStorage for immediate access
         const savedConversations = localStorage.getItem('conversations');
-        const savedPinned = localStorage.getItem('pinnedConversations');
+        const savedPinned = localStorage.getItem('pinned-conversations');
         
         if (savedConversations) {
             try {
@@ -33,7 +33,7 @@ class ConversationManager {
                 
                 if (this.conversations.length > 0) {
                     // Check if there was a previously active conversation
-                    const lastActiveId = localStorage.getItem('lastActiveConversation');
+                    const lastActiveId = localStorage.getItem('last-active-conversation');
                     if (lastActiveId) {
                         const lastActive = this.getConversationById(lastActiveId);
                         if (lastActive) {
@@ -203,11 +203,11 @@ class ConversationManager {
     saveConversations() {
         try {
             localStorage.setItem('conversations', JSON.stringify(this.conversations));
-            localStorage.setItem('pinnedConversations', JSON.stringify(this.pinnedConversations));
+            localStorage.setItem('pinned-conversations', JSON.stringify(this.pinnedConversations));
             
             // Save last active conversation ID
             if (this.currentConversation) {
-                localStorage.setItem('lastActiveConversation', this.currentConversation.id);
+                localStorage.setItem('last-active-conversation', this.currentConversation.id);
             }
             
             this.isUnsavedChanges = false;
@@ -745,7 +745,7 @@ class ConversationManager {
             this.currentConversation = conversation;
             
             // Save this as the last active conversation
-            localStorage.setItem('lastActiveConversation', conversationId);
+            localStorage.setItem('last-active-conversation', conversationId);
             
             // Clear the current thread
             if (window.currentThread) {
@@ -788,9 +788,15 @@ class ConversationManager {
 
     // Setup keyboard shortcuts
     setupKeyboardShortcuts() {
+        console.log('Setting up keyboard shortcuts for conversation manager');
         document.addEventListener('keydown', (event) => {
             // Only process if conversation manager is focused/active
-            const sidebar = document.getElementById('conversationManagerSidebar');
+            const sidebar = document.getElementById('conversation-manager-sidebar');
+            if (!sidebar) {
+                console.warn('Conversation manager sidebar not found in DOM, skipping keyboard shortcuts');
+                return;
+            }
+            
             const isActive = sidebar.classList.contains('active');
             
             // Global shortcuts that work everywhere
@@ -799,96 +805,32 @@ class ConversationManager {
                     // Ctrl/Cmd + N: New conversation
                     event.preventDefault();
                     this.createConversation();
-                    return;
-                }
-                
-                if (event.key === ',') {
-                    // Ctrl/Cmd + ,: Toggle conversation manager sidebar
-                    event.preventDefault();
-                    const event = document.createEvent('Event');
-                    event.initEvent('click', true, true);
-                    document.getElementById('conversationManagerBtn').dispatchEvent(event);
-                    return;
-                }
-                
-                if (event.key === '/') {
-                    // Ctrl/Cmd + /: Focus search
-                    event.preventDefault();
-                    if (isActive) {
-                        document.getElementById('conversationSearch').focus();
-                    }
-                    return;
-                }
-                
-                if (event.key === '?') {
-                    // Ctrl/Cmd + ?: Show keyboard shortcuts
-                    event.preventDefault();
-                    toggleKeyboardShortcutsPanel();
-                    return;
                 }
             }
             
-            // Shortcuts that only work when the sidebar is active
-            if (isActive) {
-                // Arrow navigation in conversation list
-                if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    
-                    const activeItem = sidebar.querySelector('.conversation-item.active');
-                    if (!activeItem) return;
-                    
-                    const allItems = Array.from(sidebar.querySelectorAll('.conversation-item:not(.filtered)'));
-                    const currentIndex = allItems.indexOf(activeItem);
-                    
-                    if (currentIndex === -1) return;
-                    
-                    let newIndex;
-                    if (event.key === 'ArrowUp') {
-                        newIndex = currentIndex - 1;
-                        if (newIndex < 0) newIndex = allItems.length - 1;
-                    } else {
-                        newIndex = currentIndex + 1;
-                        if (newIndex >= allItems.length) newIndex = 0;
-                    }
-                    
-                    const newActiveItem = allItems[newIndex];
-                    if (newActiveItem) {
-                        const conversationId = newActiveItem.getAttribute('data-id');
-                        this.setCurrentConversation(conversationId);
-                    }
-                }
-                
-                // Delete conversation with Delete key
-                if (event.key === 'Delete') {
-                    const activeItem = sidebar.querySelector('.conversation-item.active');
-                    if (!activeItem) return;
-                    
-                    const conversationId = activeItem.getAttribute('data-id');
-                    if (confirm('Are you sure you want to delete this conversation?')) {
-                        this.deleteConversation(conversationId);
-                    }
-                }
-                
-                // Enter to edit title
-                if (event.key === 'Enter') {
-                    const activeItem = sidebar.querySelector('.conversation-item.active');
-                    if (!activeItem) return;
-                    
-                    const titleEl = activeItem.querySelector('.conversation-item-title');
-                    if (titleEl && !titleEl.classList.contains('editing')) {
-                        titleEl.click();
-                    }
-                }
-                
-                // Escape to close sidebar
-                if (event.key === 'Escape') {
-                    event.preventDefault();
-                    document.getElementById('closeConversationManager').click();
+            // Only process other shortcuts if sidebar is active
+            if (!isActive) return;
+            
+            // Navigation shortcuts
+            if (event.key === 'ArrowUp') {
+                // Select previous conversation
+                event.preventDefault();
+                this.navigateConversations('prev');
+            } else if (event.key === 'ArrowDown') {
+                // Select next conversation
+                event.preventDefault();
+                this.navigateConversations('next');
+            } else if (event.key === 'Enter') {
+                // Open selected conversation
+                event.preventDefault();
+                const selected = document.querySelector('.conversation-item.selected');
+                if (selected) {
+                    const conversationId = selected.getAttribute('data-id');
+                    this.setCurrentConversation(conversationId);
                 }
             }
         });
     }
-
 }
 
 // Create a global instance of ConversationManager

@@ -83,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Configure conversation manager integration with main chat
     setupChatIntegration();
+    
+    // Force initialization of all sidebar toggles
+    initializeSidebarToggles();
 });
 
 // Conversation Management Functions
@@ -244,6 +247,83 @@ function setupChatIntegration() {
     }
     
     console.log('Chat integration set up successfully');
+}
+
+// Function to ensure all sidebar buttons are working
+function initializeSidebarToggles() {
+    console.log('Initializing sidebar toggles directly...');
+    
+    // Define all button-sidebar pairs
+    const sidebarPairs = [
+        {
+            buttonId: 'parameter-controls-btn',
+            sidebarId: 'parameter-controls-sidebar',
+            buttonName: 'Parameters'
+        },
+        {
+            buttonId: 'model-management-btn',
+            sidebarId: 'model-management-sidebar',
+            buttonName: 'Models'
+        },
+        {
+            buttonId: 'conversation-manager-btn',
+            sidebarId: 'conversation-manager-sidebar', 
+            buttonName: 'Conversations'
+        },
+        {
+            buttonId: 'history-btn',
+            sidebarId: 'history-sidebar',
+            buttonName: 'History'
+        }
+    ];
+    
+    // Set up each button with direct event handler
+    sidebarPairs.forEach(pair => {
+        const button = document.getElementById(pair.buttonId);
+        const sidebar = document.getElementById(pair.sidebarId);
+        
+        if (button && sidebar) {
+            console.log(`Setting up direct handler for ${pair.buttonName} button`);
+            
+            button.addEventListener('click', function() {
+                console.log(`${pair.buttonName} button clicked directly`);
+                
+                // Close all sidebars first
+                sidebarPairs.forEach(otherPair => {
+                    const otherSidebar = document.getElementById(otherPair.sidebarId);
+                    if (otherSidebar && otherPair.sidebarId !== pair.sidebarId) {
+                        otherSidebar.classList.remove('active');
+                    }
+                });
+                
+                // Toggle this sidebar
+                sidebar.classList.toggle('active');
+                console.log(`${pair.buttonName} sidebar toggled, active: ${sidebar.classList.contains('active')}`);
+            });
+            
+            // Also set up close button
+            const closeBtn = sidebar.querySelector('.btn-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                });
+            }
+        } else {
+            console.warn(`Could not set up ${pair.buttonName} button: button=${button}, sidebar=${sidebar}`);
+        }
+    });
+    
+    // Set up ESC key to close all sidebars
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            sidebarPairs.forEach(pair => {
+                const sidebar = document.getElementById(pair.sidebarId);
+                if (sidebar) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        }
+    });
 }
 
 // Load categories

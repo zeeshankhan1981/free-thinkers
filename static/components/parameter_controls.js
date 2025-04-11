@@ -9,18 +9,18 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    const parameterControlsBtn = document.getElementById('parameterControlsBtn');
-    const closeParameterControls = document.getElementById('closeParameterControls');
-    const parameterControlsSidebar = document.getElementById('parameterControlsSidebar');
-    const saveParameters = document.getElementById('saveParameters');
-    const resetParameters = document.getElementById('resetParameters');
+    let parameterControlsBtn = document.getElementById('parameter-controls-btn');
+    const closeParameterControls = document.getElementById('close-parameter-controls');
+    const parameterControlsSidebar = document.getElementById('parameter-controls-sidebar');
+    const saveParameters = document.getElementById('save-parameters');
+    const resetParameters = document.getElementById('reset-parameters');
     
     // Parameter sliders
-    const temperatureSlider = document.getElementById('temperatureSlider');
-    const topPSlider = document.getElementById('topPSlider');
-    const topKSlider = document.getElementById('topKSlider');
-    const repetitionPenaltySlider = document.getElementById('repetitionPenaltySlider');
-    const contextWindowSlider = document.getElementById('contextWindowSlider');
+    const temperatureSlider = document.getElementById('temperature-slider');
+    const topPSlider = document.getElementById('top-p-slider');
+    const topKSlider = document.getElementById('top-k-slider');
+    const repetitionPenaltySlider = document.getElementById('repetition-penalty-slider');
+    const contextWindowSlider = document.getElementById('context-window-slider');
     
     // Parameter values
     const sliders = [temperatureSlider, topPSlider, topKSlider, repetitionPenaltySlider, contextWindowSlider];
@@ -56,17 +56,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Current parameters
     let currentParameters = { ...presets.balanced };
     
-    // Add toggle button to the UI if it doesn't exist
+    // Check if the button exists, if not, create it (for backwards compatibility)
     if (!parameterControlsBtn) {
+        console.warn('Parameter controls button not found, creating a fallback');
         const btn = document.createElement('button');
-        btn.id = 'parameterControlsBtn';
+        btn.id = 'parameter-controls-btn';
         btn.className = 'parameter-controls-btn';
-        btn.innerHTML = '<i class="fas fa-sliders-h"></i>';
         btn.title = 'Parameter Controls';
+        btn.innerHTML = '<i class="fas fa-sliders-h"></i>';
         document.body.appendChild(btn);
         
         // Re-get the element
-        parameterControlsBtn = document.getElementById('parameterControlsBtn');
+        parameterControlsBtn = document.getElementById('parameter-controls-btn');
     }
     
     // Event Listeners
@@ -187,8 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update token visualization if available
         if (typeof updateTokenVisualization === 'function') {
-            const userInput = document.getElementById('userInput');
-            const modelSelect = document.getElementById('modelSelect');
+            const userInput = document.getElementById('user-input');
+            const modelSelect = document.getElementById('model-select');
             if (userInput && modelSelect) {
                 updateTokenVisualization(userInput.value, modelSelect.value);
             }
@@ -241,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function saveCurrentParameters() {
         try {
-            localStorage.setItem('freethinkers_parameters', JSON.stringify(currentParameters));
+            localStorage.setItem('freethinkers-parameters', JSON.stringify(currentParameters));
             showNotification('Parameters saved');
         } catch (error) {
             console.error('Error saving parameters:', error);
@@ -258,11 +259,11 @@ document.addEventListener('DOMContentLoaded', function() {
             let modelSpecificParams = null;
             
             // Get current model
-            const modelSelect = document.getElementById('modelSelect');
+            const modelSelect = document.getElementById('model-select');
             const currentModel = modelSelect ? modelSelect.value : '';
             
             if (currentModel) {
-                const modelSettings = localStorage.getItem('freethinkers_model_settings');
+                const modelSettings = localStorage.getItem('freethinkers-model-settings');
                 if (modelSettings) {
                     const settings = JSON.parse(modelSettings);
                     if (settings[currentModel]) {
@@ -305,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Fall back to global parameters
-            const savedParams = localStorage.getItem('freethinkers_parameters');
+            const savedParams = localStorage.getItem('freethinkers-parameters');
             if (savedParams) {
                 const params = JSON.parse(savedParams);
                 

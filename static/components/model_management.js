@@ -7,25 +7,36 @@
  * - Tracking model versions and status
  */
 
+const debug = true; // Set to false in production
+
+function logDebug(...args) {
+    if (debug) {
+        console.log('[ModelManagement]', ...args);
+    }
+}
+
+// Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // DOM Elements
-    const modelManagementBtn = document.getElementById('modelManagementBtn');
-    const closeModelManagement = document.getElementById('closeModelManagement');
-    const modelManagementSidebar = document.getElementById('modelManagementSidebar');
+    logDebug('Initializing model management');
+    
+    // Get DOM elements once
+    const modelManagementBtn = document.getElementById('model-management-btn');
+    const closeModelManagement = document.getElementById('close-model-management');
+    const modelManagementSidebar = document.getElementById('model-management-sidebar');
     const modelsList = document.getElementById('modelsList');
-    const downloadModelBtn = document.getElementById('downloadModelBtn');
-    const modelNameInput = document.getElementById('modelNameInput');
-    const downloadProgress = document.getElementById('downloadProgress');
-    const progressBar = document.querySelector('#downloadProgress .progress-bar');
-    const progressText = document.getElementById('progressText');
-    const modelSearchInput = document.getElementById('modelSearchInput');
-    const modelTypeFilter = document.getElementById('modelTypeFilter');
-    const modelSizeFilter = document.getElementById('modelSizeFilter');
-    const modelSortBy = document.getElementById('modelSortBy');
-    const refreshModelList = document.getElementById('refreshModelList');
-    const browseOllamaModels = document.getElementById('browseOllamaModels');
-    const registryModelsList = document.getElementById('registryModelsList');
-    const registrySearchInput = document.getElementById('registrySearchInput');
+    const downloadModelBtn = document.getElementById('download-model-btn');
+    const modelNameInput = document.getElementById('model-name-input');
+    const downloadProgress = document.getElementById('download-progress');
+    const progressBar = document.querySelector('#download-progress .progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const modelSearchInput = document.getElementById('model-search-input');
+    const modelTypeFilter = document.getElementById('model-type-filter');
+    const modelSizeFilter = document.getElementById('model-size-filter');
+    const modelSortBy = document.getElementById('model-sort-by');
+    const refreshModelList = document.getElementById('refresh-model-list');
+    const browseOllamaModels = document.getElementById('browse-ollama-models');
+    const registryModelsList = document.getElementById('registry-models-list');
+    const registrySearchInput = document.getElementById('registry-search-input');
     
     // Models data
     let models = [];
@@ -36,17 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // User preferences
     const userPreferences = loadUserPreferences();
     
-    // Add toggle button to the UI if it doesn't exist
-    if (!modelManagementBtn) {
-        const btn = document.createElement('button');
-        btn.id = 'modelManagementBtn';
-        btn.className = 'model-management-btn';
-        btn.innerHTML = '<i class="fas fa-server"></i>';
-        btn.title = 'Model Management';
-        document.body.appendChild(btn);
-        
-        // Re-get the element
-        modelManagementBtn = document.getElementById('modelManagementBtn');
+    // Initialize click handlers
+    if (modelManagementBtn) {
+        modelManagementBtn.addEventListener('click', loadModels);
+    }
+
+    // Load models if sidebar is visible on page load
+    if (modelManagementSidebar?.classList.contains('active')) {
+        loadModels();
     }
     
     // Event Listeners
@@ -63,19 +71,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (closeModelManagement) {
+        console.log('Setting up close model management button handler');
         closeModelManagement.addEventListener('click', function() {
-            modelManagementSidebar.classList.remove('active');
-            
-            // Also remove active class from the button if using the new UI
-            if (modelManagementBtn) {
-                modelManagementBtn.classList.remove('active');
-            }
-            
-            // Update activeSidebar if it's a global variable
-            if (window.activeSidebar !== undefined) {
-                window.activeSidebar = null;
+            console.log('Close model management button clicked');
+            if (modelManagementSidebar) {
+                modelManagementSidebar.classList.remove('active');
+                
+                // Also remove active class from the button if using the new UI
+                if (modelManagementBtn) {
+                    modelManagementBtn.classList.remove('active');
+                }
+                
+                // Update activeSidebar if it's a global variable
+                if (window.activeSidebar !== undefined) {
+                    window.activeSidebar = null;
+                }
+            } else {
+                console.error('Model management sidebar not found when trying to close');
             }
         });
+    } else {
+        console.warn('Close model management button not found with ID #closeModelManagement');
+        // Try to find with alternative selectors
+        const altCloseBtn = document.querySelector('#model-management-sidebar .close-btn');
+        if (altCloseBtn) {
+            console.log('Found alternative close button with class .close-btn');
+            altCloseBtn.addEventListener('click', function() {
+                console.log('Alternative close button clicked');
+                const sidebar = document.getElementById('model-management-sidebar');
+                if (sidebar) {
+                    sidebar.classList.remove('active');
+                    if (modelManagementBtn) {
+                        modelManagementBtn.classList.remove('active');
+                    }
+                }
+            });
+        }
     }
     
     if (downloadModelBtn) {
@@ -134,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function loadUserPreferences() {
         try {
-            const prefs = localStorage.getItem('freethinkers_model_preferences');
+            const prefs = localStorage.getItem('freethinkers-model-preferences');
             if (prefs) {
                 return JSON.parse(prefs);
             }
@@ -168,93 +199,103 @@ document.addEventListener('DOMContentLoaded', function() {
                 filterSize: modelSizeValue
             };
             
-            localStorage.setItem('freethinkers_model_preferences', JSON.stringify(prefs));
+            localStorage.setItem('freethinkers-model-preferences', JSON.stringify(prefs));
         } catch (e) {
             console.warn('Error saving preferences:', e);
         }
     }
     
     /**
-     * Load available models from the server
-     * @param {boolean} forceRefresh - Whether to bypass cache and force refresh
+     * Helper function to find element with retries
+     */
+    async function waitForElement(selector, maxRetries = 10, interval = 100) {
+        return new Promise((resolve, reject) => {
+            let retries = 0;
+            const check = () => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    resolve(element);
+                } else if (retries++ < maxRetries) {
+                    setTimeout(check, interval);
+                } else {
+                    reject(new Error(`Element ${selector} not found after ${maxRetries} retries`));
+                }
+            };
+            check();
+        });
+    }
+    
+    /**
+     * Load available models from the Ollama API
+     * @param {boolean} forceRefresh - Whether to force a refresh of the model list
+     * @returns {Promise<Array>} - Array of model objects
      */
     async function loadModels(forceRefresh = false) {
+        logDebug('Loading models, forceRefresh:', forceRefresh);
+        
         try {
-            if (!modelsList) return;
+            // Wait for modelsList element (note camelCase ID)
+            const modelsList = await waitForElement('#modelsList');
             
-            // Update models count
-            const modelsCount = document.getElementById('modelsCount');
-            if (modelsCount) {
-                modelsCount.textContent = 'Loading...';
-            }
-            
+            // Show loading state
             modelsList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading models...</div>';
             
-            // Check if we have cached models and aren't forcing a refresh
-            if (!forceRefresh && models.length > 0) {
-                filterAndRenderModels();
-                return;
-            }
-            
-            // Try the main API endpoint first
-            let response;
-            try {
-                response = await fetch('/api/models');
-            } catch (e) {
-                // If that fails, try the model management endpoint
-                response = await fetch('/model_management/api/models');
-            }
+            logDebug('Attempting to fetch from Ollama API');
+            const response = await fetch('http://localhost:11434/api/tags');
+            logDebug('API response status:', response.status);
             
             if (!response.ok) {
-                throw new Error(`Failed to load models: ${response.status}`);
+                throw new Error(`Ollama API error ${response.status}`);
             }
             
-            // Parse model data
-            const modelNames = await response.json();
+            const data = await response.json();
+            logDebug('Received models:', data.models.length);
+            logDebug('First model details:', JSON.stringify(data.models[0]));
             
-            if (!Array.isArray(modelNames) || modelNames.length === 0) {
-                modelsList.innerHTML = '<div class="empty-state">No models available</div>';
-                if (modelsCount) {
-                    modelsCount.textContent = '0 models';
-                }
-                return;
+            // Verify container still exists
+            const currentContainer = document.querySelector('#modelsList');
+            if (!currentContainer) {
+                throw new Error('Model list container disappeared during load');
             }
             
-            // Fetch detailed information for each model
-            models = [];
-            for (const name of modelNames) {
-                try {
-                    const modelInfo = await fetchModelDetails(name);
-                    models.push({
-                        name: name,
-                        ...modelInfo
-                    });
-                } catch (e) {
-                    console.warn(`Could not fetch details for model ${name}:`, e);
-                    models.push({
-                        name: name,
-                        size: 0,
-                        modified: new Date().toISOString(),
-                        family: detectModelFamily(name),
-                        parameters: {}
-                    });
-                }
-            }
+            models = data.models || [];
             
-            // Sort models by name as the default
-            models.sort((a, b) => a.name.localeCompare(b.name));
-            
-            // Apply filters and render
+            // Try both rendering methods for maximum compatibility
             filterAndRenderModels();
             
-        } catch (error) {
-            console.error('Error loading models:', error);
-            modelsList.innerHTML = `<div class="error">Error loading models: ${error.message}</div>`;
-            if (modelsCount) {
-                modelsCount.textContent = '0 models';
+            // If the first method didn't work well, this will be a backup
+            setTimeout(() => {
+                const currentModelsList = document.getElementById('modelsList');
+                if (currentModelsList && currentModelsList.children.length <= 1 && models.length > 0) {
+                    logDebug('Using direct DOM manipulation as fallback rendering method');
+                    createModelList();
+                }
+            }, 200);
+            
+            updateModelUsageStats();
+            
+            logDebug(`Loaded ${models.length} models`);
+            return models;
+        } catch (e) {
+            logDebug('Error loading models:', e);
+            const container = document.querySelector('#modelsList');
+            if (container) {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        ${e.message}
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadModels(true)">
+                            Retry
+                        </button>
+                    </div>
+                `;
             }
+            return [];
         }
     }
+    
+    // Make loadModels available globally
+    window.loadModels = loadModels;
     
     /**
      * Fetch detailed information for a model
@@ -266,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // If that fails, try model management API
             if (!response.ok) {
-                response = await fetch(`/model_management/api/models/version?name=${encodeURIComponent(modelName)}`);
+                response = await fetch(`/model-management/api/models/version?name=${encodeURIComponent(modelName)}`);
             }
             
             if (!response.ok) {
@@ -293,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return modelInfo;
         } catch (e) {
-            console.warn(`Error fetching details for ${modelName}:`, e);
+            logDebug(`Error fetching details for ${modelName}:`, e);
             return {
                 size: 0,
                 modified: new Date().toISOString(),
@@ -349,14 +390,83 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * Debug function to print the DOM structure of the modelsList container
+     */
+    function debugModelsList() {
+        const container = document.getElementById('modelsList');
+        if (!container) {
+            console.error('MODELS LIST CONTAINER NOT FOUND FOR DEBUGGING');
+            // Log all available elements with ID starting with "models"
+            const allElements = document.querySelectorAll('[id*="model"]');
+            console.log('Available elements with "model" in ID:', Array.from(allElements).map(el => `${el.id} (${el.tagName})`));
+            return;
+        }
+        
+        console.log('MODELS LIST DEBUG:');
+        console.log('- Container exists:', !!container);
+        console.log('- Container ID:', container.id);
+        console.log('- Container tag:', container.tagName);
+        console.log('- Container dimensions:', container.offsetWidth, 'x', container.offsetHeight);
+        console.log('- Container visibility:', getComputedStyle(container).display, getComputedStyle(container).visibility);
+        console.log('- Container position:', container.getBoundingClientRect());
+        console.log('- Container parent:', container.parentElement?.tagName, container.parentElement?.id);
+        console.log('- Container parent visibility:', container.parentElement ? getComputedStyle(container.parentElement).display : 'N/A');
+        console.log('- Container has children:', container.children.length);
+        console.log('- Container HTML:', container.outerHTML);
+        
+        // Check for parent overflow issues
+        let parent = container.parentElement;
+        while (parent) {
+            const style = getComputedStyle(parent);
+            console.log('- Parent', parent.tagName, parent.id, '- overflow:', style.overflow, style.overflowY, style.overflowX);
+            parent = parent.parentElement;
+        }
+        
+        // Log all siblings in the same parent
+        const siblings = container.parentElement ? Array.from(container.parentElement.children) : [];
+        console.log('- Siblings count:', siblings.length);
+        siblings.forEach((sib, i) => {
+            console.log(`  Sibling ${i}:`, sib.tagName, sib.id, 'visibility:', getComputedStyle(sib).display);
+        });
+    }
+
+    /**
      * Apply filters and render the model list
      */
     function filterAndRenderModels() {
-        // Get filter values
+        logDebug('Rendering models - filtered count:', filteredModels ? filteredModels.length : 0);
+        
+        const modelsList = document.getElementById('modelsList');
+        if (!modelsList) {
+            console.error('Models list container not found');
+            debugModelsList(); // Run debug function to see what's wrong
+            return;
+        }
+        
+        logDebug('Container dimensions:', modelsList.offsetWidth, 'x', modelsList.offsetHeight);
+        
+        // Clear existing content with visibility fix
+        modelsList.innerHTML = '';
+        modelsList.style.display = 'block';
+        modelsList.style.visibility = 'visible'; // Ensure visibility
+        modelsList.style.opacity = '1'; // Ensure opacity
+        
+        // Get filter values - ensure we have references to these elements
+        const modelSearchInput = document.getElementById('modelSearchInput');
+        const modelTypeFilter = document.getElementById('modelTypeFilter');
+        const modelSizeFilter = document.getElementById('modelSizeFilter');
+        const modelSortBy = document.getElementById('modelSortBy');
+        
         const searchTerm = modelSearchInput ? modelSearchInput.value.toLowerCase() : '';
         const typeFilter = modelTypeFilter ? modelTypeFilter.value : 'all';
         const sizeFilter = modelSizeFilter ? modelSizeFilter.value : 'all';
         const sortBy = modelSortBy ? modelSortBy.value : 'name';
+        
+        // Ensure models is initialized
+        if (!models || !Array.isArray(models)) {
+            models = [];
+            logDebug('Models array was not initialized');
+        }
         
         // Filter models
         filteredModels = models.filter(model => {
@@ -366,8 +476,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Apply type filter
-            if (typeFilter !== 'all' && model.family !== typeFilter) {
-                return false;
+            if (typeFilter !== 'all') {
+                const family = model.family || detectModelFamily(model.name);
+                if (family !== typeFilter) {
+                    return false;
+                }
             }
             
             // Apply size filter
@@ -407,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Get current model
-        const modelSelect = document.getElementById('modelSelect');
+        const modelSelect = document.getElementById('model-select');
         const selectedModel = modelSelect ? modelSelect.value : '';
         
         // Generate HTML
@@ -416,7 +529,38 @@ document.addEventListener('DOMContentLoaded', function() {
             html += createModelItem(model, model.name === selectedModel);
         }
         
+        // Add a debug marker
+        html += '<div style="display:none;" id="models-rendered-marker">Models rendered at ' + new Date().toISOString() + '</div>';
+        
+        // Set the HTML content
         modelsList.innerHTML = html;
+        
+        // Log the rendered HTML for debugging
+        logDebug('HTML content set:', modelsList.innerHTML.substring(0, 100) + '...');
+        logDebug('Child elements count:', modelsList.children.length);
+        
+        // Double check visibility of model list after rendering
+        setTimeout(() => {
+            const currentModelsList = document.getElementById('modelsList');
+            if (currentModelsList) {
+                logDebug('AFTER RENDER - Container dimensions:', currentModelsList.offsetWidth, 'x', currentModelsList.offsetHeight);
+                logDebug('AFTER RENDER - Child count:', currentModelsList.children.length);
+                logDebug('AFTER RENDER - First child:', currentModelsList.firstChild?.nodeType, currentModelsList.firstChild?.nodeName);
+                
+                // If the debug marker isn't found, possibly the content isn't rendering properly
+                const markerFound = !!document.getElementById('models-rendered-marker');
+                logDebug('AFTER RENDER - Debug marker found:', markerFound);
+                
+                // Force display if the container is still empty
+                if (currentModelsList.children.length <= 1 && filteredModels.length > 0) {
+                    logDebug('WARNING: Container appears empty after rendering, forcing content');
+                    currentModelsList.style.display = 'block';
+                    currentModelsList.style.visibility = 'visible';
+                    // Try rendering again
+                    createModelList();
+                }
+            }
+        }, 100);
         
         // Add event listeners to model actions
         document.querySelectorAll('.model-item .model-info').forEach(item => {
@@ -442,6 +586,180 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * Alternative method to create and append model items
+     * This uses DOM manipulation rather than innerHTML
+     */
+    function createModelList() {
+        const modelsList = document.getElementById('modelsList');
+        if (!modelsList || !filteredModels || !Array.isArray(filteredModels)) return;
+        
+        // Clear existing content
+        while (modelsList.firstChild) {
+            modelsList.removeChild(modelsList.firstChild);
+        }
+        
+        // Get current model
+        const modelSelect = document.getElementById('model-select');
+        const selectedModel = modelSelect ? modelSelect.value : '';
+        
+        // Create each model item using DOM methods
+        filteredModels.forEach(model => {
+            const isSelected = model.name === selectedModel;
+            
+            // Create model item container
+            const modelItem = document.createElement('div');
+            modelItem.className = `model-item ${isSelected ? 'active' : ''}`;
+            modelItem.dataset.model = model.name;
+            
+            // Format size in human-readable form
+            const size = model.size ? formatBytes(model.size) : 'Unknown size';
+            
+            // Format date
+            let formattedDate = 'Unknown date';
+            if (model.modified) {
+                try {
+                    const date = new Date(model.modified);
+                    formattedDate = date.toLocaleDateString();
+                } catch (e) {
+                    console.error('Error formatting date:', e);
+                }
+            }
+            
+            // Get model family
+            const family = model.family || detectModelFamily(model.name);
+            
+            // Get model size category
+            const sizeCategory = getModelSizeCategory(model);
+            
+            // Create model info section
+            const modelInfo = document.createElement('div');
+            modelInfo.className = 'model-info';
+            
+            // Add model name
+            const modelName = document.createElement('div');
+            modelName.className = 'model-name';
+            modelName.textContent = model.name;
+            if (isSelected) {
+                const activeBadge = document.createElement('span');
+                activeBadge.className = 'model-badge model-active';
+                activeBadge.textContent = 'Active';
+                modelName.appendChild(activeBadge);
+            }
+            modelInfo.appendChild(modelName);
+            
+            // Add model meta info
+            const modelMeta = document.createElement('div');
+            modelMeta.className = 'model-meta';
+            
+            // Size info
+            const sizeItem = document.createElement('span');
+            sizeItem.className = 'model-meta-item';
+            sizeItem.innerHTML = `<i class="fas fa-hdd"></i> ${size}`;
+            modelMeta.appendChild(sizeItem);
+            
+            // Date info
+            const dateItem = document.createElement('span');
+            dateItem.className = 'model-meta-item';
+            dateItem.innerHTML = `<i class="fas fa-calendar-alt"></i> ${formattedDate}`;
+            modelMeta.appendChild(dateItem);
+            
+            // Badges container
+            const badgesDiv = document.createElement('div');
+            badgesDiv.className = 'model-badges';
+            
+            // Family badge
+            const familyBadge = document.createElement('span');
+            familyBadge.className = 'badge';
+            
+            // Set badge color based on family
+            switch (family) {
+                case 'llama':
+                    familyBadge.classList.add('bg-primary');
+                    familyBadge.textContent = 'LLaMA';
+                    break;
+                case 'mistral':
+                    familyBadge.classList.add('bg-info');
+                    familyBadge.textContent = 'Mistral';
+                    break;
+                case 'gemma':
+                    familyBadge.classList.add('bg-success');
+                    familyBadge.textContent = 'Gemma';
+                    break;
+                case 'phi':
+                    familyBadge.classList.add('bg-warning');
+                    familyBadge.textContent = 'Phi';
+                    break;
+                case 'zephyr':
+                    familyBadge.classList.add('bg-danger');
+                    familyBadge.textContent = 'Zephyr';
+                    break;
+                default:
+                    familyBadge.classList.add('bg-secondary');
+                    familyBadge.textContent = family.charAt(0).toUpperCase() + family.slice(1);
+            }
+            badgesDiv.appendChild(familyBadge);
+            
+            // Size badge
+            const sizeBadge = document.createElement('span');
+            sizeBadge.className = 'badge';
+            
+            // Set badge color based on size
+            if (sizeCategory === 'small') {
+                sizeBadge.classList.add('bg-success');
+                sizeBadge.textContent = 'Small';
+            } else if (sizeCategory === 'medium') {
+                sizeBadge.classList.add('bg-warning');
+                sizeBadge.textContent = 'Medium';
+            } else if (sizeCategory === 'large') {
+                sizeBadge.classList.add('bg-danger');
+                sizeBadge.textContent = 'Large';
+            }
+            badgesDiv.appendChild(sizeBadge);
+            
+            modelMeta.appendChild(badgesDiv);
+            modelInfo.appendChild(modelMeta);
+            modelItem.appendChild(modelInfo);
+            
+            // Create model actions
+            const modelActions = document.createElement('div');
+            modelActions.className = 'model-actions';
+            
+            // Configure button
+            const configureBtn = document.createElement('button');
+            configureBtn.className = 'btn btn-sm btn-outline-info configure-model';
+            configureBtn.title = 'Configure model settings';
+            configureBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            configureBtn.addEventListener('click', function() {
+                showModelSettings(model.name);
+            });
+            modelActions.appendChild(configureBtn);
+            
+            // Select button
+            const selectBtn = document.createElement('button');
+            selectBtn.className = `btn btn-sm ${isSelected ? 'btn-success' : 'btn-primary'} select-model`;
+            selectBtn.title = 'Use this model';
+            selectBtn.innerHTML = isSelected ? '<i class="fas fa-check"></i> Current' : '<i class="fas fa-check"></i>';
+            selectBtn.addEventListener('click', function() {
+                selectModel(model.name);
+            });
+            modelActions.appendChild(selectBtn);
+            
+            modelItem.appendChild(modelActions);
+            modelsList.appendChild(modelItem);
+        });
+        
+        // Add visibility check
+        const checkVisibility = document.createElement('div');
+        checkVisibility.id = 'models-rendered-marker';
+        checkVisibility.style.display = 'none';
+        checkVisibility.textContent = 'DOM created at ' + new Date().toISOString();
+        modelsList.appendChild(checkVisibility);
+    }
+    
+    // Make filterAndRenderModels available globally
+    window.filterAndRenderModels = filterAndRenderModels;
+    
+    /**
      * Create HTML for a model item
      * @param {Object} model - The model object
      * @param {boolean} isSelected - Whether this model is currently selected
@@ -458,7 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const date = new Date(model.modified);
                 formattedDate = date.toLocaleDateString();
             } catch (e) {
-                console.warn('Error formatting date:', e);
+                logDebug('Error formatting date:', e);
             }
         }
         
@@ -539,7 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch(`/api/models/${encodeURIComponent(modelName)}`);
             // Fallback to API model endpoint if needed
             if (!response.ok) {
-                const fallbackResponse = await fetch(`/model_management/api/models/version?name=${encodeURIComponent(modelName)}`);
+                const fallbackResponse = await fetch(`/model-management/api/models/version?name=${encodeURIComponent(modelName)}`);
                 if (fallbackResponse.ok) {
                     return fallbackResponse.json();
                 }
@@ -601,7 +919,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         } catch (error) {
-            console.error('Error showing model details:', error);
+            logDebug('Error showing model details:', error);
             alert(`Error: ${error.message}`);
         }
     }
@@ -611,7 +929,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {string} modelName - The name of the model to select
      */
     function selectModel(modelName) {
-        const modelSelect = document.getElementById('modelSelect');
+        const modelSelect = document.getElementById('model-select');
         if (modelSelect) {
             // Check if this model is already selected
             const isAlreadySelected = modelSelect.value === modelName;
@@ -627,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modelSelect.value = modelName;
                 
                 // Trigger change event
-                modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                modelSelect.dispatchEvent(new Event('change'));
                 
                 // Remove loading indicator after a short delay
                 setTimeout(() => {
@@ -726,10 +1044,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!modelObj || !modelObj.parameters) return;
         
         // Check if parameter controls exist in the page
-        const temperatureSlider = document.getElementById('temperatureSlider');
-        const topPSlider = document.getElementById('topPSlider');
-        const topKSlider = document.getElementById('topKSlider');
-        const repetitionPenaltySlider = document.getElementById('repetitionPenaltySlider');
+        const temperatureSlider = document.getElementById('temperature-slider');
+        const topPSlider = document.getElementById('top-p-slider');
+        const topKSlider = document.getElementById('top-k-slider');
+        const repetitionPenaltySlider = document.getElementById('repetition-penalty-slider');
         
         if (!temperatureSlider && !topPSlider && !topKSlider && !repetitionPenaltySlider) {
             // Parameter controls not found
@@ -789,10 +1107,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show progress
             downloadProgress.style.display = 'block';
             progressBar.style.width = '0%';
-            const downloadStatusText = document.getElementById('downloadStatusText');
-            const downloadEstimate = document.getElementById('downloadEstimate');
-            const progressText = document.getElementById('progressText');
-            const downloadSpeed = document.getElementById('downloadSpeed');
+            const downloadStatusText = document.getElementById('download-status-text');
+            const downloadEstimate = document.getElementById('download-estimate');
+            const progressText = document.getElementById('progress-text');
+            const downloadSpeed = document.getElementById('download-speed');
             
             downloadStatusText.textContent = 'Starting download...';
             progressText.textContent = '0%';
@@ -814,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             } catch (e) {
                 // Try fallback endpoint
-                response = await fetch('/model_management/api/models/download', {
+                response = await fetch('/model-management/api/models/download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -836,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let startTime = Date.now();
                 
                 try {
-                    const progressSource = new EventSource(`/model_management/api/models/download/progress?name=${encodeURIComponent(name)}`);
+                    const progressSource = new EventSource(`/model-management/api/models/download/progress?name=${encodeURIComponent(name)}`);
                     
                     progressSource.onmessage = function(event) {
                         try {
@@ -887,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 throw new Error(data.message || 'Download failed');
                             }
                         } catch (parseError) {
-                            console.error('Error parsing progress data:', parseError);
+                            logDebug('Error parsing progress data:', parseError);
                         }
                     };
                     
@@ -898,7 +1216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         startPollingProgress(name);
                     };
                 } catch (sseError) {
-                    console.warn('EventSource error:', sseError);
+                    logDebug('EventSource error:', sseError);
                     
                     // Fall back to polling if SSE fails
                     startPollingProgress(name);
@@ -908,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 startPollingProgress(name);
             }
         } catch (error) {
-            console.error('Error downloading model:', error);
+            logDebug('Error downloading model:', error);
             showNotification(`Error: ${error.message}`, 'error');
             downloadProgress.style.display = 'none';
             downloadModelBtn.disabled = false;
@@ -922,8 +1240,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let startTime = Date.now();
         let progressPercent = 0;
         const checkInterval = 1000; // Check every second
-        const downloadStatusText = document.getElementById('downloadStatusText');
-        const progressText = document.getElementById('progressText');
+        const downloadStatusText = document.getElementById('download-status-text');
+        const progressText = document.getElementById('progress-text');
         
         downloadStatusText.textContent = 'Downloading model... (polling mode)';
         
@@ -933,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Try both endpoints
                 let progressResponse = await fetch(`/api/models/${encodeURIComponent(modelName)}`);
                 if (!progressResponse.ok) {
-                    progressResponse = await fetch(`/model_management/api/models/version?name=${encodeURIComponent(modelName)}`);
+                    progressResponse = await fetch(`/model-management/api/models/version?name=${encodeURIComponent(modelName)}`);
                 }
                 
                 if (progressResponse.ok) {
@@ -967,7 +1285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } catch (error) {
-                console.error('Error checking download progress:', error);
+                logDebug('Error checking download progress:', error);
             }
         }, checkInterval);
     }
@@ -1015,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * Show model settings modal
      */
     function showModelSettings(modelName) {
-        const modal = document.getElementById('modelSettingsModal');
+        const modal = document.getElementById('model-settings-modal');
         if (!modal) return;
         
         // Find model data
@@ -1026,13 +1344,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Set modal title
-        const modalTitle = document.getElementById('modelSettingsModalLabel');
+        const modalTitle = document.getElementById('model-settings-modal-label');
         if (modalTitle) {
             modalTitle.textContent = `${modelName} Settings`;
         }
         
         // Get parameter controls container
-        const parameterControls = document.getElementById('parameterControls');
+        const parameterControls = document.getElementById('parameter-controls');
         if (!parameterControls) return;
         
         // Clear existing controls
@@ -1088,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Setup recommended uses
-        const recommendedUses = document.getElementById('recommendedUses');
+        const recommendedUses = document.getElementById('recommended-uses');
         if (recommendedUses) {
             setupRecommendedUses(modelObj, recommendedUses);
         }
@@ -1106,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Add event listeners to parameter sliders
-        document.querySelectorAll('#parameterControls input[type="range"]').forEach(slider => {
+        document.querySelectorAll('#parameter-controls input[type="range"]').forEach(slider => {
             slider.addEventListener('input', function() {
                 const valueDisplay = this.parentElement.querySelector('.parameter-value');
                 if (valueDisplay) {
@@ -1123,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Add event listener to save button
-        const saveModelSettingsBtn = document.getElementById('saveModelSettings');
+        const saveModelSettingsBtn = document.getElementById('save-model-settings');
         if (saveModelSettingsBtn) {
             saveModelSettingsBtn.addEventListener('click', function() {
                 saveModelParameters(modelName, parameterControls);
@@ -1317,7 +1635,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 // Get stored model settings
                 let modelSettings = {};
-                const storedSettings = localStorage.getItem('freethinkers_model_settings');
+                const storedSettings = localStorage.getItem('freethinkers-model-settings');
                 if (storedSettings) {
                     modelSettings = JSON.parse(storedSettings);
                 }
@@ -1326,13 +1644,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 modelSettings[modelName] = modelObj.parameters;
                 
                 // Save back to localStorage
-                localStorage.setItem('freethinkers_model_settings', JSON.stringify(modelSettings));
+                localStorage.setItem('freethinkers-model-settings', JSON.stringify(modelSettings));
                 
                 // Show success notification
                 showNotification(`Parameters for ${modelName} saved successfully`);
                 
                 // Close modal
-                const modal = document.getElementById('modelSettingsModal');
+                const modal = document.getElementById('model-settings-modal');
                 if (modal) {
                     if (window.bootstrap && window.bootstrap.Modal) {
                         const modalInstance = window.bootstrap.Modal.getInstance(modal);
@@ -1352,12 +1670,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
             } catch (e) {
-                console.error('Error saving settings to localStorage:', e);
+                logDebug('Error saving settings to localStorage:', e);
                 showNotification('Error saving settings: ' + e.message, 'error');
             }
             
         } catch (error) {
-            console.error('Error saving model parameters:', error);
+            logDebug('Error saving model parameters:', error);
             showNotification('Error saving parameters: ' + error.message, 'error');
         }
     }
@@ -1367,7 +1685,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function openRegistryModal() {
         // Get modal
-        const modal = document.getElementById('modelRegistryModal');
+        const modal = document.getElementById('model-registry-modal');
         if (!modal) return;
         
         // Show loading
@@ -1421,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     registryModels = knownModels;
                 }
             } catch (e) {
-                console.warn('Error fetching registry models:', e);
+                logDebug('Error fetching registry models:', e);
                 // Use known models as fallback
                 registryModels = knownModels;
             }
@@ -1430,7 +1748,7 @@ document.addEventListener('DOMContentLoaded', function() {
             filterRegistryModels();
             
         } catch (error) {
-            console.error('Error loading registry models:', error);
+            logDebug('Error loading registry models:', error);
             if (registryModelsList) {
                 registryModelsList.innerHTML = `<div class="error">Error loading registry: ${error.message}</div>`;
             }
@@ -1479,7 +1797,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Close modal
-                    const modal = document.getElementById('modelRegistryModal');
+                    const modal = document.getElementById('model-registry-modal');
                     if (modal) {
                         if (window.bootstrap && window.bootstrap.Modal) {
                             const modalInstance = window.bootstrap.Modal.getInstance(modal);
@@ -1634,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Get current usage stats
             let usageStats = {};
-            const storedStats = localStorage.getItem('freethinkers_model_usage');
+            const storedStats = localStorage.getItem('freethinkers-model-usage');
             if (storedStats) {
                 usageStats = JSON.parse(storedStats);
             }
@@ -1655,12 +1973,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Save usage stats
-            localStorage.setItem('freethinkers_model_usage', JSON.stringify(usageStats));
+            localStorage.setItem('freethinkers-model-usage', JSON.stringify(usageStats));
             
             // Update the model usage stats display if it's visible
             updateModelUsageStats();
         } catch (error) {
-            console.error('Error tracking model usage:', error);
+            logDebug('Error tracking model usage:', error);
         }
     }
 
@@ -1668,13 +1986,13 @@ document.addEventListener('DOMContentLoaded', function() {
      * Update model usage statistics display
      */
     function updateModelUsageStats() {
-        const statsContainer = document.getElementById('modelUsageStats');
+        const statsContainer = document.getElementById('model-usage-stats');
         if (!statsContainer) return;
         
         try {
             // Get usage stats
             let usageStats = {};
-            const storedStats = localStorage.getItem('freethinkers_model_usage');
+            const storedStats = localStorage.getItem('freethinkers-model-usage');
             if (storedStats) {
                 usageStats = JSON.parse(storedStats);
             }
@@ -1700,7 +2018,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         lastUsed = date.toLocaleString();
                     }
                 } catch (e) {
-                    console.warn('Error formatting date:', e);
+                    logDebug('Error formatting date:', e);
                 }
                 
                 html += `
@@ -1719,7 +2037,7 @@ document.addEventListener('DOMContentLoaded', function() {
             statsContainer.innerHTML = html;
             
         } catch (error) {
-            console.error('Error updating model usage stats:', error);
+            logDebug('Error updating model usage stats:', error);
             statsContainer.innerHTML = '<div class="stats-placeholder">Error loading usage statistics</div>';
         }
     }
@@ -1730,7 +2048,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetModelStats() {
         try {
             // Clear stats
-            localStorage.removeItem('freethinkers_model_usage');
+            localStorage.removeItem('freethinkers-model-usage');
             
             // Update display
             updateModelUsageStats();
@@ -1738,13 +2056,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show notification
             showNotification('Model usage statistics have been reset');
         } catch (error) {
-            console.error('Error resetting model stats:', error);
+            logDebug('Error resetting model stats:', error);
             showNotification('Error resetting model statistics', 'error');
         }
     }
     
     // Add reset stats button functionality
-    const resetModelStatsBtn = document.getElementById('resetModelStats');
+    const resetModelStatsBtn = document.getElementById('reset-model-stats');
     if (resetModelStatsBtn) {
         resetModelStatsBtn.addEventListener('click', resetModelStats);
     }

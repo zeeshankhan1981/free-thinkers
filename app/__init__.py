@@ -352,6 +352,60 @@ def create_app(config_object='config.Config'):
             print(f"Error in chat_with_image: {str(e)}")
             return jsonify({"error": str(e)}), 500
     
+    # Route to get available models from Ollama
+    @app.route('/api/models', methods=['GET'])
+    def get_models():
+        """Get a list of available models from Ollama."""
+        try:
+            # Direct request to Ollama API
+            response = requests.get('http://127.0.0.1:11434/api/tags', timeout=5)
+            
+            if response.ok:
+                data = response.json()
+                if 'models' in data and isinstance(data['models'], list):
+                    # Return the list of model names from Ollama
+                    model_names = [model['name'] for model in data['models']]
+                    print(f"Available models: {model_names}")
+                    return jsonify(model_names)
+                else:
+                    print("Unexpected response format from Ollama API:", data)
+                    return jsonify([]), 500
+            else:
+                print(f"Error connecting to Ollama API: {response.status_code} {response.reason}")
+                return jsonify({"error": f"Failed to get models: {response.status_code}"}), response.status_code
+        except Exception as e:
+            print(f"Exception while getting models: {e}")
+            return jsonify({"error": f"Error fetching models: {str(e)}"}), 500
+
+    # Proxy endpoint for Ollama API
+    @app.route('/api/ollama/<path:subpath>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+    def ollama_proxy(subpath):
+        """Proxy requests to Ollama API."""
+        try:
+            # Forward request to Ollama
+            ollama_url = f'http://127.0.0.1:11434/api/{subpath}'
+            
+            # Forward the request method, headers, and body
+            method = request.method
+            headers = {k: v for k, v in request.headers.items() if k.lower() not in ['host', 'content-length']}
+            data = request.get_data()
+            
+            # Make the request to Ollama
+            response = requests.request(
+                method=method,
+                url=ollama_url,
+                headers=headers,
+                data=data,
+                stream=True,
+                timeout=60
+            )
+            
+            # Return the response from Ollama
+            return (response.content, response.status_code, response.headers.items())
+        except Exception as e:
+            print(f"Error proxying to Ollama API: {e}")
+            return jsonify({"error": f"Error proxying to Ollama API: {str(e)}"}), 500
+    
     # History API endpoints
     @app.route('/api/history')
     def get_history():
@@ -384,12 +438,6 @@ def create_app(config_object='config.Config'):
         return jsonify({"error": "Thread not found"}), 404
     
     # API endpoints from original app.py
-    @app.route('/api/models')
-    def get_models():
-        """Return list of available models."""
-        models = list(app.config.get('MODEL_PARAMS', {}).keys())
-        return jsonify(models)
-    
     @app.route('/api/model_guide/<model_name>')
     def get_model_guide(model_name):
         """Return guide for a specific model."""
@@ -412,6 +460,211 @@ def create_app(config_object='config.Config'):
                     'limits': params['limits']
                 }
         return jsonify(guides)
+    
+    @app.route('/api/prompt_guides')
+    def get_prompt_guides():
+        """Return prompt guides for all models."""
+        try:
+            # Comprehensive guides based on prompt engineering roadmap
+            guides = {
+                # Large language models
+                'llama3.1:8b': {
+                    'title': 'Llama 3.1 (8B) - Detailed Reasoning',
+                    'useCases': 'Ideal for complex reasoning, logic puzzles, and creative writing. This model excels at step-by-step problem solving and detailed explanations.',
+                    'examples': 'Explain the process of photosynthesis and how it relates to global carbon cycles.',
+                    'tips': 'Use chain-of-thought prompting by asking the model to "think step by step" for best results.'
+                },
+                'llama3.2:latest': {
+                    'title': 'Llama 3.2 - General Purpose',
+                    'useCases': 'A versatile, general-purpose model for everyday tasks, creative writing, and information retrieval.',
+                    'examples': 'What are the key differences between nuclear fusion and nuclear fission?',
+                    'tips': 'For complex queries, try breaking them down into sequential parts for more accurate responses.'
+                },
+                'mistral-7b:latest': {
+                    'title': 'Mistral 7B - Precise Information',
+                    'useCases': 'Excellent for factual information, code explanation, and technical content. This model prioritizes accuracy.',
+                    'examples': 'Explain how TCP/IP protocols ensure reliable data transmission across networks.',
+                    'tips': 'Use clear, explicit instructions and consider formatting requirements for structured outputs.'
+                },
+                
+                # Smaller/specialized models
+                'phi3:3.8b': {
+                    'title': 'Phi-3 (3.8B) - Concise Reasoning',
+                    'useCases': 'Optimized for reasoning tasks despite its smaller size. Good for when you need efficient, concise responses.',
+                    'examples': 'What are three key considerations when designing a sustainable urban transportation system?',
+                    'tips': 'This model works well with few-shot examples when you need specific response formats.'
+                },
+                'gemma3:4b': {
+                    'title': 'Gemma 3 (4B) - Efficient Assistant',
+                    'useCases': 'A compact but capable model for general information and assistance with lower compute requirements.',
+                    'examples': 'Give me a quick explanation of how blockchain technology works.',
+                    'tips': 'Provide clear context and be specific with your requirements for best results.'
+                },
+                'gemma3:1b': {
+                    'title': 'Gemma 3 (1B) - Quick Responses',
+                    'useCases': 'Ultra-lightweight model for basic tasks and quick responses when efficiency is prioritized over detail.',
+                    'examples': 'What are three healthy breakfast ideas that take less than 10 minutes to prepare?',
+                    'tips': 'Keep queries simple and focused. Avoid complex reasoning tasks.'
+                },
+                'zephyr:latest': {
+                    'title': 'Zephyr - Instruction Following',
+                    'useCases': 'Excellent at following precise instructions and formatting requirements. Good for structured outputs.',
+                    'examples': 'Create a 5-day itinerary for visiting Tokyo, with each day focused on a different area of the city.',
+                    'tips': 'Use clear formatting instructions like "respond with a numbered list" or "format as a table".'
+                },
+                
+                # Code models
+                'codegemma:2b': {
+                    'title': 'CodeGemma (2B) - Code Generation',
+                    'useCases': 'Specialized for programming tasks, code explanation, and debugging assistance.',
+                    'examples': 'Write a Python function that checks if a string is a valid palindrome, ignoring spaces and punctuation.',
+                    'tips': 'Specify the programming language, desired functionality, and any specific requirements or constraints.'
+                },
+                
+                # Math models
+                'qwen2-math:1.5b': {
+                    'title': 'Qwen2 Math (1.5B) - Mathematical Reasoning',
+                    'useCases': 'Specialized for mathematical problems, equations, and numerical reasoning tasks.',
+                    'examples': 'Solve the following system of equations: 2x + 3y = 7, 4x - 2y = 10',
+                    'tips': 'Ask the model to show its work step-by-step for complex math problems.'
+                },
+                
+                # Multimodal models
+                'llava-phi3:latest': {
+                    'title': 'LLaVA-Phi3 - Visual Understanding',
+                    'useCases': 'Multimodal model capable of understanding and describing images alongside text.',
+                    'examples': 'Upload an image and ask: "Describe what you see in this image in detail."',
+                    'tips': 'For best results with images, ask specific questions about visual elements rather than general descriptions.'
+                },
+                
+                # Specialty models
+                'falcon3:1b': {
+                    'title': 'Falcon 3 (1B) - Quick Responses',
+                    'useCases': 'Fast, efficient model for simple tasks and basic information requests.',
+                    'examples': 'What are the key ingredients in a classic carbonara pasta?',
+                    'tips': 'Keep queries concise and straightforward for this lightweight model.'
+                },
+                'llama2-uncensored:7b': {
+                    'title': 'Llama 2 Uncensored (7B)',
+                    'useCases': 'Model with fewer content restrictions for research and creative writing purposes.',
+                    'examples': 'Write a horror short story set in an abandoned research facility.',
+                    'tips': 'Remember that while less restricted, ethical considerations still apply.'
+                },
+                
+                # Default fallback guide
+                'default': {
+                    'title': 'General AI Assistant',
+                    'useCases': 'Ask questions on virtually any topic, request creative content, or get assistance with various tasks.',
+                    'examples': 'Explain the concept of quantum computing in simple terms.',
+                    'tips': 'Be specific with your questions and provide relevant context for better results.'
+                }
+            }
+            
+            # Add model-specific parameter recommendations for each model
+            # This supports the parameter optimization part of the prompt engineering roadmap
+            parameter_recommendations = {
+                'llama3.1:8b': {
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 2048
+                },
+                'llama3.2:latest': {
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 2048
+                },
+                'mistral-7b:latest': {
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 2048
+                },
+                'phi3:3.8b': {
+                    'temperature': 0.8,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 1024
+                },
+                'gemma3:4b': {
+                    'temperature': 0.8,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 1024
+                },
+                'gemma3:1b': {
+                    'temperature': 0.8,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.9,
+                    'max_tokens': 512
+                },
+                'zephyr:latest': {
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 1024
+                },
+                'codegemma:2b': {
+                    'temperature': 0.3,  # Lower temperature for more deterministic code
+                    'top_p': 0.95,
+                    'top_k': 40,
+                    'context_window': 0.9,
+                    'max_tokens': 1024
+                },
+                'qwen2-math:1.5b': {
+                    'temperature': 0.1,  # Very low temperature for math precision
+                    'top_p': 0.95,
+                    'top_k': 40,
+                    'context_window': 0.9,
+                    'max_tokens': 1024
+                },
+                'llava-phi3:latest': {
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 1024
+                },
+                'falcon3:1b': {
+                    'temperature': 0.8,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.8,
+                    'max_tokens': 512
+                },
+                'llama2-uncensored:7b': {
+                    'temperature': 0.8,  # Higher for more creative outputs
+                    'top_p': 0.95,
+                    'top_k': 40,
+                    'context_window': 0.95,
+                    'max_tokens': 2048
+                },
+                'default': {
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'top_k': 40,
+                    'context_window': 0.9,
+                    'max_tokens': 1024
+                }
+            }
+            
+            # Add parameter recommendations to each guide
+            for model_name, params in parameter_recommendations.items():
+                if model_name in guides:
+                    guides[model_name]['parameters'] = params
+            
+            return jsonify(guides)
+        except Exception as e:
+            print(f"Error getting prompt guides: {e}")
+            return jsonify({"error": f"Error getting prompt guides: {str(e)}"}), 500
     
     # Add missing API endpoints that are showing errors in the console
     @app.route('/api/token_count', methods=['POST'])

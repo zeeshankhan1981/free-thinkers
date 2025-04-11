@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, make_response
 from flask_cors import cross_origin
 import requests
 import json
@@ -11,15 +11,19 @@ model_management = Blueprint('model_management', __name__, url_prefix='/model_ma
 MODEL_DOWNLOAD_DIR = Path(os.path.expanduser("~/.freethinkers/models/"))
 
 @model_management.route('/api/models', methods=['GET'])
+@cross_origin()
 def list_models():
-    """List all available models."""
+    """List all available models with CORS support."""
     try:
         response = requests.get('http://localhost:11434/api/tags')
         if response.status_code == 200:
             models = response.json().get('models', [])
             # Extract just the model names
             model_names = [model['name'] for model in models]
-            return jsonify(model_names)
+            resp = make_response(jsonify(model_names))
+            resp.headers['Access-Control-Allow-Origin'] = '*' 
+            resp.headers['Access-Control-Allow-Methods'] = 'GET'
+            return resp
         else:
             return jsonify([]), 500
     except Exception as e:
@@ -51,10 +55,13 @@ def download_model():
         )
         
         if response.status_code == 200:
-            return jsonify({
+            resp = make_response(jsonify({
                 'message': f'Model {model_name} downloaded successfully',
                 'status': 'success'
-            })
+            }))
+            resp.headers['Access-Control-Allow-Origin'] = '*' 
+            resp.headers['Access-Control-Allow-Methods'] = 'POST'
+            return resp
         else:
             return jsonify({
                 'error': 'Failed to download model',
@@ -68,6 +75,7 @@ def download_model():
         }), 500
 
 @model_management.route('/api/models/version', methods=['GET'])
+@cross_origin()
 def get_model_version():
     """Get model version information."""
     model_name = request.args.get('name')
@@ -82,10 +90,13 @@ def get_model_version():
         response = requests.get(f'http://localhost:11434/api/tags/{model_name}')
         if response.status_code == 200:
             model_info = response.json()
-            return jsonify({
+            resp = make_response(jsonify({
                 'status': 'success',
                 'info': model_info
-            })
+            }))
+            resp.headers['Access-Control-Allow-Origin'] = '*' 
+            resp.headers['Access-Control-Allow-Methods'] = 'GET'
+            return resp
         else:
             return jsonify({
                 'error': 'Model not found',

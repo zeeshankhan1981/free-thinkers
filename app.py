@@ -9,7 +9,7 @@ import requests
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import our application factory
-from app import create_app
+from app import create_app, db
 
 # Configuration
 HISTORY_DIR = Path(os.path.expanduser("~/.freethinkers/history/"))
@@ -171,11 +171,16 @@ def create_app_with_config():
 app = create_app_with_config()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Free Thinkers - Local AI Chat Interface')
-    parser.add_argument('--host', default='127.0.0.1', help='Host to bind to')
-    parser.add_argument('--port', type=int, default=5000, help='Port to bind to')
+    parser = argparse.ArgumentParser(description='Free Thinkers AI Assistant')
     parser.add_argument('--debug', action='store_true', help='Run in debug mode')
     args = parser.parse_args()
     
-    # Run the application
-    app.run(host=args.host, port=args.port, debug=args.debug)
+    # Initialize database if needed
+    with app.app_context():
+        try:
+            db.create_all()
+            print("Database initialized")
+        except Exception as e:
+            print(f"Database already exists or error: {e}")
+    
+    app.run(debug=args.debug)

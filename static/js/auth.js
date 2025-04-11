@@ -17,18 +17,18 @@ class AuthManager {
     console.log('Setting up event listeners...');
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, getting elements...');
-      // Get DOM elements
-      this.authButton = document.getElementById('authButton');
-      this.userDropdown = document.getElementById('userDropdown');
+      // Get DOM elements (support both naming conventions)
+      this.authButton = document.getElementById('auth-button') || document.getElementById('authButton');
+      this.userDropdown = document.getElementById('user-dropdown') || document.getElementById('userDropdown');
       this.usernameElement = document.getElementById('username');
-      this.loginForm = document.getElementById('loginForm');
-      this.registerForm = document.getElementById('registerForm');
-      this.logoutLink = document.getElementById('logoutLink');
-      this.showRegisterModal = document.getElementById('showRegisterModal');
-      this.showLoginModal = document.getElementById('showLoginModal');
-      this.continueAsGuest = document.getElementById('continueAsGuest');
-      this.loginError = document.getElementById('loginError');
-      this.registerError = document.getElementById('registerError');
+      this.loginForm = document.getElementById('login-form') || document.getElementById('loginForm');
+      this.registerForm = document.getElementById('register-form') || document.getElementById('registerForm');
+      this.logoutLink = document.getElementById('logout-link') || document.getElementById('logoutLink');
+      this.showRegisterModal = document.getElementById('show-register-modal') || document.getElementById('showRegisterModal');
+      this.showLoginModal = document.getElementById('show-login-modal') || document.getElementById('showLoginModal');
+      this.continueAsGuest = document.getElementById('continue-as-guest') || document.getElementById('continueAsGuest');
+      this.loginError = document.getElementById('login-error') || document.getElementById('loginError');
+      this.registerError = document.getElementById('register-error') || document.getElementById('registerError');
 
       console.log('Auth elements found:', {
         authButton: !!this.authButton,
@@ -42,7 +42,7 @@ class AuthManager {
         console.log('Adding click handler to auth button');
         this.authButton.addEventListener('click', () => {
           console.log('Auth button clicked, showing login modal');
-          const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+          const loginModal = new bootstrap.Modal(document.getElementById('login-modal') || document.getElementById('loginModal'));
           loginModal.show();
         });
       }
@@ -50,8 +50,8 @@ class AuthManager {
       if (this.showRegisterModal) {
         this.showRegisterModal.addEventListener('click', (e) => {
           e.preventDefault();
-          const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-          const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+          const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal') || document.getElementById('loginModal'));
+          const registerModal = new bootstrap.Modal(document.getElementById('register-modal') || document.getElementById('registerModal'));
           loginModal.hide();
           registerModal.show();
         });
@@ -60,8 +60,8 @@ class AuthManager {
       if (this.showLoginModal) {
         this.showLoginModal.addEventListener('click', (e) => {
           e.preventDefault();
-          const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
-          const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+          const registerModal = bootstrap.Modal.getInstance(document.getElementById('register-modal') || document.getElementById('registerModal'));
+          const loginModal = new bootstrap.Modal(document.getElementById('login-modal') || document.getElementById('loginModal'));
           registerModal.hide();
           loginModal.show();
         });
@@ -71,7 +71,7 @@ class AuthManager {
         this.continueAsGuest.addEventListener('click', (e) => {
           e.preventDefault();
           this.createGuestSession();
-          const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+          const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal') || document.getElementById('loginModal'));
           loginModal.hide();
         });
       }
@@ -81,37 +81,37 @@ class AuthManager {
         this.loginForm.addEventListener('submit', (e) => {
           console.log('Login form submitted');
           e.preventDefault();
-          const username = document.getElementById('loginUsername').value;
-          const password = document.getElementById('loginPassword').value;
-          const remember = document.getElementById('rememberMe').checked;
-          console.log('Logging in with username:', username);
-          this.login(username, password, remember);
+          const username = document.getElementById('login-username') || document.getElementById('loginUsername');
+          const password = document.getElementById('login-password') || document.getElementById('loginPassword');
+          const remember = document.getElementById('remember-me') || document.getElementById('rememberMe');
+          console.log('Logging in with username:', username.value);
+          this.login(username.value, password.value, remember.checked);
         });
       }
 
       if (this.registerForm) {
         this.registerForm.addEventListener('submit', (e) => {
           e.preventDefault();
-          const username = document.getElementById('registerUsername').value;
-          const email = document.getElementById('registerEmail').value;
-          const password = document.getElementById('registerPassword').value;
-          const confirmPassword = document.getElementById('confirmPassword').value;
-          const acceptTerms = document.getElementById('acceptTerms').checked;
+          const username = document.getElementById('register-username') || document.getElementById('registerUsername');
+          const email = document.getElementById('register-email') || document.getElementById('registerEmail');
+          const password = document.getElementById('register-password') || document.getElementById('registerPassword');
+          const confirmPassword = document.getElementById('confirm-password') || document.getElementById('confirmPassword');
+          const acceptTerms = document.getElementById('accept-terms') || document.getElementById('acceptTerms');
           
           // Basic validation
-          if (password !== confirmPassword) {
+          if (password.value !== confirmPassword.value) {
             this.registerError.textContent = 'Passwords do not match';
             this.registerError.style.display = 'block';
             return;
           }
           
-          if (!acceptTerms) {
+          if (!acceptTerms.checked) {
             this.registerError.textContent = 'You must accept the Terms of Service';
             this.registerError.style.display = 'block';
             return;
           }
           
-          this.register(username, email, password);
+          this.register(username.value, email.value, password.value);
         });
       }
 
@@ -186,7 +186,7 @@ class AuthManager {
       this.username = data.username;
       this.showAuthenticatedUI();
       
-      const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+      const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal') || document.getElementById('loginModal'));
       if (loginModal) loginModal.hide();
       
       if (this.loginForm) this.loginForm.reset();
@@ -230,8 +230,8 @@ class AuthManager {
     .then(data => {
       console.log('Registration successful:', data);
       // Success - show login modal
-      const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
-      const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+      const registerModal = bootstrap.Modal.getInstance(document.getElementById('register-modal') || document.getElementById('registerModal'));
+      const loginModal = new bootstrap.Modal(document.getElementById('login-modal') || document.getElementById('loginModal'));
       
       if (registerModal) registerModal.hide();
       if (this.registerForm) this.registerForm.reset();
@@ -300,27 +300,62 @@ class AuthManager {
   // Show authenticated UI
   showAuthenticatedUI() {
     console.log('Showing authenticated UI...');
-    if (this.authButton) this.authButton.style.display = 'none';
-    if (this.userDropdown) {
+    if (this.authButton && this.userDropdown) {
+      this.authButton.style.display = 'none';
       this.userDropdown.style.display = 'block';
+      
+      // Update username display
       if (this.usernameElement && this.username) {
         this.usernameElement.textContent = this.username;
       }
+    } else {
+      console.error('Auth button or user dropdown not found');
+      console.log('Elements:', {
+        authButton: this.authButton,
+        userDropdown: this.userDropdown
+      });
     }
+    
+    // Close modals if open
+    if (typeof $ !== 'undefined' && $('#loginModal').length) {
+      $('#loginModal').modal('hide');
+    }
+    
+    // Dispatch event for other components
+    document.dispatchEvent(new CustomEvent('auth:login', {
+      detail: {
+        username: this.username,
+        isGuest: this.isGuest
+      }
+    }));
   }
 
   // Show guest UI
   showGuestUI() {
     console.log('Showing guest UI...');
-    if (this.authButton) this.authButton.style.display = 'block';
-    if (this.userDropdown) this.userDropdown.style.display = 'none';
+    if (this.authButton && this.userDropdown) {
+      this.authButton.style.display = 'block';
+      this.userDropdown.style.display = 'none';
+    } else {
+      console.warn('Auth elements not found, this is normal on first load');
+    }
+    
+    // Dispatch event for other components
+    document.dispatchEvent(new CustomEvent('auth:logout'));
   }
 
   // Show unauthenticated UI
   showUnauthenticatedUI() {
     console.log('Showing unauthenticated UI...');
-    if (this.authButton) this.authButton.style.display = 'block';
-    if (this.userDropdown) this.userDropdown.style.display = 'none';
+    if (this.authButton && this.userDropdown) {
+      this.authButton.style.display = 'block';
+      this.userDropdown.style.display = 'none';
+    } else {
+      console.warn('Auth elements not found, this is normal on first load');
+    }
+    
+    // Dispatch event for other components
+    document.dispatchEvent(new CustomEvent('auth:logout'));
   }
 
   // Show notification
