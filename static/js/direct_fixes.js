@@ -311,21 +311,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const paramSidebar = document.getElementById('parameter-controls-sidebar');
     
     if (paramBtn && paramSidebar) {
-        console.log('Setting up direct parameter button handler');
+        console.log('Setting up enhanced parameter sidebar handler');
+        
+        // 1. Add smooth transition CSS
+        paramSidebar.style.transition = 'right 0.3s ease, opacity 0.3s ease';
+        
+        // 2. Enhanced open/close handler
         paramBtn.addEventListener('click', function() {
-            console.log('Parameter button clicked');
             closeAllSidebars();
-            paramSidebar.classList.toggle('active');
+            paramSidebar.classList.add('active');
+            paramSidebar.style.right = '0';
+            paramSidebar.style.opacity = '1';
+            console.log('Parameter sidebar opened');
         });
         
-        // Also set up close button
+        // 3. Enhanced close button with animation
         const closeParamBtn = paramSidebar.querySelector('.btn-close') || 
                               paramSidebar.querySelector('#close-parameter-controls');
         if (closeParamBtn) {
             closeParamBtn.addEventListener('click', function() {
-                paramSidebar.classList.remove('active');
+                paramSidebar.style.right = '-400px';
+                paramSidebar.style.opacity = '0';
+                setTimeout(() => {
+                    paramSidebar.classList.remove('active');
+                    console.log('Parameter sidebar closed');
+                }, 300);
             });
         }
+        
+        // 4. Dedicated escape key handler
+        paramSidebar.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeParamBtn.click();
+            }
+        });
+        
+        // 5. Verify initialization
+        console.log('Parameter sidebar handlers initialized:', {
+            openButton: paramBtn,
+            closeButton: closeParamBtn,
+            sidebar: paramSidebar
+        });
     }
     
     // Fix for models button
@@ -626,6 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
                         <input type="text" id="model-download-input" placeholder="Enter model name (e.g., llama3)" style="flex:1; padding:0.5rem; border:1px solid #ced4da; border-radius:0.25rem;" />
+                        
                         <button id="download-model-btn" class="btn btn-primary" style="padding:0.5rem 0.75rem; white-space:nowrap;">
                             <i class="fas fa-download"></i> Download
                         </button>
@@ -639,8 +666,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <!-- Model Settings Presets -->
                 <div class="model-presets-section" style="margin-bottom:1.5rem; border:1px solid #ced4da; border-radius:0.375rem; padding:1rem; background-color:#f8f9fa;">
-                    <div class="section-header" style="margin-bottom:0.75rem;">
-                        <h4 style="margin:0; font-size:1rem;">Parameter Presets</h4>
+                    <div class="section-header" style="margin-bottom:1rem;">
+                        <h4 style="margin:0;">Parameter Presets</h4>
                     </div>
                     
                     <div class="preset-buttons" style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
@@ -1248,8 +1275,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 // Calculate download speed and ETA
                                 if (data.total > 0) {
-                                    const downloadedMB = (data.completed / (1024 * 1024)).toFixed(1);
-                                    const totalMB = (data.total / (1024 * 1024)).toFixed(1);
+                                    const downloadedMB = (data.completed / (1024 * 1024 * 1024)).toFixed(1);
+                                    const totalMB = (data.total / (1024 * 1024 * 1024)).toFixed(1);
                                     downloadStatus.textContent = `Downloading ${modelName}: ${downloadedMB}MB of ${totalMB}MB (${percentage}%)`;
                                 }
                             }
@@ -1368,9 +1395,9 @@ document.addEventListener('DOMContentLoaded', function() {
         paramsModal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:10001;';
         
         // Get parameter presets based on model family
-        const creativeParams = getParamPreset(model.name, model.family, 'creative');
-        const balancedParams = getParamPreset(model.name, model.family, 'balanced');
-        const preciseParams = getParamPreset(model.name, model.family, 'precise');
+        const creativeParams = getParamPreset(modelName, model.family, 'creative');
+        const balancedParams = getParamPreset(modelName, model.family, 'balanced');
+        const preciseParams = getParamPreset(modelName, model.family, 'precise');
         
         // Modal content with parameter table
         paramsModal.innerHTML = `
@@ -1912,7 +1939,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update all model items to remove active status
         document.querySelectorAll('.emergency-model-item').forEach(item => {
-            item.style.borderColor = '#dee2e6';
+            item.style.border = '1px solid #dee2e6';
             
             // Remove active indicator if it exists
             const activeIndicator = item.querySelector('.active-model-indicator');
@@ -2028,7 +2055,7 @@ document.addEventListener('DOMContentLoaded', function() {
             window.templatesUI = new TemplatesUI();
             
             // Initialize with current model
-            const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
+            const modelSelect = document.getElementById('model-select');
             if (modelSelect && modelSelect.value) {
                 window.templatesUI.init(modelSelect.value);
             } else {
@@ -2036,13 +2063,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             console.log('Reinitializing existing TemplatesUI instance');
-            const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
+            const modelSelect = document.getElementById('model-select');
             const modelName = modelSelect ? modelSelect.value : 'llama3.2';
             window.templatesUI.init(modelName);
         }
         
         // Set up model change listener
-        const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
+        const modelSelect = document.getElementById('model-select');
         if (modelSelect) {
             modelSelect.addEventListener('change', function() {
                 console.log('Model changed to:', this.value);
@@ -2357,29 +2384,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const convSidebar = document.getElementById('conversation-manager-sidebar');
     
     if (convBtn && convSidebar) {
-        console.log('Setting up direct conversation button handler');
+        console.log('Setting up enhanced conversations sidebar handler');
+        
+        // 1. Add smooth transition CSS
+        convSidebar.style.transition = 'right 0.3s ease, opacity 0.3s ease';
+        
+        // 2. Enhanced open/close handler
         convBtn.addEventListener('click', function() {
-            console.log('Conversation button clicked');
             closeAllSidebars();
-            convSidebar.classList.toggle('active');
-            
-            // Reinitialize conversation manager to ensure it's working
-            setTimeout(function() {
-                if (window.conversationManager) {
-                    renderCategories();
-                    renderConversations();
-                }
-            }, 50);
+            convSidebar.classList.add('active');
+            convSidebar.style.right = '0';
+            convSidebar.style.opacity = '1';
+            console.log('Conversations sidebar opened');
         });
         
-        // Also set up close button
-        const closeConvBtn = convSidebar.querySelector('.btn-close') ||
-                             convSidebar.querySelector('#close-conversation-manager');
+        // 3. Enhanced close button with animation
+        const closeConvBtn = convSidebar.querySelector('.btn-close') || 
+                              convSidebar.querySelector('#close-conversation-manager');
         if (closeConvBtn) {
             closeConvBtn.addEventListener('click', function() {
-                convSidebar.classList.remove('active');
+                convSidebar.style.right = '-400px';
+                convSidebar.style.opacity = '0';
+                setTimeout(() => {
+                    convSidebar.classList.remove('active');
+                    console.log('Conversations sidebar closed');
+                }, 300);
             });
         }
+        
+        // 4. Dedicated escape key handler
+        convSidebar.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConvBtn.click();
+            }
+        });
+        
+        // 5. Verify initialization
+        console.log('Conversations sidebar handlers initialized:', {
+            openButton: convBtn,
+            closeButton: closeConvBtn,
+            sidebar: convSidebar
+        });
     }
     
     // Helper function to close all sidebars
