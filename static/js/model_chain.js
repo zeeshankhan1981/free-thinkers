@@ -639,6 +639,108 @@ class ModelChain {
             return 'basic';
         }
     }
+
+    /**
+     * Enhance chain UI with step editing and results
+     */
+    async enhanceChainUI() {
+        // Fetch available models
+        let availableModels = [];
+        try {
+            const resp = await fetch('/api/models');
+            if (resp.ok) availableModels = await resp.json();
+        } catch (e) { availableModels = ['llama3.1', 'phi3', 'mistral-7b', 'llava-phi3']; }
+        // Add step editing UI below chain selector
+        const chainStepsDiv = document.getElementById('chainSteps');
+        if (!chainStepsDiv) return;
+        // State: editable steps
+        let chainSteps = [];
+        // Render steps
+        function renderSteps() {
+            chainStepsDiv.innerHTML = '';
+            chainSteps.forEach((step, idx) => {
+                const card = document.createElement('div');
+                card.className = 'chain-step-card mb-2';
+                card.innerHTML = `
+                  <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-primary me-2">Step ${idx + 1}</span>
+                    <input type="text" class="form-control chain-step-prompt flex-grow-1 me-2" placeholder="Prompt for this step..." value="${step.prompt || ''}"/>
+                    <select class="form-select chain-step-model me-2" style="width: 160px;">
+                      ${availableModels.map(m => `<option value="${m}" ${step.model===m?'selected':''}>${m}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-sm btn-outline-danger me-1" data-action="delete"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-sm btn-outline-secondary me-1" data-action="up"><i class="fas fa-arrow-up"></i></button>
+                    <button class="btn btn-sm btn-outline-secondary" data-action="down"><i class="fas fa-arrow-down"></i></button>
+                  </div>
+                  <div class="chain-step-result" id="chain-step-result-${idx}"></div>
+                `;
+                card.querySelector('.chain-step-prompt').addEventListener('input', e => {
+                    chainSteps[idx].prompt = e.target.value;
+                });
+                card.querySelector('.chain-step-model').addEventListener('change', e => {
+                    chainSteps[idx].model = e.target.value;
+                });
+                card.querySelectorAll('button').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        const action = btn.dataset.action;
+                        if (action === 'delete') {
+                            chainSteps.splice(idx, 1); renderSteps();
+                        } else if (action === 'up' && idx > 0) {
+                            [chainSteps[idx-1], chainSteps[idx]] = [chainSteps[idx], chainSteps[idx-1]]; renderSteps();
+                        } else if (action === 'down' && idx < chainSteps.length-1) {
+                            [chainSteps[idx+1], chainSteps[idx]] = [chainSteps[idx], chainSteps[idx+1]]; renderSteps();
+                        }
+                    });
+                });
+                chainStepsDiv.appendChild(card);
+            });
+        }
+        // Add controls
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'd-flex mb-3 gap-2';
+        controlsDiv.innerHTML = `
+          <button class="btn btn-primary flex-grow-1" id="runChainStepsBtn"><i class="fas fa-play"></i> Run Chain</button>
+          <button class="btn btn-outline-secondary" id="resetChainStepsBtn"><i class="fas fa-undo"></i> Reset</button>
+          <button class="btn btn-outline-success" id="addChainStepBtn"><i class="fas fa-plus"></i> Add Step</button>
+        `;
+        chainStepsDiv.parentNode.insertBefore(controlsDiv, chainStepsDiv);
+        // Add listeners
+        controlsDiv.querySelector('#addChainStepBtn').onclick = () => {
+            chainSteps.push({prompt: '', model: availableModels[0] || 'llama3.1'}); renderSteps();
+        };
+        controlsDiv.querySelector('#resetChainStepsBtn').onclick = () => {
+            chainSteps = []; renderSteps();
+            document.querySelectorAll('.chain-step-result').forEach(e => e.innerHTML = '');
+        };
+        controlsDiv.querySelector('#runChainStepsBtn').onclick = async () => {
+            document.querySelectorAll('.chain-step-result').forEach(e => e.innerHTML = '<span class="text-muted">Running...</span>');
+            const chain = chainSteps.map(s => ({prompt: s.prompt, model: s.model, params: {}}));
+            try {
+                const response = await fetch('/api/prompt-chain', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({chain})
+                });
+                const data = await response.json();
+                if (data.results) {
+                    data.results.forEach((step, idx) => {
+                        const resDiv = document.getElementById(`chain-step-result-${idx}`);
+                        if (resDiv) {
+                            if (step.output && step.output.startsWith('[Error: Model call failed with status 404]')) {
+                                resDiv.innerHTML = `<span class='text-danger'>Model not installed. Please install <b>${step.model}</b> in Ollama.</span>`;
+                            } else {
+                                resDiv.innerHTML = `<div class='fw-bold'>Output:</div><div>${step.output}</div><div class='small text-muted'>Signature: ${step.signature}</div>`;
+                            }
+                        }
+                    });
+                } else {
+                    chainStepsDiv.innerHTML = `<div class='text-danger'>${data.error || 'Error running chain.'}</div>`;
+                }
+            } catch (err) {
+                chainStepsDiv.innerHTML = `<div class='text-danger'>Error: ${err}</div>`;
+            }
+        };
+        // Initial render
+        renderSteps();
+    }
 }
 
 // Initialize when DOM is loaded
@@ -647,5 +749,5 @@ document.addEventListener('DOMContentLoaded', function() {
     window.modelChain = new ModelChain();
     
     // Initialize
-    window.modelChain.init();
+    window.modelChain.init().then(() => window.modelChain.enhanceChainUI && window.modelChain.enhanceChainUI());
 });
