@@ -18,6 +18,9 @@ from app.parameter_profiles_api import parameter_profiles_api
 from app.context_manager_api import context_manager_api
 from app.model_chain_api import model_chain_api
 from app.system_monitor_api import system_monitor_api
+from app.prompt_chain_api import prompt_chain_api
+from app.retrieval_api import retrieval_api
+from .model_strategies_api import model_strategies_api
 
 # Path to store history
 HISTORY_DIR = Path(os.path.expanduser("~/.freethinkers/history/"))
@@ -116,6 +119,9 @@ def create_app(config_object='config.Config'):
     app.register_blueprint(context_manager_api)
     app.register_blueprint(model_chain_api)
     app.register_blueprint(system_monitor_api)
+    app.register_blueprint(prompt_chain_api, url_prefix='/api/prompt-chain')
+    app.register_blueprint(retrieval_api)
+    app.register_blueprint(model_strategies_api, url_prefix='/api/model-strategies')
     
     # Context processor for adding global variables to templates
     @app.context_processor

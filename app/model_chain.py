@@ -443,6 +443,34 @@ class ModelChain:
         
         return fallbacks.get(capability, 'mistral-7b')
     
+    def run_model(self, prompt, model, params=None):
+        """
+        Run the specified model with the given prompt and parameters.
+        Calls Ollama API for real inference if available, else returns a mock response.
+        """
+        params = params or {}
+        try:
+            # Prepare Ollama API request
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "options": params
+            }
+            response = requests.post(
+                "http://localhost:11434/api/generate",
+                json=payload,
+                timeout=30
+            )
+            if response.status_code == 200:
+                resp_json = response.json()
+                # Ollama returns 'response' key with the generated text
+                return resp_json.get("response", "[No response from model]")
+            else:
+                return f"[Error: Model call failed with status {response.status_code}]"
+        except Exception as e:
+            # Fallback to mock response if Ollama is unavailable
+            return f"[MOCK-{model}] Response to: '{prompt}' (error: {str(e)})"
+    
     async def _run_model(self, model_name: str, prompt: str, parameters: Dict = None) -> str:
         """Run a single model with the given prompt."""
         parameters = parameters or {}
