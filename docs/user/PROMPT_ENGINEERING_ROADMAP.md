@@ -25,6 +25,7 @@ This guide provides a structured approach to prompt engineering across different
 - **Few-shot prompting**: Including examples in the prompt
 - **Chain-of-thought**: Breaking down reasoning steps
 - **Self-consistency**: Generating multiple reasoning paths
+- **Prompt chaining**: (Feature removed; see single-model prompt engineering section)
 
 ### 2. Intermediate Techniques
 - **Role prompting**: Assigning specific roles to the model
@@ -35,7 +36,7 @@ This guide provides a structured approach to prompt engineering across different
 ### 3. Advanced Techniques
 - **ReAct**: Reasoning + Action patterns
 - **Tree of Thoughts**: Exploring multiple reasoning branches
-- **Prompt chaining**: Breaking complex tasks into subtasks
+- **Single-model prompt engineering**: Optimizing prompts for individual models
 - **Retrieval-augmented prompting**: Incorporating external knowledge
 
 ## Model-Specific Strategies
@@ -97,7 +98,7 @@ This guide provides a structured approach to prompt engineering across different
 ### Phase 4: Integration (Week 7-8)
 - Automate prompt generation
 - Implement hybrid model approaches
-- Develop prompt chaining workflows
+- Optimize single-model prompts
 
 ## Specialized Use Cases
 
