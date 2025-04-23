@@ -283,7 +283,7 @@ class TemplatesUI {
       
       if (data.status === 'success') {
         // Set the generated prompt in the message input
-        const messageInput = document.getElementById('messageInput');
+        const messageInput = document.getElementById('message-input');
         if (!messageInput) {
           console.error('Message input not found');
           return;
