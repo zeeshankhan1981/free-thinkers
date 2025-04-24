@@ -24,8 +24,7 @@ class TemplatesUI {
         modelName = modelSelector.value;
         console.log('Using fallback model from selector:', modelName);
       } else {
-        modelName = 'llama3.2'; // Safe default
-        console.log('Using hardcoded fallback model:', modelName);
+        console.log('Using no fallback model');
       }
     }
     

@@ -244,7 +244,7 @@ class ConversationManager {
                     title: conversation.title,
                     category: conversation.category,
                     messages: conversation.messages,
-                    model: window.currentModel || 'mistral-7b'
+                    model: window.currentModel
                 })
             });
 

@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Global variables
     let isDarkMode = false;
-    let currentModel = modelSelect ? modelSelect.value : 'llama3.2';
+    let currentModel = modelSelect ? modelSelect.value : '';
     let promptGuides = {};
     let isImageMode = false;
     let currentImageFile = null;
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updatePromptGuide(modelSelect.value);
             } else {
                 console.warn('Model select element not found when loading guides');
-                updatePromptGuide('llama3.1'); // Fallback to a default model
+                updatePromptGuide(''); // Fallback to empty string
             }
         } catch (error) {
             console.error('Error loading prompt guides:', error);
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tips: 'Be specific and provide context for more accurate answers.'
                 }
             };
-            updatePromptGuide('default');
+            updatePromptGuide('');
         }
     }
     
@@ -439,6 +439,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Add: Response speed control integration
+    const responseSpeedSelect = document.getElementById('response-speed');
+    let responseSpeedProfile = 'medium'; // Default to balanced
+    if (responseSpeedSelect) {
+        responseSpeedProfile = responseSpeedSelect.value;
+        responseSpeedSelect.addEventListener('change', function() {
+            responseSpeedProfile = this.value;
+        });
+    }
+
     // Simplified sendMessageToAI function with fixed API communication
     function sendMessageToAI() {
         console.log('sendMessageToAI called directly');
@@ -488,15 +498,26 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Get current model
         const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
-        const currentModel = modelSelect ? modelSelect.value : 'llama3.1';
+        const currentModel = modelSelect ? modelSelect.value : '';
         
-        // Get parameters (or use defaults)
-        const parameters = window.currentParameters || {
-            temperature: 0.7,
-            top_p: 0.95,
-            top_k: 40,
-            max_tokens: 1024
+        // Get response speed profile
+        let speedProfile = 'medium';
+        if (responseSpeedSelect) {
+            speedProfile = responseSpeedSelect.value;
+        }
+
+        // Map speed profile to parameter presets
+        let speedPresets = {
+            slow:   { temperature: 0.2, top_p: 0.7, top_k: 20, max_tokens: 1024 }, // Precise
+            medium: { temperature: 0.7, top_p: 0.95, top_k: 40, max_tokens: 1024 }, // Balanced
+            fast:   { temperature: 1.1, top_p: 1.0, top_k: 80, max_tokens: 1024 }   // Creative
         };
+        // Start with speed profile
+        let parameters = { ...speedPresets[speedProfile] };
+        // Merge with any custom parameters from window.currentParameters
+        if (window.currentParameters) {
+            parameters = { ...parameters, ...window.currentParameters };
+        }
         
         // Prepare request data matching what the Flask backend expects
         const requestData = {
@@ -784,7 +805,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update image upload button visibility
             if (toggleImageUpload) {
-                toggleImageUpload.style.display = currentModel.includes('llava') ? 'block' : 'none';
+                toggleImageUpload.style.display = 'block'; // Always show
             }
         });
         
@@ -795,7 +816,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update image upload button visibility
             if (toggleImageUpload) {
-                toggleImageUpload.style.display = currentModel.includes('llava') ? 'block' : 'none';
+                toggleImageUpload.style.display = 'block'; // Always show
             }
         }
     }
@@ -982,7 +1003,7 @@ function resetUI() {
 // Function to update token visualization
 window.updateTokenVisualization = function(text, model) {
     if (!text) text = '';
-    if (!model) model = currentModel || 'llama3.2';
+    if (!model) model = currentModel || '';
     
     // Get elements with fallbacks
     const charCountDisplay = document.getElementById('char-count-display') || document.getElementById('charCountDisplay');

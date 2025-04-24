@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 /* Dark mode compatibility */
                 body.dark-mode #model-management-sidebar.active {
-                    background-color: var(--dark-bg, #212529) !important;
+                    background-color: var(--dark-bg, #222) !important;
                     color: var(--dark-text, #f8f9fa) !important;
                 }
                 
@@ -636,11 +636,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     <div class="model-filter-tags" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
                         <button class="filter-tag active" data-filter="all" style="padding:0.25rem 0.5rem; border:1px solid #0d6efd; border-radius:1rem; background-color:#e7f1ff; font-size:0.75rem; cursor:pointer;">All</button>
-                        <button class="filter-tag" data-filter="llama" style="padding:0.25rem 0.5rem; border:1px solid #ced4da; border-radius:1rem; background-color:#f8f9fa; font-size:0.75rem; cursor:pointer;">LLaMA</button>
                         <button class="filter-tag" data-filter="gemma" style="padding:0.25rem 0.5rem; border:1px solid #ced4da; border-radius:1rem; background-color:#f8f9fa; font-size:0.75rem; cursor:pointer;">Gemma</button>
-                        <button class="filter-tag" data-filter="mistral" style="padding:0.25rem 0.5rem; border:1px solid #ced4da; border-radius:1rem; background-color:#f8f9fa; font-size:0.75rem; cursor:pointer;">Mistral</button>
                         <button class="filter-tag" data-filter="phi" style="padding:0.25rem 0.5rem; border:1px solid #ced4da; border-radius:1rem; background-color:#f8f9fa; font-size:0.75rem; cursor:pointer;">Phi</button>
-                        <button class="filter-tag" data-filter="multimodal" style="padding:0.25rem 0.5rem; border:1px solid #ced4da; border-radius:1rem; background-color:#f8f9fa; font-size:0.75rem; cursor:pointer;">Multimodal</button>
                     </div>
                 </div>
                 
@@ -662,37 +659,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div id="download-progress-bar" style="width:0%; height:100%; background-color:#0d6efd; transition:width 0.5s;"></div>
                     </div>
                     <div id="download-status" style="font-size:0.875rem; margin-top:0.5rem;"></div>
-                </div>
-                
-                <!-- Model Settings Presets -->
-                <div class="model-presets-section" style="margin-bottom:1.5rem; border:1px solid #ced4da; border-radius:0.375rem; padding:1rem; background-color:#f8f9fa;">
-                    <div class="section-header" style="margin-bottom:1rem;">
-                        <h4 style="margin:0;">Parameter Presets</h4>
-                    </div>
-                    
-                    <div class="preset-buttons" style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-                        <button class="preset-btn" data-preset="creative" style="flex:1; padding:0.5rem; border:1px solid #ced4da; border-radius:0.25rem; background-color:white; cursor:pointer;">
-                            Creative
-                        </button>
-                        <button class="preset-btn" data-preset="balanced" style="flex:1; padding:0.5rem; border:1px solid #ced4da; border-radius:0.25rem; background-color:white; cursor:pointer;">
-                            Balanced
-                        </button>
-                        <button class="preset-btn" data-preset="precise" style="flex:1; padding:0.5rem; border:1px solid #ced4da; border-radius:0.25rem; background-color:white; cursor:pointer;">
-                            Precise
-                        </button>
-                    </div>
-                    
-                    <div class="speed-presets" style="display:flex; gap:0.5rem;">
-                        <button class="speed-btn" data-speed="slow" style="flex:1; padding:0.4rem; border:1px solid #ced4da; border-radius:0.25rem; background-color:white; font-size:0.8rem; cursor:pointer;">
-                            <i class="fas fa-tachometer-alt"></i> Slow
-                        </button>
-                        <button class="speed-btn" data-speed="medium" style="flex:1; padding:0.4rem; border:1px solid #ced4da; border-radius:0.25rem; background-color:white; font-size:0.8rem; cursor:pointer;">
-                            <i class="fas fa-tachometer-alt"></i> Medium
-                        </button>
-                        <button class="speed-btn" data-speed="fast" style="flex:1; padding:0.4rem; border:1px solid #ced4da; border-radius:0.25rem; background-color:white; font-size:0.8rem; cursor:pointer;">
-                            <i class="fas fa-tachometer-alt"></i> Fast
-                        </button>
-                    </div>
                 </div>
                 
                 <!-- Available Models Section -->
@@ -793,46 +759,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Set up preset buttons
-        const presetButtons = document.querySelectorAll('.preset-btn');
-        presetButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const preset = this.getAttribute('data-preset');
-                applyParameterPreset(preset);
-                
-                // Update visual feedback
-                presetButtons.forEach(b => {
-                    b.style.backgroundColor = 'white';
-                    b.style.color = 'black';
-                    b.style.fontWeight = 'normal';
-                });
-                
-                this.style.backgroundColor = '#0d6efd';
-                this.style.color = 'white';
-                this.style.fontWeight = 'bold';
-            });
-        });
-        
-        // Set up speed buttons
-        const speedButtons = document.querySelectorAll('.speed-btn');
-        speedButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const speed = this.getAttribute('data-speed');
-                applySpeedPreset(speed);
-                
-                // Update visual feedback
-                speedButtons.forEach(b => {
-                    b.style.backgroundColor = 'white';
-                    b.style.color = 'black';
-                    b.style.fontWeight = 'normal';
-                });
-                
-                this.style.backgroundColor = '#0d6efd';
-                this.style.color = 'white';
-                this.style.fontWeight = 'bold';
-            });
-        });
-        
         // Load models directly into our emergency container
         loadEmergencyModels();
         
@@ -879,22 +805,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 let capabilities = 'Text';
                 let size = 'Unknown';
                 
-                if (model.name.includes('llama')) {
-                    family = 'LLaMA';
-                    badge = 'Meta AI';
-                } else if (model.name.includes('mistral')) {
-                    family = 'Mistral';
-                    badge = 'Mistral AI';
-                } else if (model.name.includes('gemma')) {
+                if (model.name.includes('gemma')) {
                     family = 'Gemma';
                     badge = 'Google';
                 } else if (model.name.includes('phi')) {
                     family = 'Phi';
                     badge = 'Microsoft';
-                } else if (model.name.includes('llava')) {
-                    family = 'LLaVA';
-                    badge = 'Multimodal';
-                    capabilities = 'Text + Image';
                 }
                 
                 // Extract model size from name
@@ -1103,11 +1019,6 @@ document.addEventListener('DOMContentLoaded', function() {
             let matchesType = true;
             if (filterType !== 'all') {
                 matchesType = modelFamily.includes(filterType) || modelName.includes(filterType);
-                
-                // Special case for multimodal
-                if (filterType === 'multimodal') {
-                    matchesType = modelName.includes('llava') || modelName.includes('vision');
-                }
             }
             
             // Show or hide
@@ -1805,23 +1716,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         // Adjust based on model family
-        if (family.includes('llama')) {
-            params = {
-                temperature: 0.7,
-                top_p: 0.9,
-                top_k: 40,
-                max_tokens: 2048,
-                repetition_penalty: 1.1
-            };
-        } else if (family.includes('mistral')) {
-            params = {
-                temperature: 0.7,
-                top_p: 0.95,
-                top_k: 40,
-                max_tokens: 2048,
-                repetition_penalty: 1.1
-            };
-        } else if (family.includes('gemma')) {
+        if (family.includes('gemma')) {
             params = {
                 temperature: 0.7,
                 top_p: 0.95,
@@ -1835,17 +1730,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 top_p: 0.9,
                 top_k: 40,
                 max_tokens: 2048,
-                repetition_penalty: 1.1
-            };
-        }
-        
-        // Adjust for multimodal
-        if (modelName.includes('llava') || modelName.includes('vision')) {
-            params = {
-                temperature: 0.65,
-                top_p: 0.85,
-                top_k: 30,
-                max_tokens: 1024,
                 repetition_penalty: 1.1
             };
         }
@@ -1882,28 +1766,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Helper function to get best use case based on model
     function getBestUseCase(modelName, family) {
-        if (modelName.includes('llava') || modelName.includes('vision')) {
-            return 'Image analysis and description';
-        }
-        
-        if (family.toLowerCase().includes('llama')) {
-            return 'Complex reasoning, general-purpose tasks';
-        }
-        
-        if (family.toLowerCase().includes('mistral')) {
-            return 'Fast responses, general tasks, concise outputs';
-        }
-        
         if (family.toLowerCase().includes('gemma')) {
             return 'General conversation, text generation, creative writing';
         }
         
         if (family.toLowerCase().includes('phi')) {
             return 'Specialized tasks, efficient reasoning';
-        }
-        
-        if (modelName.includes('uncensored')) {
-            return 'Creative content without restrictions';
         }
         
         return 'General conversational AI and text generation';
@@ -2059,12 +1927,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (modelSelect && modelSelect.value) {
                 window.templatesUI.init(modelSelect.value);
             } else {
-                window.templatesUI.init('llama3.2'); // Fallback model
+                window.templatesUI.init('gemma'); // Fallback model
             }
         } else {
             console.log('Reinitializing existing TemplatesUI instance');
             const modelSelect = document.getElementById('model-select');
-            const modelName = modelSelect ? modelSelect.value : 'llama3.2';
+            const modelName = modelSelect ? modelSelect.value : 'gemma';
             window.templatesUI.init(modelName);
         }
         

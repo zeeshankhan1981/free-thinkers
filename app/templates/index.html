@@ -70,9 +70,6 @@
         <!-- Model Chain UI removed -->
         <!-- (No model chain include here) -->
         <div class="chat-container" id="chat-container">
-            <div class="parameter-display" id="current-parameters">
-                <!-- Parameters will be displayed here -->
-            </div>
             <div id="chat-messages">
                 <!-- Messages will be displayed here -->
             </div>
@@ -95,9 +92,7 @@
                     <div class="model-select">
                         <label for="model-select" class="model-select-label me-2">Model:</label>
                         <select class="form-select" id="model-select">
-                            <option value="mistral-7b">Mistral 7B (Q4_K_M)</option>
-                            <option value="llama3.2" selected>Llama 3.2</option>
-                            <option value="llava-phi3:latest">LLaVA-Phi3 (Multimodal)</option>
+                            <!-- Removed all hardcoded options for mistral-7b, llama3.2, and llava-phi3:latest -->
                         </select>
                         <!-- Model management button will be added by model_integration.js -->
                     </div>

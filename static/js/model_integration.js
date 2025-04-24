@@ -43,16 +43,11 @@ class ModelIntegrationSystem {
             if (this.modelSelect) {
                 this.modelSelect.addEventListener('change', (e) => this.handleModelSelectChange(e));
                 
-                // Store initial selected model (with fallback to prevent empty string)
-                this.currentModel = this.modelSelect.value || 'llama3.2';
-                if (!this.currentModel || this.currentModel.trim() === '') {
-                    this.currentModel = 'llama3.2';
-                    this.modelSelect.value = this.currentModel;
-                }
+                // Store initial selected model
+                this.currentModel = this.modelSelect.value;
                 console.log("Initial model:", this.currentModel);
             } else {
                 console.warn("Model select element not found in the DOM");
-                this.currentModel = 'llama3.2';
             }
             
             // Add "Manage Models" button next to the dropdown if not already present
@@ -184,7 +179,14 @@ class ModelIntegrationSystem {
         if (!this.modelSelect || this.availableModels.length === 0) return;
         
         // Save the current selection
-        const currentValue = this.modelSelect.value;
+        let currentValue = this.modelSelect.value;
+        
+        // If phi3:3.8b is in the available models, make it the default if nothing is selected
+        if (this.availableModels.includes('phi3:3.8b')) {
+            if (!currentValue || !this.availableModels.includes(currentValue)) {
+                currentValue = 'phi3:3.8b';
+            }
+        }
         
         // Get existing options
         const existingOptions = Array.from(this.modelSelect.options).map(opt => opt.value);
@@ -199,7 +201,7 @@ class ModelIntegrationSystem {
             }
         });
         
-        // Restore the selection
+        // Restore or set the selection
         this.modelSelect.value = currentValue;
     }
     

@@ -37,11 +37,7 @@ class ContextManager {
      * @returns {number} - Context window size
      */
     getContextWindowForModel(modelName) {
-        const TOKEN_COUNTS = window.TOKEN_COUNTS || {
-            "mistral-7b": { max_tokens: 4096 },
-            "llama3.2": { max_tokens: 4096 },
-            "llava-phi3:latest": { max_tokens: 4096 }
-        };
+        const TOKEN_COUNTS = window.TOKEN_COUNTS || {};
         
         if (modelName in TOKEN_COUNTS) {
             return TOKEN_COUNTS[modelName].max_tokens;
@@ -412,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize with current model
     const modelSelect = document.getElementById('modelSelect');
-    const currentModel = modelSelect ? modelSelect.value : 'llama3.2';
+    const currentModel = modelSelect ? modelSelect.value : null;
     
     window.contextManager.init(currentModel);
     

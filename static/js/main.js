@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Initialize global variables
-    window.currentModel = 'mistral-7b';
     window.currentParameters = {
         temperature: 0.7,
         top_p: 0.9,
@@ -798,7 +797,7 @@ function handleSearch(event) {
             items.forEach(item => item.classList.remove('active'));
             conversationItem.classList.add('active');
             
-            // Then load the conversation into the current thread
+            // Load conversation
             if (window.conversationManager.loadConversationToThread(conversation.id)) {
                 showConversationDetails(conversation);
                 
