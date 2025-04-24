@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingIndicator = document.getElementById('loading-indicator') || document.getElementById('loadingIndicator');
     const clearMessages = document.getElementById('clear-messages') || document.getElementById('clearMessages');
     const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
-    const parameterControlsBtn = document.getElementById('parameter-controls-btn') || document.getElementById('parameterControlsBtn');
     const conversationManagerBtn = document.getElementById('conversation-manager-btn') || document.getElementById('conversationManagerBtn');
     const modelManagementBtn = document.getElementById('model-management-btn') || document.getElementById('modelManagementBtn');
     const darkModeToggle = document.getElementById('dark-mode-toggle') || document.getElementById('darkModeToggle');
@@ -41,33 +40,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeImageUpload = document.getElementById('close-image-upload') || document.getElementById('closeImageUpload');
     
     // Sidebars
-    const parameterControlsSidebar = document.getElementById('parameter-controls-sidebar') || document.getElementById('parameterControlsSidebar');
     const conversationManagerSidebar = document.getElementById('conversation-manager-sidebar') || document.getElementById('conversationManagerSidebar');
     const modelManagementSidebar = document.getElementById('model-management-sidebar') || document.getElementById('modelManagementSidebar');
     
     // Direct event handlers for navigation buttons as a fallback
-    if (parameterControlsBtn) {
-        console.log("Setting up direct parameter controls button handler");
-        parameterControlsBtn.addEventListener('click', function() {
-            // Close all other sidebars first
-            if (conversationManagerSidebar) conversationManagerSidebar.classList.remove('active');
-            if (modelManagementSidebar) modelManagementSidebar.classList.remove('active');
-            
-            // Toggle this sidebar
-            if (parameterControlsSidebar) {
-                parameterControlsSidebar.classList.toggle('active');
-                console.log("Toggled parameter controls sidebar");
-            } else {
-                console.error("Parameter controls sidebar not found");
-            }
-        });
-    }
-    
     if (modelManagementBtn) {
         console.log("Setting up direct model management button handler");
         modelManagementBtn.addEventListener('click', function() {
             // Close all other sidebars first
-            if (parameterControlsSidebar) parameterControlsSidebar.classList.remove('active');
             if (conversationManagerSidebar) conversationManagerSidebar.classList.remove('active');
             
             // Toggle this sidebar
@@ -84,7 +64,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Setting up direct conversation manager button handler");
         conversationManagerBtn.addEventListener('click', function() {
             // Close all other sidebars first
-            if (parameterControlsSidebar) parameterControlsSidebar.classList.remove('active');
             if (modelManagementSidebar) modelManagementSidebar.classList.remove('active');
             
             // Toggle this sidebar
@@ -122,33 +101,78 @@ document.addEventListener('DOMContentLoaded', function() {
         window.currentThread = [];
     }
     
-    // Log initialization
-    console.log('App initialized with model:', currentModel);
-    console.log('Current parameters:', window.currentParameters);
-    
-    // Handle login button click
-    if (loginButton) {
-        loginButton.addEventListener('click', function() {
-            window.location.href = '/login';
+    // --- Dynamic Model Parameters Mapping ---
+    const modelParameters = {
+        'llama3.2': {
+            absolute: { temperature: 0.0, top_p: 0.0, top_k: 1, repetition_penalty: 2.0, context_window: 2048 },
+            slow:    { temperature: 0.3, top_p: 0.8, top_k: 20, repetition_penalty: 1.2, context_window: 2048 },
+            medium:  { temperature: 0.7, top_p: 0.95, top_k: 40, repetition_penalty: 1.1, context_window: 2048 },
+            fast:    { temperature: 0.95, top_p: 1.0, top_k: 50, repetition_penalty: 1.0, context_window: 2048 }
+        },
+        'mistral-7b': {
+            absolute: { temperature: 0.0, top_p: 0.0, top_k: 1, repetition_penalty: 2.0, context_window: 2048 },
+            slow:    { temperature: 0.2, top_p: 0.85, top_k: 15, repetition_penalty: 1.25, context_window: 2048 },
+            medium:  { temperature: 0.6, top_p: 0.9, top_k: 30, repetition_penalty: 1.15, context_window: 2048 },
+            fast:    { temperature: 0.9, top_p: 1.0, top_k: 45, repetition_penalty: 1.05, context_window: 2048 }
+        },
+        'llava-phi3:latest': {
+            absolute: { temperature: 0.0, top_p: 0.0, top_k: 1, repetition_penalty: 2.0, context_window: 1024 },
+            slow:    { temperature: 0.4, top_p: 0.85, top_k: 18, repetition_penalty: 1.2, context_window: 1024 },
+            medium:  { temperature: 0.8, top_p: 0.92, top_k: 35, repetition_penalty: 1.05, context_window: 1024 },
+            fast:    { temperature: 1.0, top_p: 1.0, top_k: 50, repetition_penalty: 1.0, context_window: 1024 }
+        }
+        // Add more models and their parameters as needed
+    };
+
+    function updateParameterDisplayBox(modelName) {
+        const paramDiv = document.getElementById('current-parameters');
+        const speedSelect = document.getElementById('response-speed');
+        const speed = speedSelect ? speedSelect.value : 'medium';
+        const params = (modelParameters[modelName] && modelParameters[modelName][speed]) ? modelParameters[modelName][speed] : modelParameters['llama3.2']['medium'];
+        if (paramDiv) {
+            paramDiv.innerHTML = `
+                <div class="alert alert-info mb-3" style="font-size: 0.95rem;">
+                    <strong>Model Parameters (Read Only):</strong><br>
+                    Temperature: <span class="fw-semibold">${params.temperature}</span> &nbsp;|&nbsp;
+                    Top-p: <span class="fw-semibold">${params.top_p}</span> &nbsp;|&nbsp;
+                    Top-k: <span class="fw-semibold">${params.top_k}</span> &nbsp;|&nbsp;
+                    Repetition Penalty: <span class="fw-semibold">${params.repetition_penalty}</span> &nbsp;|&nbsp;
+                    Context Window: <span class="fw-semibold">${params.context_window} tokens</span>
+                </div>
+            `;
+        }
+    }
+
+    // Initial parameter display
+    updateParameterDisplayBox(modelSelect ? modelSelect.value : 'llama3.2');
+
+    // Listen for model changes
+    if (modelSelect) {
+        modelSelect.addEventListener('change', function() {
+            updateParameterDisplayBox(this.value);
+        });
+    }
+    // Listen for response speed changes
+    const speedSelect = document.getElementById('response-speed');
+    if (speedSelect) {
+        speedSelect.addEventListener('change', function() {
+            updateParameterDisplayBox(modelSelect ? modelSelect.value : 'llama3.2');
         });
     }
     
-    // Prompt guide toggle
-    if (togglePromptGuideBtn && promptGuideCollapse) {
-        togglePromptGuideBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const isExpanded = promptGuideCollapse.classList.contains('show');
-            
-            if (isExpanded) {
-                promptGuideCollapse.classList.remove('show');
-                togglePromptGuideBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
-            } else {
-                promptGuideCollapse.classList.add('show');
-                togglePromptGuideBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
-            }
-        });
+    // Helper to get current model and speed, and return the correct parameter set
+    function getCurrentParameters() {
+        const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
+        const speedSelect = document.getElementById('response-speed');
+        const model = modelSelect ? modelSelect.value : 'llama3.2';
+        const speed = speedSelect ? speedSelect.value : 'medium';
+        if (modelParameters[model] && modelParameters[model][speed]) {
+            return modelParameters[model][speed];
+        }
+        // fallback
+        return modelParameters['llama3.2']['medium'];
     }
-    
+
     // Fetch prompt guides for all models
     async function loadPromptGuides() {
         try {
@@ -491,12 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentModel = modelSelect ? modelSelect.value : 'llama3.1';
         
         // Get parameters (or use defaults)
-        const parameters = window.currentParameters || {
-            temperature: 0.7,
-            top_p: 0.95,
-            top_k: 40,
-            max_tokens: 1024
-        };
+        const parameters = getCurrentParameters();
         
         // Prepare request data matching what the Flask backend expects
         const requestData = {

@@ -9,7 +9,6 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    let parameterControlsBtn = document.getElementById('parameter-controls-btn');
     const closeParameterControls = document.getElementById('close-parameter-controls');
     const parameterControlsSidebar = document.getElementById('parameter-controls-sidebar');
     const saveParameters = document.getElementById('save-parameters');
@@ -56,70 +55,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Current parameters
     let currentParameters = { ...presets.balanced };
     
-    // Check if the button exists, if not, create it (for backwards compatibility)
-    if (!parameterControlsBtn) {
-        console.warn('Parameter controls button not found, creating a fallback');
-        const btn = document.createElement('button');
-        btn.id = 'parameter-controls-btn';
-        btn.className = 'parameter-controls-btn';
-        btn.title = 'Parameter Controls';
-        btn.innerHTML = '<i class="fas fa-sliders-h"></i>';
-        document.body.appendChild(btn);
-        
-        // Re-get the element
-        parameterControlsBtn = document.getElementById('parameter-controls-btn');
-    }
-    
     // Event Listeners
-    if (parameterControlsBtn) {
-        parameterControlsBtn.addEventListener('click', function() {
-            // Use the global toggleSidebar if available, otherwise fall back to original behavior
-            if (window.toggleSidebar && typeof window.toggleSidebar === 'function') {
-                window.toggleSidebar(parameterControlsSidebar, parameterControlsBtn);
-            } else {
-                parameterControlsSidebar.classList.add('active');
-            }
-            loadCurrentParameters();
-        });
-    }
-    
     if (closeParameterControls) {
         closeParameterControls.addEventListener('click', function() {
             parameterControlsSidebar.classList.remove('active');
-            
-            // Also remove active class from the button if using the new UI
-            if (parameterControlsBtn) {
-                parameterControlsBtn.classList.remove('active');
-            }
-            
-            // Update activeSidebar if it's a global variable
-            if (window.activeSidebar !== undefined) {
-                window.activeSidebar = null;
-            }
-        });
-    }
-    
-    // Make sure the parameter controls button has event listeners
-    if (parameterControlsBtn) {
-        parameterControlsBtn.addEventListener('click', function() {
-            // Use the global toggleSidebar if available, otherwise fall back to original behavior
-            if (window.toggleSidebar && typeof window.toggleSidebar === 'function') {
-                window.toggleSidebar(parameterControlsSidebar, parameterControlsBtn);
-            } else {
-                parameterControlsSidebar.classList.add('active');
-            }
-            loadCurrentParameters();
-        });
-    }
-    
-    if (closeParameterControls) {
-        closeParameterControls.addEventListener('click', function() {
-            parameterControlsSidebar.classList.remove('active');
-            
-            // Also remove active class from the button if using the new UI
-            if (parameterControlsBtn) {
-                parameterControlsBtn.classList.remove('active');
-            }
             
             // Update activeSidebar if it's a global variable
             if (window.activeSidebar !== undefined) {

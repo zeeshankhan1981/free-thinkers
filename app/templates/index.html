@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components-styles.css') }}?v=0.2.1">
     <!-- Load component-specific styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='components/model_management.css') }}?v=0.2.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='components/parameter_controls.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='components/conversation_manager.css') }}?v=0.2.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/templates.css') }}?v=0.3.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=0.1.0">
@@ -36,10 +35,6 @@
             <button class="nav-btn" id="model-management-btn">
                 <i class="fas fa-cog"></i>
                 <span class="nav-btn-text">Models</span>
-            </button>
-            <button class="nav-btn" id="parameter-controls-btn">
-                <i class="fas fa-sliders-h"></i>
-                <span class="nav-btn-text">Parameters</span>
             </button>
             <button class="nav-btn" id="conversation-manager-btn">
                 <i class="fas fa-comments"></i>
@@ -71,7 +66,14 @@
         <!-- (No model chain include here) -->
         <div class="chat-container" id="chat-container">
             <div class="parameter-display" id="current-parameters">
-                <!-- Parameters will be displayed here -->
+                <div class="alert alert-info mb-3" style="font-size: 0.95rem;">
+                    <strong>Model Parameters (Read Only):</strong><br>
+                    Temperature: <span class="fw-semibold">0.7</span> &nbsp;|&nbsp;
+                    Top-p: <span class="fw-semibold">0.95</span> &nbsp;|&nbsp;
+                    Top-k: <span class="fw-semibold">40</span> &nbsp;|&nbsp;
+                    Repetition Penalty: <span class="fw-semibold">1.1</span> &nbsp;|&nbsp;
+                    Context Window: <span class="fw-semibold">2048 tokens</span>
+                </div>
             </div>
             <div id="chat-messages">
                 <!-- Messages will be displayed here -->
@@ -105,6 +107,7 @@
                     <div class="response-speed-control" title="Control how the model generates responses">
                         <label for="response-speed" class="response-speed-label">Response:</label>
                         <select class="form-select" id="response-speed">
+                            <option value="absolute">Absolute</option>
                             <option value="slow">Precise</option>
                             <option value="medium" selected>Balanced</option>
                             <option value="fast">Creative</option>
@@ -262,8 +265,6 @@
     </div>
 
     {% include 'components/conversation_manager.html' %}
-
-    {% include 'components/parameter_controls.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=0.2.0"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}?v=0.3.0"></script>
